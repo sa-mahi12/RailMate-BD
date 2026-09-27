@@ -25,6 +25,11 @@ jobs:
         with:
           channel: stable
           cache: true
+      - uses: actions/setup-java@v4
+        if: steps.scaffold.outputs.present == 'true'
+        with:
+          distribution: temurin
+          java-version: "17"
       - name: Dependencies
         if: steps.scaffold.outputs.present == 'true'
         run: flutter pub get
