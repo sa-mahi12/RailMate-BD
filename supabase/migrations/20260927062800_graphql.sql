@@ -1,0 +1,19 @@
+-- B04 / DRAFT / NOT APPLIED. Review in a disposable *hosted* Supabase
+-- staging project first, together with the RLS inventory in
+-- 20260927000002_rls.sql. The coordinator reviews, commits and pushes;
+-- a worker must never apply this file to any project.
+--
+-- Enables pg_graphql so the mobile app can run one read-only station query
+-- (`stationsCollection { edges { node { id code name } } }`, see
+-- lib/features/graphql/graphql_client.dart) against the hosted project
+-- https://<ref>.supabase.co/graphql/v1 with the anon key.
+--
+-- Exposure follows existing RLS, no extra grants in this file:
+-- * public.stations is readable by anon+authenticated via policy
+--   stations_public_read (select using (true)).
+-- * public.trips is readable where active via trips_public_read.
+-- pg_graphql executes as the requesting role, so those same policies gate
+-- GraphQL reads exactly as they gate PostgREST reads. This migration
+-- intentionally grants nothing extra and creates no new tables, views,
+-- functions or storage buckets.
+create extension if not exists pg_graphql;
