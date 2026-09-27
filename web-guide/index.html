@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RailMate BD — Station Guide (Offline Demo Scaffold)</title>
+  <!-- Local stylesheet only. No CDN stylesheets. -->
+  <!-- B09 NOTE: Sass-compiled CSS output will be linked here AFTER teacher
+       approval (R-16 BLOCKED). Do not add any Sass build output until the
+       approval is recorded in RailMate-BD-internal coordination/DECISIONS.md. -->
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="guide-header">
+    <h1>Station Guide</h1>
+    <p class="demo-banner">OFFLINE DEMO SCAFFOLD — DEMONSTRATION ONLY</p>
+  </header>
+
+  <main class="guide-main">
+    <section class="card" id="overview">
+      <h2>Overview</h2>
+      <p>Local placeholder overview for demo stations DAC / CGP / SYL / RJH.
+         Rendered fully offline; no network calls.</p>
+      <ul class="fact-chips">
+        <li>DAC — Dhaka</li>
+        <li>CGP — Chattogram</li>
+        <li>SYL — Sylhet</li>
+        <li>RJH — Rajshahi</li>
+      </ul>
+    </section>
+
+    <section class="card" id="quick-info">
+      <h2>Quick Information</h2>
+      <dl>
+        <dt>Helpline</dt>
+        <dd>Demo helpline 0000 (DEMONSTRATION ONLY)</dd>
+        <dt>Mode</dt>
+        <dd>Offline demo — no network required</dd>
+      </dl>
+    </section>
+
+    <!-- B09 PLACEHOLDER (R-10 BLOCKED): Google Maps embed goes here ONLY
+         after teacher approval for embedded web technologies is recorded.
+         Approved implementation: insert one Maps iframe inside the
+         #map-slot div below. No iframe exists until approval. -->
+    <section class="card" id="map">
+      <h2>Map</h2>
+      <div id="map-slot" data-embed-pending="google-maps">
+        <p class="placeholder-note">Map embed placeholder — pending teacher approval (R-10 BLOCKED).</p>
+      </div>
+    </section>
+
+    <!-- B09 PLACEHOLDER (R-09 BLOCKED): YouTube embed goes here ONLY after
+         teacher approval is recorded. Approved implementation: insert one
+         YouTube iframe inside the #video-slot div below. No iframe exists
+         until approval. -->
+    <section class="card" id="video">
+      <h2>Video</h2>
+      <div id="video-slot" data-embed-pending="youtube">
+        <p class="placeholder-note">Video embed placeholder — pending teacher approval (R-09 BLOCKED).</p>
+      </div>
+    </section>
+
+    <!-- B09 PLACEHOLDER (R-15 BLOCKED): GSAP entrance animation hooks here
+         ONLY after teacher approval is recorded. Approved implementation:
+         load local gsap bundle and animate .card elements on load. No CDN
+         scripts and no animation library until approval. -->
+    <section class="card" id="animation-note">
+      <h2>Animation</h2>
+      <p class="placeholder-note">Entrance-animation placeholder — GSAP pending teacher approval (R-15 BLOCKED).</p>
+    </section>
+  </main>
+
+  <!-- Local script only. No CDN scripts, no GSAP until approval. -->
+  <!-- B09 NOTE: GSAP animation wiring will be added to guide.js ONLY after
+       teacher approval (R-15 BLOCKED). -->
+  <script src="guide.js"></script>
+</body>
+</html>

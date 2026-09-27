@@ -1,0 +1,34 @@
+name: ml-train
+# A09 (R-12): hosted-only synthetic ranker training. Coordinator-dispatched;
+# workers never run training locally (packet stop-condition).
+on:
+  workflow_dispatch: {}
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Train synthetic ranker (stdlib only, self-check on)
+        run: python ml/train_ranker.py --self-check
+      - name: Convert to TFLite (hosted CI only)
+        run: |
+          pip install tensorflow-cpu
+          python ml/convert_to_tflite.py
+      - name: Verify artifacts present
+        run: |
+          test -f ml/ranker_weights.json
+          test -f ml/metadata.json
+          test -f assets/models/ranker.tflite
+          test -f assets/models/ranker_info.json
+          python -c "import json; m=json.load(open('ml/metadata.json')); i=json.load(open('assets/models/ranker_info.json')); assert m['weights_sha256'] not in ('','PENDING_HOSTED_CI_RUN') and i['tflite_sha256'], 'SHA sidecars incomplete'"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ranker-a09
+          path: |
+            ml/ranker_weights.json
+            ml/metadata.json
+            assets/models/ranker.tflite
+            assets/models/ranker_info.json

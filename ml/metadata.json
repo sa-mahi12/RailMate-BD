@@ -1,0 +1,47 @@
+{
+  "_placeholder": "PLACEHOLDER authored by packet A09 (Worker A). Overwritten in full by `python ml/train_ranker.py` in the hosted ml-train GitHub Actions run; SHA values below are filled by that CI run, never locally.",
+  "model_version": "a09-v1",
+  "architecture": "single dense layer 5->1 with sigmoid (logistic regression); score = sigmoid(w.x + b)",
+  "feature_order": [
+    "fare_norm",
+    "duration_norm",
+    "departure_hour_norm",
+    "seats_ratio",
+    "transfers_norm"
+  ],
+  "normalization": {
+    "fare_min_bdt": 50,
+    "fare_max_bdt": 2000,
+    "duration_min_minutes": 30,
+    "duration_max_minutes": 720,
+    "departure_hour_min": 0,
+    "departure_hour_max": 23,
+    "seats_ratio_min": 0.0,
+    "seats_ratio_max": 1.0,
+    "transfers_min": 0,
+    "transfers_max": 2
+  },
+  "hyperparameters": {
+    "epochs": 2000,
+    "learning_rate": 0.5,
+    "init": "zeros",
+    "optimizer": "full-batch gradient descent",
+    "loss": "binary cross-entropy",
+    "dependencies": "python3 stdlib only (no numpy/tensorflow)"
+  },
+  "fixtures": {
+    "source": "ml/fixtures.py",
+    "rows": 14,
+    "sha256": "PENDING_HOSTED_CI_RUN",
+    "provenance": "SYNTHETIC hand-written demo rows; NOT observed commuter demand; NO real prediction-accuracy claim."
+  },
+  "training": {
+    "final_loss_bce": "PENDING_HOSTED_CI_RUN",
+    "train_accuracy_synthetic": "PENDING_HOSTED_CI_RUN",
+    "runs_where": "hosted GitHub Actions (ubuntu-latest), workflow ml-train; never heavy local training"
+  },
+  "weights_file": "ml/ranker_weights.json",
+  "weights_sha256": "PENDING_HOSTED_CI_RUN",
+  "tflite": "assets/models/ranker.tflite — produced ONLY by ml/convert_to_tflite.py in hosted CI (tensorflow-cpu); committed after SHA integrity check; integrity sidecar assets/models/ranker_info.json",
+  "note": "SYNTHETIC DEMO metadata. Experimental ranking from demonstration data only; NOT trained on observed commuter demand."
+}
