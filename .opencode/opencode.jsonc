@@ -1,0 +1,8 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "compaction": {"auto": true, "keep": {"tokens": 15000}, "buffer": 20000},
+  "watcher": {"ignore": ["build/**", ".dart_tool/**", ".git/**", ".worker-runtime/**", ".locks/**"]},
+  "tool_output": {"max_lines": 500, "max_bytes": 40000},
+  "mcp": {"servers": {}},
+  "formatter": true
+}

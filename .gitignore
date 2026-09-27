@@ -1,0 +1,38 @@
+# Flutter/Dart/Android output
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+.flutter-plugins*
+.metadata
+android/.gradle/
+android/local.properties
+android/key.properties
+*.jks
+*.keystore
+*.apk
+*.aab
+# Private and generated configuration
+.env
+.env.*
+!.env.example
+app.env.json
+*.local.json
+**/service_role*
+**/service-role*
+*.pem
+*.p12
+*.pfx
+# Worker runtime/lock/logs
+.locks/
+.worker-runtime/
+.bootstrap-tmp/
+coverage/
+*.log
+# Editors/OS
+.idea/
+.vscode/
+.DS_Store
+desktop.ini
+Thumbs.db

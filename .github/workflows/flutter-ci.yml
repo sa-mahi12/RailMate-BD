@@ -1,0 +1,51 @@
+name: Flutter CI — main only
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ensure only main is built
+        shell: bash
+        run: |
+          test "$GITHUB_REF_NAME" = main
+          test "$(git branch --show-current)" = main
+      - name: Detect scaffold
+        id: scaffold
+        shell: bash
+        run: |
+          if test -f pubspec.yaml; then echo "present=true" >> "$GITHUB_OUTPUT"; else echo "present=false" >> "$GITHUB_OUTPUT"; echo '::notice::Flutter scaffold not yet created; no build evidence'; fi
+      - uses: subosito/flutter-action@v2
+        if: steps.scaffold.outputs.present == 'true'
+        with:
+          channel: stable
+          cache: true
+      - name: Dependencies
+        if: steps.scaffold.outputs.present == 'true'
+        run: flutter pub get
+      - name: Format
+        if: steps.scaffold.outputs.present == 'true'
+        run: dart format --output=none --set-exit-if-changed lib test
+      - name: Analyze
+        if: steps.scaffold.outputs.present == 'true'
+        run: flutter analyze
+      - name: Test
+        if: steps.scaffold.outputs.present == 'true'
+        run: flutter test
+      - name: Debug APK
+        if: steps.scaffold.outputs.present == 'true'
+        run: flutter build apk --debug --dart-define=SUPABASE_URL="${{ vars.SUPABASE_URL }}" --dart-define=SUPABASE_PUBLISHABLE_KEY="${{ vars.SUPABASE_PUBLISHABLE_KEY }}"
+      - name: Artifact SHA256
+        if: steps.scaffold.outputs.present == 'true'
+        run: sha256sum build/app/outputs/flutter-apk/app-debug.apk
+      - uses: actions/upload-artifact@v4
+        if: steps.scaffold.outputs.present == 'true'
+        with:
+          name: railmate-debug-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
