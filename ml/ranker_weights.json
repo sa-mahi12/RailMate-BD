@@ -1,0 +1,31 @@
+{
+  "model_version": "a09-v1",
+  "feature_order": [
+    "fare_norm",
+    "duration_norm",
+    "departure_hour_norm",
+    "seats_ratio",
+    "transfers_norm"
+  ],
+  "weights": [
+    -4.474987405099812,
+    -5.899226015070247,
+    -5.47519223546818,
+    10.423080315229784,
+    0.0
+  ],
+  "bias": 2.0768424250538073,
+  "normalization": {
+    "fare_min_bdt": 50,
+    "fare_max_bdt": 2000,
+    "duration_min_minutes": 30,
+    "duration_max_minutes": 720,
+    "departure_hour_min": 0,
+    "departure_hour_max": 23,
+    "seats_ratio_min": 0.0,
+    "seats_ratio_max": 1.0,
+    "transfers_min": 0,
+    "transfers_max": 2
+  },
+  "note": "SYNTHETIC DEMO weights. Experimental ranking from demonstration data only; NOT trained on observed commuter demand."
+}

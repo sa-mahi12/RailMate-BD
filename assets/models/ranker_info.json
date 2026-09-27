@@ -1,0 +1,17 @@
+{
+  "model_version": "a09-v1",
+  "feature_order": [
+    "fare_norm",
+    "duration_norm",
+    "departure_hour_norm",
+    "seats_ratio",
+    "transfers_norm"
+  ],
+  "input": "float32[1,5] in feature_order with ranker_weights.json normalization (clamped)",
+  "output": "float32[1,1] relevance score in (0,1)",
+  "tensorflow_version": "2.21.0",
+  "converted_by": "ml/convert_to_tflite.py in hosted GitHub Actions",
+  "provenance": "SYNTHETIC DEMO weights; experimental ranking from demonstration data only",
+  "tflite_bytes": 1280,
+  "tflite_sha256": "d2a96d9ca7400341dd9886d9879186c488249d3c499c1213079f555d270a2b2f"
+}

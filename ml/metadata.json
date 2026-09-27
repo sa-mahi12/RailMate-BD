@@ -1,5 +1,4 @@
 {
-  "_placeholder": "PLACEHOLDER authored by packet A09 (Worker A). Overwritten in full by `python ml/train_ranker.py` in the hosted ml-train GitHub Actions run; SHA values below are filled by that CI run, never locally.",
   "model_version": "a09-v1",
   "architecture": "single dense layer 5->1 with sigmoid (logistic regression); score = sigmoid(w.x + b)",
   "feature_order": [
@@ -32,16 +31,15 @@
   "fixtures": {
     "source": "ml/fixtures.py",
     "rows": 14,
-    "sha256": "PENDING_HOSTED_CI_RUN",
+    "sha256": "86e7a0b5122acee8c87492c1e7ada512ba580e429b8b1652ad3f3fc91ec2f73e",
     "provenance": "SYNTHETIC hand-written demo rows; NOT observed commuter demand; NO real prediction-accuracy claim."
   },
   "training": {
-    "final_loss_bce": "PENDING_HOSTED_CI_RUN",
-    "train_accuracy_synthetic": "PENDING_HOSTED_CI_RUN",
+    "final_loss_bce": 0.01583023996475079,
+    "train_accuracy_synthetic": 1.0,
     "runs_where": "hosted GitHub Actions (ubuntu-latest), workflow ml-train; never heavy local training"
   },
   "weights_file": "ml/ranker_weights.json",
-  "weights_sha256": "PENDING_HOSTED_CI_RUN",
-  "tflite": "assets/models/ranker.tflite — produced ONLY by ml/convert_to_tflite.py in hosted CI (tensorflow-cpu); committed after SHA integrity check; integrity sidecar assets/models/ranker_info.json",
-  "note": "SYNTHETIC DEMO metadata. Experimental ranking from demonstration data only; NOT trained on observed commuter demand."
+  "weights_sha256": "8304ea09f3c5eac80221cd66adb20fb93f13e7c6c9f5b9aa10f163602cd38963",
+  "tflite": "assets/models/ranker.tflite \u2014 produced ONLY by ml/convert_to_tflite.py in hosted CI (tensorflow-cpu); committed after SHA integrity check; integrity sidecar assets/models/ranker_info.json"
 }
