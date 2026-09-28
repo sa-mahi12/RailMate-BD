@@ -50,6 +50,7 @@ class _HomeShellState extends State<HomeShell> {
 
   late final SearchState _searchState = SearchState(
     api: widget.dependencies.searchApi,
+    graphqlClient: widget.dependencies.graphql,
   );
   late final PostFeedState _boardFeed = PostFeedState(
     fetchPosts: widget.dependencies.fetchBoardPosts,
@@ -213,6 +214,7 @@ class _HomeShellState extends State<HomeShell> {
               navigatorKey: _keys[2],
               root: BoardFeedScreen(
                 feed: _boardFeed,
+                imageUrlFor: widget.dependencies.boardImageUrl,
                 onCompose: () {
                   _keys[2].currentState?.pushNamed(
                     AppRoutes.boardCompose,

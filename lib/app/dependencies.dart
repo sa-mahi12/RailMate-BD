@@ -7,6 +7,7 @@ import '../features/ai/key/byok_vault.dart';
 import '../features/auth/auth_repository.dart';
 import '../features/auth/auth_state.dart';
 import '../features/auth/supabase_auth_client.dart';
+import '../features/auth/username/username_availability.dart';
 import '../features/board/comments/comment.dart';
 import '../features/board/post/post.dart';
 import '../features/board/post/post_feed_state.dart';
@@ -173,6 +174,49 @@ class AppDependencies {
         .delete()
         .eq('id', postId)
         .timeout(const Duration(seconds: 15));
+  }
+
+  /// Persists the uploaded image object path onto a board post row
+  /// (F11 link step; RLS: own rows only).
+  Future<Post> updateBoardPostImage({
+    required String postId,
+    required String imagePath,
+  }) async {
+    final row = await _backend
+        .from('posts')
+        .update(<String, String>{'image_path': imagePath})
+        .eq('id', postId)
+        .select()
+        .single()
+        .timeout(const Duration(seconds: 15));
+    return Post.fromMap(Map<String, dynamic>.from(row as Map));
+  }
+
+  /// Public display URL for a board image (`post-media` is world-readable
+  /// per migration 20260927000004 — no signed URL needed).
+  String? boardImageUrl(String? imagePath) {
+    if (imagePath == null || imagePath.isEmpty) return null;
+    final String base = AppConfigParts.current().url.replaceAll(
+      RegExp(r'/+$'),
+      '',
+    );
+    return '$base/storage/v1/object/public/post-media/$imagePath';
+  }
+
+  /// Live username availability against `public.usernames` (RLS: public
+  /// read). Feeds the register screen's availability field (F03 follow-up).
+  Future<UsernameAvailability> checkUsername(String raw) {
+    return UsernameAvailabilityChecker(
+      existsQuery: (String normalized) async {
+        final rows = await _backend
+            .from('usernames')
+            .select('username')
+            .eq('username', normalized)
+            .limit(1)
+            .timeout(const Duration(seconds: 15));
+        return (rows as List).isNotEmpty;
+      },
+    ).check(raw);
   }
 
   /// Newest-first comments for one post.

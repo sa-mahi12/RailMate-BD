@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 
+import '../graphql/graphql_client.dart';
+import '../graphql/station_graphql_service.dart';
 import 'models/station.dart';
 import 'models/trip.dart';
 import 'search_date_utils.dart';
@@ -22,7 +24,18 @@ enum SearchErrorKind { none, network, timeout }
 class SearchState extends ChangeNotifier {
   final SearchApi api;
 
-  SearchState({required this.api});
+  /// Optional GraphQL-first station source (F04). When present,
+  /// [loadStations] tries `fetchStationListWithFallback(graphql:
+  /// graphqlClient, restFallback: api.fetchStations)` — GraphQL first with
+  /// REST fallback on transport/timeout ([GraphqlNetworkError]) only. When
+  /// absent, [loadStations] uses the REST [api] directly (F02 behaviour, kept
+  /// backward compatible so existing call sites and tests keep passing).
+  ///
+  /// Wiring lives with the coordinator (owner of `home_shell.dart`):
+  /// `SearchState(api: deps.searchApi, graphqlClient: deps.graphql)`.
+  final StationGraphqlClient? graphqlClient;
+
+  SearchState({required this.api, this.graphqlClient});
 
   SearchStatus status = SearchStatus.idle;
   SearchErrorKind errorKind = SearchErrorKind.none;
@@ -62,13 +75,31 @@ class SearchState extends ChangeNotifier {
     errorMessage = null;
     notifyListeners();
     try {
-      stations = await api.fetchStations();
+      final StationGraphqlClient? graphql = graphqlClient;
+      if (graphql != null) {
+        stations = await fetchStationListWithFallback(
+          graphql: graphql,
+          restFallback: api.fetchStations,
+        );
+      } else {
+        stations = await api.fetchStations();
+      }
       status = SearchStatus.idle;
     } on NetworkError catch (e) {
       status = SearchStatus.error;
       errorKind = e.isTimeout
           ? SearchErrorKind.timeout
           : SearchErrorKind.network;
+      errorMessage = e.message;
+    } on GraphqlResponseError catch (e) {
+      // No REST fallback by contract (schema/contract problem, not transport):
+      // surface as a network-flavoured error, never as "no stations".
+      status = SearchStatus.error;
+      errorKind = SearchErrorKind.network;
+      errorMessage = e.message;
+    } on GraphqlMalformedError catch (e) {
+      status = SearchStatus.error;
+      errorKind = SearchErrorKind.network;
       errorMessage = e.message;
     }
     notifyListeners();

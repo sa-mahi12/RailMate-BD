@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'auth_state.dart';
 import 'auth_theme.dart';
 import 'login_screen.dart';
+import 'username/username.dart';
 import 'verify_screen.dart';
 
 /// Email registration screen.
@@ -50,12 +51,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Future<void> _register() async {
     setState(() => _formError = null);
+    // Username is optional, but a non-empty value must match the shared
+    // format rules (see username/username.dart, mirrored by the server
+    // CHECK). Live availability checking needs a backend query — requested
+    // via coordinator wiring (see F03 handoff) — so this only gates format.
+    final String rawUsername = _username.text.trim();
+    if (rawUsername.isNotEmpty) {
+      final String? usernameError = validateUsername(rawUsername);
+      if (usernameError != null) {
+        setState(() => _formError = usernameError);
+        return;
+      }
+    }
     await widget.auth.signUp(
       email: _email.text,
       password: _password.text,
       fullName: _fullName.text,
       phone: _phone.text,
-      username: _username.text,
+      username: rawUsername.isEmpty ? null : normalizeUsername(rawUsername),
     );
     if (!mounted) return;
     switch (widget.auth.status) {

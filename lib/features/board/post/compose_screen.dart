@@ -38,6 +38,11 @@ class BoardComposeScreen extends StatefulWidget {
   /// Injected object delete for best-effort orphan cleanup (optional).
   final DeleteObject? deleteObject;
 
+  /// Injected image-link update: persists the uploaded object path onto the
+  /// post row (`image_path`) after a successful upload (optional until the
+  /// coordinator wires it — without it photos upload but never display).
+  final UpdatePostImage? updatePostImage;
+
   /// Method channel-agnostic image picker: returns picked bytes or null
   /// when the user cancels. Null hides the attach button.
   final Future<List<int>?> Function()? pickImageBytes;
@@ -54,6 +59,7 @@ class BoardComposeScreen extends StatefulWidget {
     required this.uploadBytes,
     required this.deletePost,
     this.deleteObject,
+    this.updatePostImage,
     this.pickImageBytes,
     this.onDone,
   });
@@ -91,6 +97,7 @@ class _BoardComposeScreenState extends State<BoardComposeScreen> {
       newUuid: widget.newUuid,
       createPost: widget.createPost,
       uploadBytes: widget.uploadBytes,
+      updatePostImage: widget.updatePostImage,
     );
     if (ok && mounted) widget.onDone?.call();
   }

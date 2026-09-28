@@ -1,14 +1,21 @@
 import 'package:flutter/material.dart';
 
+import '../media/post_media.dart';
 import 'post_feed_state.dart';
 
-/// Journey Board feed screen (packet A07, R-13).
+/// Journey Board feed screen (packet A07, R-13; image display in F11).
 ///
 /// Visual tokens per `design/UI_VISUAL_SPEC.md`: page bg `#F4F7F9`, teal
 /// header block (`#0E5A66`) with rounded bottom corners, white post cards
-/// (radius 16, 16 padding). Covers loading/error/empty states; images
-/// render only from a confirmed remote `imagePath`, never from a local
-/// preview. Comments, reactions and ratings arrive in later packets.
+/// (radius 16, 16 padding). Covers loading/error/empty states.
+///
+/// Images render ONLY from a confirmed remote `imagePath` resolved through
+/// [imageUrlFor] into a display URL (public `post-media` URL — the bucket
+/// is world-readable per migration `20260927000004`, so no signed URL is
+/// needed). Local previews are never rendered here. When [imageUrlFor] is
+/// null (URL resolution not wired yet) or resolves to null, posts with an
+/// `imagePath` fall back to the 'Photo attached' badge instead of a broken
+/// image. Comments, reactions and ratings arrive in later packets.
 class BoardFeedScreen extends StatelessWidget {
   /// Feed state (owned by the caller; call [PostFeedState.load] first).
   final PostFeedState feed;
@@ -16,7 +23,18 @@ class BoardFeedScreen extends StatelessWidget {
   /// Opens the composer. Null hides the action button.
   final VoidCallback? onCompose;
 
-  const BoardFeedScreen({super.key, required this.feed, this.onCompose});
+  /// Resolves a stored `posts.image_path` into a display URL.
+  /// Production wiring closes over the hosted Supabase URL
+  /// (`(path) => postImageUrl(supabaseUrl: url, imagePath: path)`).
+  /// Null keeps the badge fallback (never a broken image).
+  final ResolveBoardImageUrl? imageUrlFor;
+
+  const BoardFeedScreen({
+    super.key,
+    required this.feed,
+    this.onCompose,
+    this.imageUrlFor,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -127,27 +145,13 @@ class BoardFeedScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(post.body, style: const TextStyle(fontSize: 14)),
+                if (post.imagePath != null) ...[
+                  const SizedBox(height: 8),
+                  _postImage(post.imagePath!),
+                ],
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    if (post.imagePath != null)
-                      const Row(
-                        children: [
-                          Icon(
-                            Icons.image_outlined,
-                            size: 14,
-                            color: Color(0xFF0E5A66),
-                          ),
-                          SizedBox(width: 4),
-                          Text(
-                            'Photo attached',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFF0E5A66),
-                            ),
-                          ),
-                        ],
-                      ),
                     const Spacer(),
                     Text(
                       post.createdAt == null
@@ -165,6 +169,67 @@ class BoardFeedScreen extends StatelessWidget {
             ),
           );
         },
+      ),
+    );
+  }
+
+  /// Resolves [imagePath] through the injected [imageUrlFor], or null when
+  /// no resolver is wired. Never throws: a throwing resolver falls back to
+  /// the badge (a broken resolver must not break the whole feed).
+  String? _imageUrl(String? imagePath) {
+    final resolve = imageUrlFor;
+    if (resolve == null || imagePath == null || imagePath.isEmpty) {
+      return null;
+    }
+    try {
+      final url = resolve(imagePath);
+      return (url == null || url.isEmpty) ? null : url;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Display image for one post: the network photo when resolvable, else
+  /// the 'Photo attached' badge. A failed download also degrades to the
+  /// badge via [Image.errorBuilder] (never a red error box).
+  Widget _postImage(String imagePath) {
+    final url = _imageUrl(imagePath);
+    if (url == null) {
+      return const Row(
+        children: [
+          Icon(Icons.image_outlined, size: 14, color: Color(0xFF0E5A66)),
+          SizedBox(width: 4),
+          Text(
+            'Photo attached',
+            style: TextStyle(fontSize: 12, color: Color(0xFF0E5A66)),
+          ),
+        ],
+      );
+    }
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Image.network(
+        url,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        semanticLabel: 'Attached photo',
+        loadingBuilder: (context, child, progress) {
+          if (progress == null) return child;
+          return const SizedBox(
+            height: 120,
+            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+          );
+        },
+        errorBuilder: (context, _, _) => const Row(
+          children: [
+            Icon(Icons.image_outlined, size: 14, color: Color(0xFF0E5A66)),
+            SizedBox(width: 4),
+            Text(
+              'Photo attached',
+              style: TextStyle(fontSize: 12, color: Color(0xFF0E5A66)),
+            ),
+          ],
+        ),
       ),
     );
   }

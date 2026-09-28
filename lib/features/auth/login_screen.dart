@@ -111,9 +111,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
+                      // Email only: sign-in authenticates via Supabase email +
+                      // password. Phone OTP lives in the phone/ slice (live
+                      // SMS BLOCKED) and is not accepted here.
                       AuthField(
-                        label: 'Email or Phone Number',
-                        hint: 'Enter your email or phone number',
+                        label: 'Email Address',
+                        hint: 'Enter your email address',
                         icon: Icons.mail_outline,
                         controller: _email,
                         keyboardType: TextInputType.emailAddress,

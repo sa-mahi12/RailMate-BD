@@ -45,6 +45,49 @@ String buildOwnedImagePath(String userId, String uuid, {String ext = 'jpg'}) {
   return '$uid/$id.$cleanExt';
 }
 
+/// Storage bucket holding board images.
+const String postMediaBucket = 'post-media';
+
+/// Builds the PUBLIC display URL for a board image object.
+///
+/// Contract (see `supabase/migrations/20260927000004_storage_policy.sql`):
+/// `post_media_read` grants SELECT on `post-media` to `anon,authenticated`,
+/// so the bucket is publicly readable and NO signed URL is needed — the
+/// standard Supabase Storage public-object URL is sufficient:
+/// `<supabaseUrl>/storage/v1/object/public/post-media/<imagePath>`.
+///
+/// Returns null when [imagePath] is null/empty (text-only post) so callers
+/// render no image widget at all. Trims a trailing `/` from [supabaseUrl]
+/// and leading `/`s from [imagePath] so composition never doubles slashes.
+/// Pure Dart: no Flutter, no Supabase, no I/O.
+String? postImageUrl({
+  required String supabaseUrl,
+  required String? imagePath,
+}) {
+  final path = (imagePath ?? '').trim();
+  if (path.isEmpty) return null;
+  var base = supabaseUrl.trim();
+  while (base.endsWith('/')) {
+    base = base.substring(0, base.length - 1);
+  }
+  if (base.isEmpty) return null;
+  var clean = path;
+  while (clean.startsWith('/')) {
+    clean = clean.substring(1);
+  }
+  if (clean.isEmpty) return null;
+  return '$base/storage/v1/object/public/$postMediaBucket/$clean';
+}
+
+/// Injected public-URL resolver for one stored object path.
+///
+/// Production wiring closes over the hosted Supabase URL
+/// (`(path) => postImageUrl(supabaseUrl: url, imagePath: path)`);
+/// tests inject a fake. Null (the default on screens) means "no URL
+/// resolution wired" — the feed falls back to the 'Photo attached' badge
+/// instead of rendering a broken image.
+typedef ResolveBoardImageUrl = String? Function(String? imagePath);
+
 /// Injected byte upload: store [bytes] at Storage object [path].
 /// Production wiring calls hosted Supabase Storage
 /// (`post-media` bucket); tests inject a fake. Never called implicitly by

@@ -5,13 +5,19 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'models/trip_seat.dart';
 import 'search_repository.dart';
 
-/// Hosted seat-inventory reader for one trip (F02 seed, F06 owner).
+/// Hosted seat-inventory reader for one trip (F02 seed, F05 demo horizon).
 ///
 /// Reads `public.trip_seats` filtered by `trip_id`, ordered by `seat_code`.
-/// `demo_reserved` tolerance: rows with `demo_reserved = true` and no
-/// `booking_id` are reported unavailable by mapping them onto a reserved
-/// marker until F06 models the column explicitly. Read-only: never writes
-/// `booking_id` (booking stays server-side in the A05/F07 lane).
+/// Effective unavailable rule (formalised by the F05 corrective migration,
+/// pending coordinator apply): a seat is unavailable when
+/// `booking_id IS NOT NULL OR demo_reserved = true`. Rows with
+/// `demo_reserved = true` and no `booking_id` are reported unavailable by
+/// mapping them onto a reserved marker here, so the UI treats demo-held and
+/// really-booked seats identically without this reader ever writing.
+/// Read-only: never writes `booking_id` (booking stays server-side in the
+/// A05/F07 lane) and never touches `demo_reserved` (owned by the
+/// `refresh_demo_horizon()` owner/admin function, which itself never
+/// overwrites `booking_id`).
 Future<List<TripSeat>> fetchTripSeats(
   SupabaseClient client,
   String tripId,

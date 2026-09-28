@@ -85,6 +85,7 @@ class _BoardComposeHostState extends State<BoardComposeHost> {
           uploadBytes: dependencies?.uploadBoardImage ?? _unwiredUpload,
           deletePost: dependencies?.deleteBoardPost ?? _unwiredDelete,
           deleteObject: dependencies?.deleteBoardObject,
+          updatePostImage: dependencies?.updateBoardPostImage,
           // Null picker hides the attach button until F12 wires image_picker.
           pickImageBytes: null,
           onDone: () => Navigator.of(context).pop(),
