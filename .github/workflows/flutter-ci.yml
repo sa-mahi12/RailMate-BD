@@ -44,7 +44,10 @@ jobs:
         run: flutter test
       - name: Debug APK
         if: steps.scaffold.outputs.present == 'true'
-        run: flutter build apk --debug --dart-define=SUPABASE_URL="${{ vars.SUPABASE_URL }}" --dart-define=SUPABASE_PUBLISHABLE_KEY="${{ vars.SUPABASE_PUBLISHABLE_KEY }}"
+        # AppConfig reads SUPABASE_ANON_KEY first, SUPABASE_PUBLISHABLE_KEY as
+        # fallback. Both are passed so either repo-variable naming boots the
+        # app against the hosted project (publishable key only, never secret).
+        run: flutter build apk --debug --dart-define=SUPABASE_URL="${{ vars.SUPABASE_URL }}" --dart-define=SUPABASE_ANON_KEY="${{ vars.SUPABASE_ANON_KEY }}" --dart-define=SUPABASE_PUBLISHABLE_KEY="${{ vars.SUPABASE_PUBLISHABLE_KEY }}"
       - name: Artifact SHA256
         if: steps.scaffold.outputs.present == 'true'
         run: sha256sum build/app/outputs/flutter-apk/app-debug.apk

@@ -37,6 +37,14 @@ dependencies:
   supabase_flutter: ^2.17.2
   tflite_flutter: ^0.12.1
   flutter_secure_storage: ^11.2.0
+  # F02 integration dependencies (coordinator-owned).
+  http: ^1.2.0 # OpenRouter BYOK calls (F14), explicit user key only
+  uuid: ^4.0.0 # booking request_id UUID v4 (F07)
+  image_picker: ^1.0.0 # board image attach (F12)
+  qr_flutter: ^4.1.0 # real ticket QR (F10)
+  pdf: ^3.11.0 # ticket PDF export (F10)
+  printing: ^5.13.0 # ticket PDF share/print (F10)
+  webview_flutter: ^4.8.0 # station guide WebView (F15)
 
 dev_dependencies:
   flutter_test:

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../features/ai/key/byok_vault.dart';
 import '../features/ai/key/key_setup_screen.dart';
+import '../features/auth/login_screen.dart';
+import '../features/auth/welcome_screen.dart';
 import '../features/booking/passenger_ui/booking_review_screen.dart';
 import '../features/booking/passenger_ui/passenger.dart';
 import '../features/booking/passenger_ui/passenger_details_screen.dart';
@@ -10,6 +12,7 @@ import '../features/booking/payment_ui/payment_screen.dart';
 import '../features/booking/payment_ui/payment_state.dart';
 import '../features/booking/seat_ui/seat_selection_screen.dart';
 import '../features/booking/seat_ui/seat_selection_state.dart';
+import '../features/bookings/booking_history_screen.dart';
 import '../features/search/models/trip.dart';
 import '../features/search/search_results_screen.dart';
 import '../features/search/search_state.dart';
@@ -19,6 +22,8 @@ import '../features/station_guide/station_guide.dart';
 import '../features/ticket/ticket_data.dart';
 import '../features/ticket/ticket_screen.dart';
 import 'board_compose_host.dart';
+import 'dependencies.dart';
+import 'home_shell.dart' show SignInRequiredScreen;
 
 /// Central route-name constants + [RouteFactory] for RailMate BD (I01, R-21).
 ///
@@ -43,20 +48,29 @@ abstract final class AppRoutes {
   static const String keySetup = '/ai/key-setup';
 
   /// Central [RouteFactory] used by the app and by every per-tab Navigator.
-  static Route<dynamic> onGenerateRoute(RouteSettings settings) {
+  ///
+  /// [dependencies] supplies session state for account-gated routes; it is
+  /// passed from [RailMateApp] so every tab shares one composition.
+  static Route<dynamic> onGenerateRoute(
+    RouteSettings settings, {
+    AppDependencies? dependencies,
+  }) {
     switch (settings.name) {
       case welcome:
-      case login:
-        // TODO(SUPABASE-AUTH): wire a real AuthState (AuthRepository +
-        // SupabaseAuthClient via Supabase.initialize at startup) and return
-        // WelcomeScreen/LoginScreen here. No Supabase client exists at shell
-        // level yet, so show an explicit setup placeholder — never fake data.
+        if (dependencies == null) {
+          return _error(settings, 'App dependencies missing.');
+        }
         return MaterialPageRoute<void>(
           settings: settings,
-          builder: (_) => const SetupRequiredScreen(
-            title: 'Sign in',
-            missing: 'Supabase Auth wiring is not connected yet (see TODO in routes.dart).',
-          ),
+          builder: (_) => WelcomeScreen(auth: dependencies.auth),
+        );
+      case login:
+        if (dependencies == null) {
+          return _error(settings, 'App dependencies missing.');
+        }
+        return MaterialPageRoute<void>(
+          settings: settings,
+          builder: (_) => LoginScreen(auth: dependencies.auth),
         );
       case searchResults:
         final args = settings.arguments;
@@ -132,14 +146,27 @@ abstract final class AppRoutes {
           builder: (_) => TicketScreen(ticket: args.ticket),
         );
       case history:
-        // TODO(AUTH-UID): wire BookingHistoryRepository (hosted Supabase
-        // fetch + cancel_booking_service RPC) with the signed-in uid and
-        // return BookingHistoryScreen here. Never fake booking rows.
+        if (dependencies == null) {
+          return _error(settings, 'App dependencies missing.');
+        }
+        final String? uid = dependencies.auth.user?.id;
+        if (uid == null) {
+          return MaterialPageRoute<void>(
+            settings: settings,
+            builder: (_) => Builder(
+              builder: (context) => SignInRequiredScreen(
+                title: 'My Trips',
+                onSignIn: () =>
+                    Navigator.of(context).pushReplacementNamed(login),
+              ),
+            ),
+          );
+        }
         return MaterialPageRoute<void>(
           settings: settings,
-          builder: (_) => const SetupRequiredScreen(
-            title: 'My Trips',
-            missing: 'Booking history needs the signed-in account id and hosted Supabase wiring (see TODO in routes.dart).',
+          builder: (_) => BookingHistoryScreen(
+            repository: dependencies.historyFor(uid),
+            ownerId: uid,
           ),
         );
       case boardCompose:
@@ -147,7 +174,8 @@ abstract final class AppRoutes {
         final userId = args is BoardComposeRouteArgs ? args.userId : null;
         return MaterialPageRoute<void>(
           settings: settings,
-          builder: (_) => BoardComposeHost(userId: userId),
+          builder: (_) =>
+              BoardComposeHost(userId: userId, dependencies: dependencies),
         );
       case guideDetail:
         final args = settings.arguments;
@@ -159,13 +187,17 @@ abstract final class AppRoutes {
           builder: (_) => GuideDetailScreen(guide: args.guide),
         );
       case keySetup:
-        // BYOK vault at shell level uses secure storage with a null
-        // accountId. TODO(AUTH-UID): pass the signed-in uid as accountId so
+        // Vault scoped to the signed-in account (null when logged out) so
         // two accounts on one device never share key material.
+        final String? accountId = dependencies?.auth.user?.id;
         return MaterialPageRoute<void>(
           settings: settings,
-          builder: (_) =>
-              KeySetupScreen(vault: ByokVault(backend: SecureStorageBackend())),
+          builder: (_) => KeySetupScreen(
+            vault: ByokVault(
+              backend: SecureStorageBackend(),
+              accountId: accountId,
+            ),
+          ),
         );
       case guide:
         // GuideListScreen is offline-first with zero required args, so the

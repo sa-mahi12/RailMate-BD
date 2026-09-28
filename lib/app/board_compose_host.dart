@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 import '../features/ai/key/byok_vault.dart';
 import '../features/ai/rewrite/rewrite_launcher.dart';
 import '../features/board/post/compose_screen.dart';
+import '../features/board/post/post.dart';
 import '../features/board/post/post_compose_state.dart';
+import 'dependencies.dart';
 import 'routes.dart';
 
-/// Board compose flow host (I01, R-23).
+/// Board compose flow host (F02 wired, F12 adds the image picker).
 ///
 /// Owns a [PostComposeState] + draft [TextEditingController] and is the ONLY
 /// place in the app that wires B11's `launchRewrite` seam: the
@@ -15,15 +17,19 @@ import 'routes.dart';
 /// writes anywhere itself). 'Continue' carries the draft into
 /// [BoardComposeScreen] for submit.
 ///
-/// The vault is built with [SecureStorageBackend] + null accountId at shell
-/// level. TODO(AUTH-UID): pass the signed-in uid as `accountId` so two
-/// accounts on one device never share key material.
+/// Post submit uses the hosted Supabase closures from [dependencies]
+/// (authenticated insert + `post-media` upload + orphan cleanup). The image
+/// picker stays null until F12 wires `image_picker`, which hides the attach
+/// button — text posts work end-to-end now.
 class BoardComposeHost extends StatefulWidget {
   /// Current author uid. Null shows the setup note: draft + AI Improve
   /// Wording stay usable, only the submit step is gated.
   final String? userId;
 
-  const BoardComposeHost({super.key, this.userId});
+  /// App composition. Null keeps the old throwing closures (widget tests).
+  final AppDependencies? dependencies;
+
+  const BoardComposeHost({super.key, this.userId, this.dependencies});
 
   @override
   State<BoardComposeHost> createState() => _BoardComposeHostState();
@@ -36,7 +42,12 @@ class _BoardComposeHostState extends State<BoardComposeHost> {
   late final TextEditingController _draft = TextEditingController(
     text: _compose.body,
   );
-  late final ByokVault _vault = ByokVault(backend: SecureStorageBackend());
+  // Vault scoped to the signed-in author so two accounts on one device
+  // never share key material.
+  late final ByokVault _vault = ByokVault(
+    backend: SecureStorageBackend(),
+    accountId: widget.userId,
+  );
 
   @override
   void dispose() {
@@ -62,6 +73,7 @@ class _BoardComposeHostState extends State<BoardComposeHost> {
   void _continue() {
     final String? userId = widget.userId;
     if (userId == null || userId.trim().isEmpty) return;
+    final AppDependencies? dependencies = widget.dependencies;
     _compose.setBody(_draft.text);
     Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -69,21 +81,11 @@ class _BoardComposeHostState extends State<BoardComposeHost> {
           compose: _compose,
           userId: userId,
           newUuid: () => DateTime.now().microsecondsSinceEpoch.toString(),
-          // TODO(SUPABASE-BOARD): replace these with the hosted Supabase
-          // row insert / post-media bucket upload / orphan cleanup. They
-          // throw explicitly until then — never fake a published post.
-          createPost: ({required String userId, required String body}) =>
-              throw UnimplementedError(
-                'Board submit needs hosted Supabase wiring (see TODO in board_compose_host.dart).',
-              ),
-          uploadBytes: (String path, List<int> bytes) =>
-              throw UnimplementedError(
-                'Board image upload needs hosted Supabase wiring (see TODO in board_compose_host.dart).',
-              ),
-          deletePost: (String postId) => throw UnimplementedError(
-            'Board cleanup needs hosted Supabase wiring (see TODO in board_compose_host.dart).',
-          ),
-          // Null picker hides the attach button until platform wiring lands.
+          createPost: dependencies?.createBoardPost ?? _unwiredPost,
+          uploadBytes: dependencies?.uploadBoardImage ?? _unwiredUpload,
+          deletePost: dependencies?.deleteBoardPost ?? _unwiredDelete,
+          deleteObject: dependencies?.deleteBoardObject,
+          // Null picker hides the attach button until F12 wires image_picker.
           pickImageBytes: null,
           onDone: () => Navigator.of(context).pop(),
         ),
@@ -94,6 +96,26 @@ class _BoardComposeHostState extends State<BoardComposeHost> {
   void _openKeySetup() {
     Navigator.of(context).pushNamed(AppRoutes.keySetup);
   }
+
+  // Test-only fallbacks when no dependencies were injected: throw
+  // explicitly instead of faking a published post.
+  static Future<Post> _unwiredPost({
+    required String userId,
+    required String body,
+  }) => throw UnimplementedError(
+    'Board submit needs AppDependencies (see board_compose_host.dart).',
+  );
+
+  static Future<void> _unwiredUpload(
+    String path,
+    List<int> bytes,
+  ) => throw UnimplementedError(
+    'Board image upload needs AppDependencies (see board_compose_host.dart).',
+  );
+
+  static Future<void> _unwiredDelete(String postId) => throw UnimplementedError(
+    'Board cleanup needs AppDependencies (see board_compose_host.dart).',
+  );
 
   @override
   Widget build(BuildContext context) {

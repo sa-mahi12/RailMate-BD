@@ -9,6 +9,9 @@
 ///   --dart-define=SUPABASE_ANON_KEY=<publishable-key>
 /// ```
 ///
+/// `SUPABASE_PUBLISHABLE_KEY` is accepted as a fallback name for the same
+/// key (see [kSupabasePublishableKeyDefine]).
+///
 /// Rules (see AGENTS.md, D-002):
 /// * Never add a service-role key to this file, to any other mobile source,
 ///   test, log or prompt.
@@ -22,6 +25,14 @@ const String kSupabaseUrlDefine = 'SUPABASE_URL';
 
 /// Compile-time `--dart-define` name for the Supabase publishable (anon) key.
 const String kSupabaseAnonKeyDefine = 'SUPABASE_ANON_KEY';
+
+/// Legacy/alternate `--dart-define` name for the same publishable key.
+///
+/// The CI workflow historically supplied `SUPABASE_PUBLISHABLE_KEY`; the app
+/// accepts it as a fallback when `SUPABASE_ANON_KEY` is empty so a naming
+/// drift never silently boots the app against a missing key. Both names
+/// carry the same publishable (never service-role) key.
+const String kSupabasePublishableKeyDefine = 'SUPABASE_PUBLISHABLE_KEY';
 
 /// Thrown when Supabase bootstrap configuration is missing or malformed.
 class AppConfigException implements Exception {
@@ -48,14 +59,23 @@ class AppConfig {
   ///
   /// Pass [urlOverride]/[anonKeyOverride] only in tests; production callers
   /// use the parameterless form so values come from `String.fromEnvironment`.
+  /// When [anonKeyOverride] (and the `SUPABASE_ANON_KEY` define) are empty,
+  /// the `SUPABASE_PUBLISHABLE_KEY` define is used as a fallback
+  /// ([publishableKeyOverride] forces that fallback path in tests).
   factory AppConfig.fromEnvironment({
     String? urlOverride,
     String? anonKeyOverride,
+    String? publishableKeyOverride,
   }) {
     final String url =
         urlOverride ?? const String.fromEnvironment(kSupabaseUrlDefine);
-    final String anonKey =
+    String anonKey =
         anonKeyOverride ?? const String.fromEnvironment(kSupabaseAnonKeyDefine);
+    if (anonKey.trim().isEmpty) {
+      anonKey =
+          publishableKeyOverride ??
+          const String.fromEnvironment(kSupabasePublishableKeyDefine);
+    }
     return AppConfig(supabaseUrl: url, supabaseAnonKey: anonKey);
   }
 
@@ -93,14 +113,15 @@ class AppConfig {
   /// Returns this config when usable, else throws [AppConfigException].
   ///
   /// The message names the missing `--dart-define` flags without echoing
-  /// any key material.
+  /// any key material. Either key name satisfies the key requirement.
   AppConfig requireValid() {
     final List<String> missing = missingFields;
     if (missing.isNotEmpty) {
       throw AppConfigException(
         'Missing Supabase configuration (${missing.join(', ')}). '
         'Rerun with --dart-define=$kSupabaseUrlDefine=<url> '
-        '--dart-define=$kSupabaseAnonKeyDefine=<key>.',
+        '--dart-define=$kSupabaseAnonKeyDefine=<key> '
+        '(or --dart-define=$kSupabasePublishableKeyDefine=<key>).',
       );
     }
     final String? badUrl = urlError;

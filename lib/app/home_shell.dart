@@ -6,15 +6,15 @@ import '../features/booking/passenger_ui/passenger.dart';
 import '../features/booking/passenger_ui/passenger_form_state.dart';
 import '../features/booking/payment_ui/payment_state.dart';
 import '../features/booking/seat_ui/seat_selection_state.dart';
+import '../features/bookings/booking_history_screen.dart';
 import '../features/search/home_search_screen.dart';
-import '../features/search/models/station.dart';
 import '../features/search/models/trip.dart';
-import '../features/search/search_repository.dart';
 import '../features/search/search_state.dart';
 import '../features/station_guide/guide_list_screen.dart';
+import 'dependencies.dart';
 import 'routes.dart';
 
-/// Four-tab bottom-navigation shell (I01, R-21).
+/// Four-tab bottom-navigation shell (F02 wired, F16 aligns tabs).
 ///
 /// Tabs: Home/Search, My Trips, Board, Guide. Each tab keeps its own
 /// [Navigator] (via [_TabNavigator] + per-tab [GlobalKey]) inside an
@@ -22,10 +22,16 @@ import 'routes.dart';
 /// pops inner routes first; a back press on a tab root stays in the app
 /// (handled in [_onBack]) instead of exiting.
 ///
+/// Every backend call in this shell flows through [dependencies], built once
+/// in `main.dart` after real `Supabase.initialize`. Failures surface through
+/// each screen's normal error path — no fake rows anywhere.
+///
 /// Station Guide is reachable two ways: the Guide tab and the guide
 /// card/button on the Home tab ([HomeSearchScreen.onStationGuideTap]).
 class HomeShell extends StatefulWidget {
-  const HomeShell({super.key});
+  final AppDependencies dependencies;
+
+  const HomeShell({super.key, required this.dependencies});
 
   @override
   State<HomeShell> createState() => _HomeShellState();
@@ -42,19 +48,22 @@ class _HomeShellState extends State<HomeShell> {
         (_) => GlobalKey<NavigatorState>(),
       );
 
-  // Tab-owned state. SearchState needs a SearchApi; no Supabase client is
-  // wired at shell level yet (coordinator/startup step), so the tab uses an
-  // explicitly unconfigured API that reports "setup required" through the
-  // screen's normal error path.
-  // TODO(SUPABASE-SEARCH): replace [_UnconfiguredSearchApi] with
-  // SupabaseSearchApi once Supabase.initialize is wired at startup.
   late final SearchState _searchState = SearchState(
-    api: const _UnconfiguredSearchApi(),
+    api: widget.dependencies.searchApi,
   );
   late final PostFeedState _boardFeed = PostFeedState(
-    fetchPosts: ({int limit = PostFeedState.defaultLimit}) =>
-        throw const NetworkError('Board feed needs hosted Supabase wiring.'),
+    fetchPosts: widget.dependencies.fetchBoardPosts,
   );
+
+  @override
+  void initState() {
+    super.initState();
+    widget.dependencies.auth.addListener(_onAuthChanged);
+  }
+
+  void _onAuthChanged() {
+    if (mounted) setState(() {});
+  }
 
   void _selectTab(int index) {
     if (index == _index) {
@@ -83,13 +92,9 @@ class _HomeShellState extends State<HomeShell> {
   /// simulated-success payment needs the hosted Edge function + auth uid and
   /// lands on an explicit setup placeholder (TODO below).
   void _openSeatSelection({required int tab, required Trip trip}) {
-    // TODO(SUPABASE-SEATS): replace the throwing fetcher with the hosted
-    // `public.trip_seats` query once Supabase wiring lands at startup.
     final SeatSelectionState seats = SeatSelectionState(
       tripId: trip.id,
-      fetchSeats: (String tripId) => throw const NetworkError(
-        'Seat inventory needs hosted Supabase wiring (see TODO in home_shell.dart).',
-      ),
+      fetchSeats: widget.dependencies.seatFetcher,
     );
     _keys[tab].currentState?.pushNamed(
       AppRoutes.seatSelection,
@@ -124,10 +129,11 @@ class _HomeShellState extends State<HomeShell> {
                             fareBreakdown: form.fareBreakdown,
                           ),
                           onSucceeded: () {
-                            // TODO(BOOKING-LANE): call the hosted atomic
-                            // booking Edge function with the auth uid, then
-                            // push the ticket route with the confirmed
-                            // TicketData. Never fabricate a ticket here.
+                            // F07 wires the hosted atomic booking Edge
+                            // function call here (auth uid + UUID request id
+                            // from PaymentState), then pushes the ticket
+                            // route with the confirmed TicketData. Never
+                            // fabricate a ticket here.
                             _keys[tab].currentState?.push(
                               MaterialPageRoute<void>(
                                 builder: (_) => const SetupRequiredScreen(
@@ -152,13 +158,18 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   void dispose() {
+    widget.dependencies.auth.removeListener(_onAuthChanged);
     _searchState.dispose();
     _boardFeed.dispose();
     super.dispose();
   }
 
+  /// Signed-in uid, or null when logged out.
+  String? get _uid => widget.dependencies.auth.user?.id;
+
   @override
   Widget build(BuildContext context) {
+    final String? uid = _uid;
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) => _onBack(didPop),
@@ -187,12 +198,16 @@ class _HomeShellState extends State<HomeShell> {
             ),
             _TabNavigator(
               navigatorKey: _keys[1],
-              // TODO(AUTH-UID): replace with BookingHistoryScreen once the
-              // signed-in uid + BookingHistoryRepository are available.
-              root: const SetupRequiredScreen(
-                title: 'My Trips',
-                missing: 'Booking history needs the signed-in account id and hosted Supabase wiring (see TODO in home_shell.dart).',
-              ),
+              root: uid == null
+                  ? SignInRequiredScreen(
+                      title: 'My Trips',
+                      onSignIn: () =>
+                          _keys[1].currentState?.pushNamed(AppRoutes.login),
+                    )
+                  : BookingHistoryScreen(
+                      repository: widget.dependencies.historyFor(uid),
+                      ownerId: uid,
+                    ),
             ),
             _TabNavigator(
               navigatorKey: _keys[2],
@@ -201,10 +216,7 @@ class _HomeShellState extends State<HomeShell> {
                 onCompose: () {
                   _keys[2].currentState?.pushNamed(
                     AppRoutes.boardCompose,
-                    // Null uid: draft + AI Improve Wording stay usable; the
-                    // submit path shows its setup note (see BoardComposeHost).
-                    // TODO(AUTH-UID): pass the signed-in uid here.
-                    arguments: const BoardComposeRouteArgs(),
+                    arguments: BoardComposeRouteArgs(userId: uid),
                   );
                 },
               ),
@@ -265,23 +277,67 @@ class _TabNavigator extends StatelessWidget {
   }
 }
 
-/// Explicitly unconfigured [SearchApi]: throws [NetworkError] with a setup
-/// message instead of returning fake stations/trips. Lets HomeSearchScreen
-/// render its normal error/empty states until real Supabase wiring lands.
-class _UnconfiguredSearchApi implements SearchApi {
-  const _UnconfiguredSearchApi();
+/// Genuine signed-out gate for account tabs: explains that sign-in is
+/// needed and routes to the login screen. Shown only when logged out —
+/// never on a happy path.
+class SignInRequiredScreen extends StatelessWidget {
+  final String title;
+  final VoidCallback onSignIn;
 
-  static const NetworkError _setup = NetworkError(
-    'Trip search needs hosted Supabase wiring (see TODO in home_shell.dart).',
-  );
+  const SignInRequiredScreen({
+    super.key,
+    required this.title,
+    required this.onSignIn,
+  });
 
   @override
-  Future<List<Station>> fetchStations() => throw _setup;
-
-  @override
-  Future<List<Trip>> searchTrips({
-    required String originId,
-    required String destinationId,
-    required DateTime date,
-  }) => throw _setup;
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF4F7F9),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF0E5A66),
+        foregroundColor: Colors.white,
+        title: Text(title),
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.account_circle_outlined,
+                size: 48,
+                color: Color(0xFF0E5A66),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Sign in to continue',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Your bookings live in your account.',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF0E5A66),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onPressed: onSignIn,
+                child: const Text(
+                  'Sign in',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
