@@ -71,17 +71,17 @@ void main() {
     await tester.pumpWidget(RailMateApp(dependencies: _testDeps()));
     await tester.pumpAndSettle();
     expect(find.text('Home'), findsWidgets); // Home tab root rendered
-    await tester.tap(find.text('My Trips').last);
+    await tester.tap(find.text('Bookings').last);
     await tester.pumpAndSettle();
     // Logged out: genuine sign-in gate (not a setup placeholder).
     expect(find.text('Sign in to continue'), findsOneWidget);
     await tester.tap(find.text('Board').last);
     await tester.pumpAndSettle();
     expect(find.text('Journey Board'), findsOneWidget);
-    await tester.tap(find.text('Guide').last);
+    await tester.tap(find.text('Profile').last);
     await tester.pumpAndSettle();
-    // GuideListScreen header renders without backend.
-    expect(find.text('Guide'), findsWidgets);
+    // ProfileScreen logged-out state renders without backend.
+    expect(find.text('Not signed in'), findsOneWidget);
   });
 
   testWidgets('unknown route shows error screen', (WidgetTester tester) async {

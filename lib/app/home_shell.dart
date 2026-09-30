@@ -13,28 +13,29 @@ import '../features/booking/passenger_ui/passenger_form_state.dart';
 import '../features/booking/payment_ui/payment_state.dart';
 import '../features/booking/seat_ui/seat_selection_state.dart';
 import '../features/bookings/booking_history_screen.dart';
+import '../features/profile/profile_screen.dart';
 import '../features/search/home_search_screen.dart';
 import '../features/search/models/trip.dart';
 import '../features/search/search_state.dart';
-import '../features/station_guide/guide_list_screen.dart';
 import '../features/ticket/ticket_data.dart';
 import 'dependencies.dart';
 import 'routes.dart';
 
 /// Four-tab bottom-navigation shell (F02 wired, F16 aligns tabs).
 ///
-/// Tabs: Home/Search, My Trips, Board, Guide. Each tab keeps its own
-/// [Navigator] (via [_TabNavigator] + per-tab [GlobalKey]) inside an
-/// [IndexedStack], so inner routes stack per tab and the system back button
-/// pops inner routes first; a back press on a tab root stays in the app
-/// (handled in [_onBack]) instead of exiting.
+/// Tabs: Home/Search, Bookings, Board, Profile (navigation contract). Each
+/// tab keeps its own [Navigator] (via [_TabNavigator] + per-tab [GlobalKey])
+/// inside an [IndexedStack], so inner routes stack per tab and the system
+/// back button pops inner routes first; a back press on a tab root stays in
+/// the app (handled in [_onBack]) instead of exiting.
 ///
 /// Every backend call in this shell flows through [dependencies], built once
 /// in `main.dart` after real `Supabase.initialize`. Failures surface through
 /// each screen's normal error path — no fake rows anywhere.
 ///
-/// Station Guide is reachable two ways: the Guide tab and the guide
-/// card/button on the Home tab ([HomeSearchScreen.onStationGuideTap]).
+/// Station Guide is reachable from the guide card/button on the Home tab
+/// ([HomeSearchScreen.onStationGuideTap]) plus its named routes — it is not
+/// a bottom tab (F16).
 class HomeShell extends StatefulWidget {
   final AppDependencies dependencies;
 
@@ -338,7 +339,7 @@ class _HomeShellState extends State<HomeShell> {
               navigatorKey: _keys[1],
               root: uid == null
                   ? SignInRequiredScreen(
-                      title: 'My Trips',
+                      title: 'Bookings',
                       onSignIn: () =>
                           _keys[1].currentState?.pushNamed(AppRoutes.login),
                     )
@@ -370,9 +371,12 @@ class _HomeShellState extends State<HomeShell> {
                 },
               ),
             ),
+            // F16: Profile tab (contract tabs are Home/Bookings/Board/
+            // Profile). The Guide lives on Home (guide card) + its own
+            // named routes, not as a tab.
             _TabNavigator(
               navigatorKey: _keys[3],
-              root: const GuideListScreen(),
+              root: ProfileScreen(auth: widget.dependencies.auth),
             ),
           ],
         ),
@@ -386,15 +390,15 @@ class _HomeShellState extends State<HomeShell> {
             BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Home'),
             BottomNavigationBarItem(
               icon: Icon(Icons.confirmation_number_outlined),
-              label: 'My Trips',
+              label: 'Bookings',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.forum_outlined),
               label: 'Board',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.map_outlined),
-              label: 'Guide',
+              icon: Icon(Icons.person_outlined),
+              label: 'Profile',
             ),
           ],
         ),
