@@ -1,4 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- F18: the app is hosted-Supabase only (REST, Realtime, Storage,
+         Edge Functions) plus OpenRouter/Leaflet/YouTube embeds — release
+         builds need explicit INTERNET (the debug manifest adds it only for
+         debug builds; without this, release/production APKs have no
+         network at all). No cleartext: all endpoints are HTTPS. -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <application
         android:label="railmate_bd"
         android:name="${applicationName}"
