@@ -298,12 +298,153 @@ class AppDependencies {
   }
 
   // ------------------------------------------------------------------
+  // Booking submit (F07): payment-to-booking through the `book-trip` Edge
+  // Function. The app never touches booking tables or the service-role key;
+  // the Edge verifies the user JWT and calls the service-role-only
+  // `book_trip_service` RPC with the VERIFIED uid. Returns the server-issued
+  // booking id (uuid) on CONFIRMED; throws [BookingSubmitException] with the
+  // genuine server code otherwise. Never fabricates a booking or ticket.
+  // ------------------------------------------------------------------
+
+  /// Submits one atomic booking after a simulated-success payment.
+  ///
+  /// [requestId] MUST be a UUID (Edge-enforced; the pre-F07 legacy
+  /// pay-plus-microseconds simulation keys are rejected as INVALID_REQUEST).
+  /// Callers pass `PaymentState.requestId`, constructed with a real UUID at
+  /// the payment step so retries reuse the same idempotency key.
+  Future<String> submitBooking({
+    required String tripId,
+    required String requestId,
+    required List<String> passengerNames,
+    required List<String> seatCodes,
+    required bool simulateSuccess,
+  }) {
+    final body = buildBookTripBody(
+      tripId: tripId,
+      requestId: requestId,
+      passengerNames: passengerNames,
+      seatCodes: seatCodes,
+      simulateSuccess: simulateSuccess,
+    );
+    return _backend.functions
+        .invoke('book-trip', body: body)
+        .timeout(const Duration(seconds: 30))
+        .then((FunctionResponse response) {
+          final data = Map<String, dynamic>.from(response.data as Map);
+          return parseBookTripResponse(data);
+        });
+  }
+
+  // ------------------------------------------------------------------
   // BYOK vault (account-scoped in F03; null scope until then).
   // ------------------------------------------------------------------
 
   /// Vault scoped to one account so two accounts never share key material.
   ByokVault vaultFor(String? accountId) =>
       ByokVault(backend: SecureStorageBackend(), accountId: accountId);
+}
+
+/// Genuine booking-submit failure from the `book-trip` Edge Function.
+///
+/// [code] is the server's public code (`SEAT_UNAVAILABLE`,
+/// `TRIP_UNAVAILABLE`, `IDEMPOTENCY_CONFLICT`, `INVALID_REQUEST`,
+/// `UNAUTHORIZED`, `BOOKING_FAILED`, ...). Screens map codes to honest
+/// user-facing messages; `SEAT_UNAVAILABLE` must also trigger a seat
+/// revalidation so the user reselects from live inventory.
+class BookingSubmitException implements Exception {
+  final String code;
+
+  const BookingSubmitException(this.code);
+
+  /// Human-readable message naming the genuine failure (no fake booking).
+  String get message {
+    switch (code) {
+      case 'SEAT_UNAVAILABLE':
+        return 'Those seats were just taken. No booking was created — '
+            'please go back and pick from the live seat map.';
+      case 'TRIP_UNAVAILABLE':
+        return 'This trip is no longer available for booking. '
+            'No booking was created.';
+      case 'IDEMPOTENCY_CONFLICT':
+        return 'This payment was already used for a different booking. '
+            'No duplicate booking was created.';
+      case 'PAYMENT_SIMULATION_FAILED':
+        return 'DEMONSTRATION ONLY — payment simulation failed, '
+            'no booking created, no charge.';
+      case 'UNAUTHORIZED':
+        return 'Please sign in again to complete the booking.';
+      default:
+        return 'Booking failed ($code). No booking was created.';
+    }
+  }
+
+  @override
+  String toString() => 'BookingSubmitException($code)';
+}
+
+/// Pure payload builder for the `book-trip` Edge Function body.
+///
+/// Mirrors the Edge's contract (`trip_id`, `request_id` UUIDs; 1–4
+/// passengers; `seat_codes` aligned 1:1 with passengers;
+/// `simulateSuccess` boolean). The Edge is the enforcer — this builder
+/// only shapes the map so it is hermetically unit-testable.
+Map<String, Object?> buildBookTripBody({
+  required String tripId,
+  required String requestId,
+  required List<String> passengerNames,
+  required List<String> seatCodes,
+  required bool simulateSuccess,
+}) {
+  return <String, Object?>{
+    'trip_id': tripId,
+    'request_id': requestId,
+    'passengers': <Map<String, String>>[
+      for (final name in passengerNames) {'name': name.trim()},
+    ],
+    'seat_codes': List<String>.of(seatCodes),
+    'simulateSuccess': simulateSuccess,
+  };
+}
+
+/// Pure response parser for the `book-trip` Edge Function.
+///
+/// Returns the server-issued booking id on a CONFIRMED status payload;
+/// throws [BookingSubmitException] with the genuine server code otherwise.
+/// Never synthesises an id.
+String parseBookTripResponse(Map<String, dynamic> data) {
+  final status = data['status'];
+  final bookingId = data['booking_id'];
+  if (status == 'CONFIRMED' && bookingId is String && bookingId.isNotEmpty) {
+    return bookingId;
+  }
+  final code = data['code'];
+  if (code is String && code.isNotEmpty) {
+    throw BookingSubmitException(code);
+  }
+  if (status == 'PAYMENT_SIMULATION_FAILED') {
+    throw const BookingSubmitException('PAYMENT_SIMULATION_FAILED');
+  }
+  throw const BookingSubmitException('BOOKING_FAILED');
+}
+
+/// Display reference derived from a server-issued booking uuid.
+///
+/// Strips dashes and takes the first 8 hex chars uppercased (e.g.
+/// `A1B2C3D4`) — a deterministic display transform of the real id, valid
+/// per `TicketData.isValidReference` (bookings have no short human
+/// reference column; the full uuid remains the cancel/history key).
+/// Throws [ArgumentError] when no 8 hex chars can be derived.
+String displayReferenceForBookingId(String bookingId) {
+  final hex = bookingId.replaceAll('-', '');
+  if (hex.length < 8 ||
+      !RegExp(r'^[0-9a-fA-F]{8}').hasMatch(hex.substring(0, 8))) {
+    throw ArgumentError.value(
+      bookingId,
+      'bookingId',
+      'Cannot derive a display reference',
+    );
+  }
+  return hex.substring(0, 8).toUpperCase();
 }
 
 /// Validated bootstrap config parts for composing URL-bound clients.

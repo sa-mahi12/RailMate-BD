@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
 
 import '../features/board/post/post_feed_state.dart';
 import '../features/board/post/feed_screen.dart';
@@ -11,6 +12,7 @@ import '../features/search/home_search_screen.dart';
 import '../features/search/models/trip.dart';
 import '../features/search/search_state.dart';
 import '../features/station_guide/guide_list_screen.dart';
+import '../features/ticket/ticket_data.dart';
 import 'dependencies.dart';
 import 'routes.dart';
 
@@ -89,9 +91,11 @@ class _HomeShellState extends State<HomeShell> {
   /// Booking journey chained inside one tab's Navigator: results → seat →
   /// passengers → review → payment. Every step forwards host-owned state
   /// objects built from the selected trip + user input (no fake data); each
-  /// screen's own back control pops one step. The booking submit after a
-  /// simulated-success payment needs the hosted Edge function + auth uid and
-  /// lands on an explicit setup placeholder (TODO below).
+  /// screen's own back control pops one step. After a simulated-success
+  /// payment the host submits the atomic booking through the deployed
+  /// `book-trip` Edge Function (F07) with a UUID idempotency key, then
+  /// pushes the ticket route with the confirmed [TicketData]. Failures land
+  /// on an explicit error screen — a ticket is never fabricated.
   void _openSeatSelection({required int tab, required Trip trip}) {
     final SeatSelectionState seats = SeatSelectionState(
       tripId: trip.id,
@@ -121,28 +125,66 @@ class _HomeShellState extends State<HomeShell> {
                     ),
                     onEditPassengers: () => _keys[tab].currentState?.pop(),
                     onConfirm: () {
+                      // UUID idempotency key: the Edge rejects the legacy
+                      // `pay-<microseconds>` simulation keys, and retries of
+                      // this payment reuse the same key (server-side
+                      // idempotency — a retry never double-books).
+                      final PaymentState paymentState = PaymentState(
+                        requestId: const Uuid().v4(),
+                        totalBdt: form.totalBdt,
+                        fareBreakdown: form.fareBreakdown,
+                      );
                       _keys[tab].currentState?.pushNamed(
                         AppRoutes.payment,
                         arguments: PaymentRouteArgs(
                           formState: form,
-                          paymentState: PaymentState(
-                            totalBdt: form.totalBdt,
-                            fareBreakdown: form.fareBreakdown,
-                          ),
-                          onSucceeded: () {
-                            // F07 wires the hosted atomic booking Edge
-                            // function call here (auth uid + UUID request id
-                            // from PaymentState), then pushes the ticket
-                            // route with the confirmed TicketData. Never
-                            // fabricate a ticket here.
-                            _keys[tab].currentState?.push(
-                              MaterialPageRoute<void>(
-                                builder: (_) => const SetupRequiredScreen(
-                                  title: 'Booking',
-                                  missing: 'Booking submit needs the hosted atomic-booking function and the signed-in account id (see TODO in home_shell.dart). Payment simulation succeeded; no booking was created.',
+                          paymentState: paymentState,
+                          onSucceeded: () async {
+                            final nav = _keys[tab].currentState;
+                            if (nav == null) return;
+                            try {
+                              final String bookingId = await widget.dependencies
+                                  .submitBooking(
+                                    tripId: trip.id,
+                                    requestId: paymentState.requestId,
+                                    passengerNames: <String>[
+                                      for (final Passenger p in form.passengers)
+                                        p.name,
+                                    ],
+                                    seatCodes: List<String>.of(form.seatCodes),
+                                    simulateSuccess: true,
+                                  );
+                              nav.pushNamed(
+                                AppRoutes.ticket,
+                                arguments: TicketRouteArgs(
+                                  ticket: TicketData.fromForm(
+                                    form: form,
+                                    bookingReference:
+                                        displayReferenceForBookingId(bookingId),
+                                    trainLabel: trip.trainName,
+                                    fromLabel: trip.originStationId,
+                                    toLabel: trip.destinationStationId,
+                                    departLabel: trip.departureAt
+                                        .toIso8601String(),
+                                  ),
                                 ),
-                              ),
-                            );
+                              );
+                            } on BookingSubmitException catch (e) {
+                              // Genuine failure: taken seats refresh from
+                              // live inventory; the user reselects. No
+                              // ticket is fabricated on any path.
+                              if (e.code == 'SEAT_UNAVAILABLE') {
+                                await seats.revalidate();
+                              }
+                              nav.push(
+                                MaterialPageRoute<void>(
+                                  builder: (_) => SetupRequiredScreen(
+                                    title: 'Booking failed',
+                                    missing: e.message,
+                                  ),
+                                ),
+                              );
+                            }
                           },
                         ),
                       );
