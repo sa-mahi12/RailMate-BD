@@ -9,6 +9,7 @@ import '../features/auth/auth_state.dart';
 import '../features/auth/supabase_auth_client.dart';
 import '../features/auth/username/username_availability.dart';
 import '../features/board/comments/comment.dart';
+import '../features/board/list/cursor_page.dart';
 import '../features/board/post/post.dart';
 import '../features/board/post/post_feed_state.dart';
 import '../features/board/ratings/rating.dart';
@@ -125,6 +126,32 @@ class AppDependencies {
     final rows = await _backend
         .from('posts')
         .select()
+        .order('created_at', ascending: false)
+        .order('id', ascending: false)
+        .limit(limit)
+        .timeout(const Duration(seconds: 15));
+    return (rows as List)
+        .map((row) => Post.fromMap(Map<String, dynamic>.from(row as Map)))
+        .toList();
+  }
+
+  /// Keyset board page for cursor pagination (F13b, 5/page via the feed
+  /// paginator): rows strictly older than [before] on (`created_at`, `id`)
+  /// newest-first; null [before] reads the first page. Failures propagate
+  /// so the feed shows its honest page-error Retry tile.
+  Future<List<Post>> fetchBoardPostPage({
+    required int limit,
+    PageCursor? before,
+  }) async {
+    var query = _backend.from('posts').select();
+    final PageCursor? cursor = before;
+    if (cursor != null) {
+      final String ts = cursor.createdAt.toUtc().toIso8601String();
+      query = query.or(
+        'created_at.lt.$ts,and(created_at.eq.$ts,id.lt.${cursor.id})',
+      );
+    }
+    final rows = await query
         .order('created_at', ascending: false)
         .order('id', ascending: false)
         .limit(limit)

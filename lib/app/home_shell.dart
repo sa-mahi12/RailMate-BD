@@ -61,6 +61,7 @@ class _HomeShellState extends State<HomeShell> {
   );
   late final PostFeedState _boardFeed = PostFeedState(
     fetchPosts: widget.dependencies.fetchBoardPosts,
+    fetchPage: widget.dependencies.fetchBoardPostPage,
   );
 
   /// F13 live-update subscription for the board feed (transport-free seam:
@@ -351,6 +352,16 @@ class _HomeShellState extends State<HomeShell> {
               root: BoardFeedScreen(
                 feed: _boardFeed,
                 imageUrlFor: widget.dependencies.boardImageUrl,
+                // F13b engagement seams: per-post reactions/ratings fed by
+                // the production closures; signed-out readers (uid null)
+                // see aggregates read-only.
+                currentUserId: uid,
+                fetchReactions: widget.dependencies.fetchBoardReactions,
+                upsertReaction: widget.dependencies.upsertBoardReaction,
+                deleteReaction: widget.dependencies.deleteBoardReaction,
+                fetchRatings: widget.dependencies.fetchBoardRatings,
+                upsertRating: widget.dependencies.upsertBoardRating,
+                deleteRating: widget.dependencies.deleteBoardRating,
                 onCompose: () {
                   _keys[2].currentState?.pushNamed(
                     AppRoutes.boardCompose,

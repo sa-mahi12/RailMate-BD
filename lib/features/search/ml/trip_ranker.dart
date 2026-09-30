@@ -268,8 +268,46 @@ class TripRanker {
       final double ratio = seatsRatioOf?.call(trip) ?? defaultSeatsRatio;
       ranked.add(RankedTrip(trip: trip, score: await score(trip, ratio)));
     }
-    ranked.sort((a, b) => b.score.compareTo(a.score));
-    return ranked;
+    // Stable: ties keep the original fetch order (index tiebreak).
+    final List<int> order = List<int>.generate(ranked.length, (i) => i);
+    order.sort((a, b) {
+      final int byScore = ranked[b].score.compareTo(ranked[a].score);
+      if (byScore != 0) return byScore;
+      return a.compareTo(b);
+    });
+    return <RankedTrip>[for (final int i in order) ranked[i]];
+  }
+
+  /// F17 re-rank with honest degradation.
+  ///
+  /// Scores via the real TFLite path ([score]); when the interpreter was
+  /// unavailable (see [usingFallback]) the trips are returned in their
+  /// ORIGINAL fetch order with [smartRankingUnavailableNote] — failed
+  /// inference never invents, drops, or silently re-orders trips, and
+  /// never presents fallback math as smart ranking. Null/empty input
+  /// returns `[]` with no note.
+  Future<RankResult> rankResult(
+    List<Trip>? trips, {
+    double Function(Trip trip)? seatsRatioOf,
+  }) async {
+    if (trips == null || trips.isEmpty) {
+      return const RankResult(trips: <Trip>[], usedMl: false);
+    }
+    final List<RankedTrip> ranked = await rankTrips(
+      trips,
+      seatsRatioOf: seatsRatioOf,
+    );
+    if (usingFallback) {
+      return RankResult(
+        trips: List<Trip>.from(trips),
+        usedMl: false,
+        note: smartRankingUnavailableNote,
+      );
+    }
+    return RankResult(
+      trips: <Trip>[for (final RankedTrip r in ranked) r.trip],
+      usedMl: true,
+    );
   }
 
   /// Releases the interpreter. Idempotent; safe to call more than once.
@@ -280,4 +318,71 @@ class TripRanker {
 
   /// Flutter-[State]-friendly alias for [close].
   void dispose() => close();
+}
+
+// ---------------------------------------------------------------------------
+// F17 rank seam. Read this before wiring: the ONLY smart-ranking path is a
+// real TFLite [Interpreter] behind [TripRanker]; everything here delegates
+// scoring to an injectable callback so hermetic tests never load the model.
+// ---------------------------------------------------------------------------
+
+/// Honest note the search UI must show when on-device smart ranking could
+/// not run: the list below it is the unranked fetch order, NOT an ML
+/// ranking and NOT an empty "no trains" state.
+const String smartRankingUnavailableNote =
+    'smart ranking unavailable — showing unranked results '
+    '(demonstration data)';
+
+/// Ordered trip list plus the honesty metadata the host surfaces.
+///
+/// - [trips] never invents or drops trips: success re-orders the input,
+///   failure returns the input order unchanged (never `[]` for non-empty
+///   input).
+/// - [usedMl] is true only when every score came from the injected scorer
+///   without failure; false goes with [smartRankingUnavailableNote].
+class RankResult {
+  final List<Trip> trips;
+  final bool usedMl;
+  final String? note;
+
+  const RankResult({required this.trips, required this.usedMl, this.note});
+}
+
+/// Stable re-rank of already-fetched trips over an injectable scorer.
+///
+/// Production wiring passes `(trip) => ranker.score(trip, ratio)` (real
+/// TFLite inference); tests pass a fake. Ties keep the original order.
+/// A throwing scorer — or any NaN score — degrades to the input order
+/// with [smartRankingUnavailableNote] (honest passthrough, never empty).
+Future<RankResult> rankTripsWithScorer(
+  List<Trip>? trips,
+  Future<double> Function(Trip trip) scorer,
+) async {
+  if (trips == null || trips.isEmpty) {
+    return const RankResult(trips: <Trip>[], usedMl: false);
+  }
+  final List<double> scores = <double>[];
+  try {
+    for (final Trip trip in trips) {
+      final double score = await scorer(trip);
+      if (score.isNaN) throw StateError('NaN score for trip ${trip.id}');
+      scores.add(score);
+    }
+  } catch (_) {
+    return RankResult(
+      trips: List<Trip>.from(trips),
+      usedMl: false,
+      note: smartRankingUnavailableNote,
+    );
+  }
+  final List<int> order = List<int>.generate(trips.length, (i) => i);
+  order.sort((a, b) {
+    final int byScore = scores[b].compareTo(scores[a]);
+    if (byScore != 0) return byScore;
+    return a.compareTo(b);
+  });
+  return RankResult(
+    trips: <Trip>[for (final int i in order) trips[i]],
+    usedMl: true,
+  );
 }

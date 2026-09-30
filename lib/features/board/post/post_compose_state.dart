@@ -206,8 +206,9 @@ class PostComposeState extends ChangeNotifier {
     }
   }
 
-  /// Removes the orphan post row (and best-effort the reserved object)
-  /// after a partial failure. Returns true when the row was deleted.
+  /// Removes the orphan post row (and best-effort every known object: the
+  /// reserved upload path plus the row's linked `image_path`) after a
+  /// partial failure. Returns true when the row was deleted.
   /// No-op returning false when there is nothing to clean up.
   Future<bool> cleanupOrphan({
     required DeletePostRow deletePost,
@@ -217,12 +218,24 @@ class PostComposeState extends ChangeNotifier {
     if (row == null || row.id == null) return false;
     try {
       await deletePost(row.id!);
-      final path = reservedImagePath;
-      if (path != null && deleteObject != null) {
-        try {
-          await deleteObject(path);
-        } catch (_) {
-          // Best-effort: the object may not exist (upload threw first).
+      // F13b orphan follow-up: remove every known object for this post —
+      // the reserved upload path AND the row's linked `image_path` (they
+      // match in the normal flow, but the link step may have persisted a
+      // path while `reservedImagePath` was cleared or vice versa).
+      // Best-effort per path: objects may not exist; failures are swallowed
+      // silently (repo convention — no user-facing error, no log output).
+      final paths = <String>{};
+      final reserved = reservedImagePath;
+      if (reserved != null && reserved.isNotEmpty) paths.add(reserved);
+      final linked = row.imagePath;
+      if (linked != null && linked.isNotEmpty) paths.add(linked);
+      if (deleteObject != null) {
+        for (final path in paths) {
+          try {
+            await deleteObject(path);
+          } catch (_) {
+            // Best-effort: the object may not exist (upload threw first).
+          }
         }
       }
       createdPost = null;

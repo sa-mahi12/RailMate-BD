@@ -17,11 +17,12 @@ import 'post_feed_state.dart';
 ///
 /// Reactions/ratings need NO new table: `public.post_reactions` and
 /// `public.post_ratings` (+ RLS) already exist per migration
-/// `20260927000001_initial_schema.sql` / `20260927000002_rls.sql`, and the
-/// UI (`ReactionBar`, `StarRow`) already renders authoritative aggregates
-/// from the injectable `ReactionState` / `RatingState` seams. Only the
-/// production fetch/upsert/delete closures are pending coordinator wiring
-/// (exact code in the handoff).
+/// `20260927000001_initial_schema.sql` / `20260927000002_rls.sql`. F13b
+/// renders per-post engagement in the feed (`PostEngagement` owns one
+/// `ReactionState` + one `RatingState` per card, fed by the production
+/// fetch/upsert/delete closures below) and pages the live feed 5-per-page
+/// through [PostFeedState.fetchPage]. Only the production closures are
+/// pending coordinator wiring (exact code in the handoff).
 
 /// Kind of a realtime post event on the board feed channel.
 enum BoardPostEventKind {
@@ -186,13 +187,23 @@ bool applyPostEventToPaginator(
   }
 }
 
-/// Merges one realtime event into a windowed [PostFeedState].
+/// Merges one realtime event into a [PostFeedState].
 ///
-/// Same insert/update/delete semantics as [applyPostEventToPaginator],
-/// keeping newest-first order by (`created_at`, `id`). Notifies listeners
-/// when the visible list changed. Realtime-off callers simply stop calling
-/// this (list stays, UI says non-live).
+/// Window mode: same insert/update/delete semantics as
+/// [applyPostEventToPaginator], keeping newest-first order by
+/// (`created_at`, `id`), via [PostFeedState.replaceWindow]. Realtime-off
+/// callers simply stop calling this (list stays, UI says non-live).
+/// Paged mode (F13b): delegates to [applyPostEventToPaginator] so the
+/// paginator's seen-id set dedupes echoes and later pages never repeat
+/// merged rows; the feed is notified only when visible rows changed.
 void applyPostEventToFeed(PostFeedState feed, BoardPostEvent event) {
+  final paginator = feed.paginator;
+  if (paginator != null) {
+    if (applyPostEventToPaginator(paginator, event)) {
+      feed.notifyFeedChanged();
+    }
+    return;
+  }
   switch (event.kind) {
     case BoardPostEventKind.insert:
       final row = event.post;

@@ -1,28 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:printing/printing.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:railmate_bd/features/booking/passenger_ui/passenger.dart';
 
 import 'ticket_data.dart';
+import 'ticket_export.dart';
 
 const Color _primaryTeal = Color(0xFF0E5A66);
 const Color _accentGreen = Color(0xFF1E9E6A);
 const Color _dangerRed = Color(0xFFE5484D);
 const Color _pageBackground = Color(0xFFF4F7F9);
 
-/// Ref-5 "E-Ticket" screen (packet A06): demonstration ticket only.
+/// Ref-5 "E-Ticket" screen (packet A06 + F10): demonstration ticket only.
 ///
 /// Renders a confirmed [ticket] snapshot passed in by the host — this screen
 /// performs no Supabase calls and writes nothing. Shows the booking
-/// reference with a QR-style placeholder grid, the full passenger/seat
-/// list, and the fare breakdown. Every state carries the
+/// reference with a real QR ([QrImageView] over [ticketQrPayload]), the full
+/// passenger/seat list, the fare breakdown, and a download/share button that
+/// builds the PDF from [buildDemoTicketPdf] (via [TicketData.toPrintMap])
+/// and shares it with package:printing. Every state carries the
 /// `DEMONSTRATION ONLY / invalid for travel` banner; no official logos and
 /// no implied travel entitlement.
 ///
-/// QR note: no `qr_flutter` (or `pdf`/`printing`) package is vendored in
-/// `pubspec.yaml`, and this slice adds zero new dependencies per the packet
-/// contract — so the reference is shown as text plus a deterministic
-/// [_QrStub] grid placeholder. A later step can swap [_QrStub] for a real
-/// `qr_flutter` widget encoding [TicketData.bookingReference], and build
-/// the downloadable PDF from [TicketData.toPrintMap].
+/// Invalid snapshots keep the error state: no QR, no download button.
 class TicketScreen extends StatelessWidget {
   final TicketData ticket;
 
@@ -67,6 +67,8 @@ class TicketScreen extends StatelessWidget {
             _buildPassengersCard(),
             const SizedBox(height: 12),
             _buildFareCard(),
+            const SizedBox(height: 12),
+            _TicketDownloadButton(ticket: ticket),
           ],
         ],
       ),
@@ -112,7 +114,7 @@ class TicketScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            Center(child: _QrStub(reference: ticket.bookingReference)),
+            Center(child: _TicketQr(ticket: ticket)),
             const SizedBox(height: 8),
             Center(
               child: Text(
@@ -357,22 +359,25 @@ class _InvalidTicketCard extends StatelessWidget {
   }
 }
 
-/// Deterministic QR-style placeholder grid for the booking reference.
+/// Real QR for a valid ticket (F10): encodes [ticketQrPayload].
 ///
-/// Stand-in until the coordinator approves a real `qr_flutter` dependency:
-/// encodes nothing scannable — it only visualizes the reference alongside
-/// the reference text. The cell pattern derives from the reference's
-/// hash code so each booking looks distinct while staying stable across
-/// rebuilds.
-class _QrStub extends StatelessWidget {
-  final String reference;
+/// Rendered only on the valid branch — invalid snapshots keep the error
+/// state and never reach this widget. The demo banner sits directly above
+/// the ticket card (see [_DemoBanner]) and the caption below restates the
+/// demonstration-only nature adjacent to the code.
+class _TicketQr extends StatelessWidget {
+  final TicketData ticket;
 
-  const _QrStub({required this.reference});
+  const _TicketQr({required this.ticket});
 
   @override
   Widget build(BuildContext context) {
-    const cells = 21;
-    final seed = reference.trim().hashCode;
+    final payload = ticketQrPayload(ticket);
+    if (payload == null) {
+      // Defensive: valid branch should always yield a payload; never show
+      // a code-looking graphic for an invalid snapshot.
+      return const SizedBox.shrink();
+    }
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -380,42 +385,114 @@ class _QrStub extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.black12),
       ),
-      child: SizedBox(
-        width: 168,
-        height: 168,
-        child: GridView.builder(
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: cells,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          QrImageView(
+            data: payload,
+            version: QrVersions.auto,
+            size: 168,
+            backgroundColor: Colors.white,
+            errorStateBuilder: (context, error) => const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text(
+                'QR unavailable for this demo reference.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 12, color: Colors.black54),
+              ),
+            ),
           ),
-          itemCount: cells * cells,
-          itemBuilder: (context, index) {
-            final row = index ~/ cells;
-            final col = index % cells;
-            final finder = _isFinderPattern(row, col, cells);
-            final filled = finder || (seed + row * 31 + col * 17) % 3 == 0;
-            return Container(
-              margin: const EdgeInsets.all(0.5),
-              color: filled ? Colors.black87 : Colors.white,
-            );
-          },
-        ),
+          const SizedBox(height: 4),
+          const Text(
+            'Demo QR — encodes the reference only, not travel entitlement.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 11, color: Colors.black54),
+          ),
+        ],
       ),
     );
   }
+}
 
-  bool _isFinderPattern(int row, int col, int size) {
-    bool inSquare(int r0, int c0) =>
-        row >= r0 && row < r0 + 7 && col >= c0 && col < c0 + 7;
-    if (!inSquare(0, 0) && !inSquare(0, size - 7) && !inSquare(size - 7, 0)) {
-      return false;
+/// Download/share button for the demonstration PDF (F10).
+///
+/// Builds the file from [buildDemoTicketPdf] (banner + note on every
+/// page/footer, passenger table, fare breakdown, embedded QR) and shares it
+/// via package:printing under an honest `railmate-demo-ticket-<ref>.pdf`
+/// filename. Layout and share-sheet failures surface honestly with a retry
+/// action; an invalid ticket never reaches this widget.
+class _TicketDownloadButton extends StatefulWidget {
+  final TicketData ticket;
+
+  const _TicketDownloadButton({required this.ticket});
+
+  @override
+  State<_TicketDownloadButton> createState() => _TicketDownloadButtonState();
+}
+
+class _TicketDownloadButtonState extends State<_TicketDownloadButton> {
+  bool _busy = false;
+
+  Future<void> _download() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      final bytes = await buildDemoTicketPdf(widget.ticket);
+      final filename = ticketPdfFilename(widget.ticket);
+      final shared = await Printing.sharePdf(bytes: bytes, filename: filename);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            shared
+                ? 'Shared $filename (DEMONSTRATION ONLY).'
+                : 'Share dismissed — no file was sent.',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not build the demo PDF: $e'),
+          action: SnackBarAction(label: 'Retry', onPressed: _download),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
     }
-    final r = row % size;
-    final c = col % size;
-    final lr = r < 7 ? r : r - (size - 7);
-    final lc = c < 7 ? c : c - (size - 7);
-    final outer = lr == 0 || lr == 6 || lc == 0 || lc == 6;
-    final inner = lr >= 2 && lr <= 4 && lc >= 2 && lc <= 4;
-    return outer || inner;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            FilledButton.icon(
+              onPressed: _busy ? null : _download,
+              icon: _busy
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.download),
+              label: Text(_busy ? 'Building demo PDF…' : 'Download demo PDF'),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${TicketData.demoBanner}. File: ${ticketPdfFilename(widget.ticket)}',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 11, color: Colors.black54),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

@@ -284,20 +284,37 @@ class SearchResultsScreen extends StatelessWidget {
         ),
       );
     }
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: state.results.length,
-      itemBuilder: (context, index) {
-        final trip = state.results[index];
-        return _TripCard(
-          trip: trip,
-          originCode: state.stationCode(trip.originStationId),
-          originName: state.stationName(trip.originStationId),
-          destinationCode: state.stationCode(trip.destinationStationId),
-          destinationName: state.stationName(trip.destinationStationId),
-          onTap: () => onSelectTrip(trip),
-        );
-      },
+    final String? rankingNote = state.rankingNote;
+    return Column(
+      children: [
+        // F17 honesty caption: shown only when on-device smart ranking
+        // could not run (the list below is the unranked fetch order).
+        if (rankingNote != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: Text(
+              rankingNote,
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+          ),
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: state.results.length,
+            itemBuilder: (context, index) {
+              final trip = state.results[index];
+              return _TripCard(
+                trip: trip,
+                originCode: state.stationCode(trip.originStationId),
+                originName: state.stationName(trip.originStationId),
+                destinationCode: state.stationCode(trip.destinationStationId),
+                destinationName: state.stationName(trip.destinationStationId),
+                onTap: () => onSelectTrip(trip),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }

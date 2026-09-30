@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../media/post_media.dart';
+import '../ratings/rating_state.dart';
+import '../reactions/reaction_state.dart';
+import 'post.dart';
+import 'post_engagement.dart';
 import 'post_feed_state.dart';
 
 /// Journey Board feed screen (packet A07, R-13; image display in F11).
@@ -15,7 +19,20 @@ import 'post_feed_state.dart';
 /// needed). Local previews are never rendered here. When [imageUrlFor] is
 /// null (URL resolution not wired yet) or resolves to null, posts with an
 /// `imagePath` fall back to the 'Photo attached' badge instead of a broken
-/// image. Comments, reactions and ratings arrive in later packets.
+/// image.
+///
+/// Per-post engagement (F13b): each card hosts a [PostEngagement] section
+/// (own `ReactionState`/`RatingState`, authoritative aggregates, optimistic
+/// toggles reconciled by refresh) when all six reaction/rating seams are
+/// provided — production passes the coordinator-wired `AppDependencies`
+/// closures plus [currentUserId]; null seams (default) hide the section so
+/// existing callers render exactly the old card. Signed-out readers
+/// ([currentUserId] null) see aggregates read-only with a sign-in hint.
+///
+/// Cursor pagination (F13b): a paged [PostFeedState] ([fetchPage] wired)
+/// shows an honest trailer row — spinner while paging, the genuine error
+/// with Retry on page failure (rows kept), else Load more. Window-mode
+/// feeds show no trailer.
 class BoardFeedScreen extends StatelessWidget {
   /// Feed state (owned by the caller; call [PostFeedState.load] first).
   final PostFeedState feed;
@@ -29,12 +46,53 @@ class BoardFeedScreen extends StatelessWidget {
   /// Null keeps the badge fallback (never a broken image).
   final ResolveBoardImageUrl? imageUrlFor;
 
+  /// Reaction seams for the per-post engagement section. All six
+  /// reaction/rating seams must be non-null for the section to render.
+  final FetchReactions? fetchReactions;
+  final UpsertReactionRow? upsertReaction;
+  final DeleteReactionRow? deleteReaction;
+
+  /// Rating seams for the per-post engagement section (see above).
+  final FetchRatings? fetchRatings;
+  final UpsertRatingRow? upsertRating;
+  final DeleteRatingRow? deleteRating;
+
+  /// Current author uid for the engagement section. Null (default) renders
+  /// aggregates read-only with a sign-in hint.
+  final String? currentUserId;
+
   const BoardFeedScreen({
     super.key,
     required this.feed,
     this.onCompose,
     this.imageUrlFor,
+    this.fetchReactions,
+    this.upsertReaction,
+    this.deleteReaction,
+    this.fetchRatings,
+    this.upsertRating,
+    this.deleteRating,
+    this.currentUserId,
   });
+
+  /// True when the per-post engagement section can render for [post]: all
+  /// six seams wired and a concrete row id to vote on.
+  bool _engagementWired(Post post) =>
+      fetchReactions != null &&
+      upsertReaction != null &&
+      deleteReaction != null &&
+      fetchRatings != null &&
+      upsertRating != null &&
+      deleteRating != null &&
+      post.id != null &&
+      post.id!.isNotEmpty;
+
+  /// True when the pagination trailer row applies: a page is loading, the
+  /// last page load failed (Retry), or more pages exist (Load more).
+  /// Window-mode feeds never show it ([PostFeedState.hasMore] false,
+  /// [PostFeedState.pageError] null, [PostFeedState.isLoadingMore] false).
+  bool get _showTrailer =>
+      feed.isLoadingMore || feed.pageError != null || feed.hasMore;
 
   @override
   Widget build(BuildContext context) {
@@ -124,8 +182,9 @@ class BoardFeedScreen extends StatelessWidget {
       onRefresh: feed.refresh,
       child: ListView.builder(
         padding: const EdgeInsets.all(16),
-        itemCount: feed.posts.length,
+        itemCount: feed.posts.length + (_showTrailer ? 1 : 0),
         itemBuilder: (context, i) {
+          if (i >= feed.posts.length) return _trailer();
           final post = feed.posts[i];
           return Container(
             margin: const EdgeInsets.only(bottom: 12),
@@ -149,6 +208,20 @@ class BoardFeedScreen extends StatelessWidget {
                   const SizedBox(height: 8),
                   _postImage(post.imagePath!),
                 ],
+                if (_engagementWired(post)) ...[
+                  const SizedBox(height: 8),
+                  PostEngagement(
+                    key: ValueKey('engagement-${post.id}'),
+                    post: post,
+                    currentUserId: currentUserId,
+                    fetchReactions: fetchReactions!,
+                    upsertReaction: upsertReaction!,
+                    deleteReaction: deleteReaction!,
+                    fetchRatings: fetchRatings!,
+                    upsertRating: upsertRating!,
+                    deleteRating: deleteRating!,
+                  ),
+                ],
                 const SizedBox(height: 8),
                 Row(
                   children: [
@@ -169,6 +242,43 @@ class BoardFeedScreen extends StatelessWidget {
             ),
           );
         },
+      ),
+    );
+  }
+
+  /// Honest pagination trailer: a spinner while a page is in flight, the
+  /// genuine page error with Retry on failure (loaded rows are kept), else
+  /// the Load more action. Only built when [_showTrailer] is true.
+  Widget _trailer() {
+    if (feed.isLoadingMore) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 16),
+        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      );
+    }
+    if (feed.pageError != null) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text(
+              "Couldn't load more.",
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            const SizedBox(width: 8),
+            TextButton(onPressed: feed.loadMore, child: const Text('Retry')),
+          ],
+        ),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Center(
+        child: OutlinedButton(
+          onPressed: feed.loadMore,
+          child: const Text('Load more'),
+        ),
       ),
     );
   }

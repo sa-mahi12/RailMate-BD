@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import '../graphql/graphql_client.dart';
 import '../graphql/station_graphql_service.dart';
+import 'ml/trip_ranker.dart';
 import 'models/station.dart';
 import 'models/trip.dart';
 import 'search_date_utils.dart';
@@ -46,6 +47,23 @@ class SearchState extends ChangeNotifier {
   Station? destination;
   DateTime selectedDate = dayStartOf(DateTime.now());
   List<Trip> results = <Trip>[];
+
+  /// On-device smart ranker (F17, worker-D lane instance owned here so the
+  /// TFLite interpreter loads once per search state, not once per search).
+  /// Lazily loads the bundled model; failures degrade honestly (see below).
+  final TripRanker ranker = TripRanker();
+
+  /// Honest ranking note for the results screen (F17): null when the list
+  /// is ML-ranked (or when no ranking ran: validation/empty/error paths);
+  /// set to [smartRankingUnavailableNote] when inference could not run and
+  /// the list is the unranked fetch order.
+  String? rankingNote;
+
+  @override
+  void dispose() {
+    ranker.dispose();
+    super.dispose();
+  }
 
   /// True when the last search succeeded with zero rows (the repository
   /// signals this via [EmptyResult], normalised here to an empty list).
@@ -159,20 +177,27 @@ class SearchState extends ChangeNotifier {
     errorMessage = null;
     notifyListeners();
     try {
-      results = await api.searchTrips(
+      final List<Trip> fetched = await api.searchTrips(
         originId: origin!.id,
         destinationId: destination!.id,
         date: selectedDate,
       );
+      // F17: on-device smart re-rank. Failure keeps the fetch order with an
+      // honest note (never invented/dropped trips, never silent).
+      final RankResult rank = await ranker.rankResult(fetched);
+      results = rank.trips;
+      rankingNote = rank.note;
       status = SearchStatus.loaded;
     } on EmptyResult {
       // Successful query, zero rows: loaded + empty, NOT an error.
       results = <Trip>[];
+      rankingNote = null;
       status = SearchStatus.loaded;
     } on NetworkError catch (e) {
       // Network/timeout failures stay in error and must never read as
       // "no trains".
       results = <Trip>[];
+      rankingNote = null;
       status = SearchStatus.error;
       errorKind = e.isTimeout
           ? SearchErrorKind.timeout
