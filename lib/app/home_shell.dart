@@ -318,6 +318,7 @@ class _HomeShellState extends State<HomeShell> {
           children: [
             _TabNavigator(
               navigatorKey: _keys[0],
+              dependencies: widget.dependencies,
               root: HomeSearchScreen(
                 state: _searchState,
                 onSearchSubmitted: () {
@@ -337,6 +338,7 @@ class _HomeShellState extends State<HomeShell> {
             ),
             _TabNavigator(
               navigatorKey: _keys[1],
+              dependencies: widget.dependencies,
               root: uid == null
                   ? SignInRequiredScreen(
                       title: 'Bookings',
@@ -350,6 +352,7 @@ class _HomeShellState extends State<HomeShell> {
             ),
             _TabNavigator(
               navigatorKey: _keys[2],
+              dependencies: widget.dependencies,
               root: BoardFeedScreen(
                 feed: _boardFeed,
                 imageUrlFor: widget.dependencies.boardImageUrl,
@@ -376,6 +379,7 @@ class _HomeShellState extends State<HomeShell> {
             // named routes, not as a tab.
             _TabNavigator(
               navigatorKey: _keys[3],
+              dependencies: widget.dependencies,
               root: ProfileScreen(auth: widget.dependencies.auth),
             ),
           ],
@@ -408,13 +412,21 @@ class _HomeShellState extends State<HomeShell> {
 }
 
 /// One tab's nested [Navigator]. The tab root renders directly; deeper pushes
-/// resolve through the central [AppRoutes.onGenerateRoute] table (unknown
-/// names land on the shared error screen, which always has a pop path).
+/// resolve through the central [AppRoutes.onGenerateRoute] table WITH the
+/// shell's [dependencies] (F19 fix: without them, in-tab pushes of
+/// dependency-backed routes like login/history land on the "App dependencies
+/// missing" error screen). Unknown names land on the shared error screen,
+/// which always has a pop path.
 class _TabNavigator extends StatelessWidget {
   final GlobalKey<NavigatorState> navigatorKey;
   final Widget root;
+  final AppDependencies dependencies;
 
-  const _TabNavigator({required this.navigatorKey, required this.root});
+  const _TabNavigator({
+    required this.navigatorKey,
+    required this.root,
+    required this.dependencies,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -424,7 +436,7 @@ class _TabNavigator extends StatelessWidget {
         if (settings.name == Navigator.defaultRouteName) {
           return MaterialPageRoute<void>(builder: (_) => root);
         }
-        return AppRoutes.onGenerateRoute(settings);
+        return AppRoutes.onGenerateRoute(settings, dependencies: dependencies);
       },
     );
   }

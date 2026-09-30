@@ -296,16 +296,24 @@ class _KeySetupScreenState extends State<KeySetupScreen> {
                         'Test connection (one explicit request)',
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
-                      CheckboxListTile(
-                        contentPadding: EdgeInsets.zero,
-                        controlAffinity: ListTileControlAffinity.leading,
-                        title: const Text(
-                          'Send my key with this request only',
-                          style: TextStyle(fontSize: 13),
+                      // Material wrapper: the consent tile needs a Material
+                      // ancestor for ink splashes (the card Container would
+                      // otherwise hide them; debug-asserted in tests).
+                      Material(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        child: CheckboxListTile(
+                          contentPadding: EdgeInsets.zero,
+                          controlAffinity: ListTileControlAffinity.leading,
+                          title: const Text(
+                            'Send my key with this request only',
+                            style: TextStyle(fontSize: 13),
+                          ),
+                          value: _consent,
+                          activeColor: _primary,
+                          onChanged: (v) =>
+                              setState(() => _consent = v ?? false),
                         ),
-                        value: _consent,
-                        activeColor: _primary,
-                        onChanged: (v) => setState(() => _consent = v ?? false),
                       ),
                       SizedBox(
                         width: double.infinity,
