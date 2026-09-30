@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../key/byok_vault.dart';
-import '../key/openrouter_client_stub.dart';
+import '../key/openrouter_client.dart';
 import 'rewrite_state.dart';
 
 /// Host callbacks for the rewrite slice (packet B11 / R-23).
@@ -23,26 +23,33 @@ class RewriteHostCallbacks {
 ///   when the per-request consent checkbox
 ///   ('Send my key with this request only', B10 screen pattern) is ticked,
 ///   and ONLY with the key read from [vault] passed explicitly to
-///   [OpenRouterClientStub.sendWithKey] at call time.
+///   [OpenRouterClient.improveDraft] at call time. The button is disabled
+///   while the draft is blank, so empty text never triggers a call.
 /// - Core works WITHOUT a key: when no key is stored, the button is
-///   disabled and a setup prompt ('Add one in AI Settings') is shown.
+///   disabled and a setup prompt ('Add one in AI Settings') with a route to
+///   the existing key-setup screen is shown.
 /// - Suggestion card shows the returned text with Accept/Reject. Accept
 ///   invokes [callbacks.onAccepted] and never writes anywhere itself;
 ///   Reject discards. No auto-commit, no auto-publish.
 /// - Errors render as plain text via [RewriteState.errorMessage]
-///   (401 → key invalid, 429 → quota exceeded, network → connection failed).
+///   (401 → key invalid, 402/429 → quota, network → connection failed,
+///   bad payload → could-not-improve).
 class RewriteBar extends StatefulWidget {
   final ByokVault vault;
   final RewriteHostCallbacks callbacks;
   final String initialDraft;
-  final OpenRouterClientStub client;
+
+  /// Real OpenRouter client. Null constructs one on demand so the board host
+  /// (which passes no client) gets the real call path with zero wiring;
+  /// tests inject `OpenRouterClient(httpClient: fake)`.
+  final OpenRouterClient? client;
 
   const RewriteBar({
     super.key,
     required this.vault,
     required this.callbacks,
     required this.initialDraft,
-    this.client = const OpenRouterClientStub(),
+    this.client,
   });
 
   @override
@@ -55,12 +62,14 @@ class _RewriteBarState extends State<RewriteBar> {
   static const _danger = Color(0xFFE5484D);
 
   late final RewriteState _state;
+  late final OpenRouterClient _client;
   bool? _hasKey;
 
   @override
   void initState() {
     super.initState();
     _state = RewriteState(draft: widget.initialDraft);
+    _client = widget.client ?? OpenRouterClient();
     _state.addListener(_onStateChanged);
     _refreshKeyStatus();
   }
@@ -92,23 +101,12 @@ class _RewriteBarState extends State<RewriteBar> {
 
   /// Explicit user action only: single 'Improve Wording' tap → one
   /// consent-gated request. The vault key is read here and passed
-  /// explicitly to the B10 stub; nothing auto-attaches it.
+  /// explicitly to the real OpenRouter client; nothing auto-attaches it.
   Future<void> _onImprove() {
     return _state.improve(
       readKey: widget.vault.readKey,
       send: ({required String key, required String draft}) =>
-          widget.client.sendWithKey(
-            key: key,
-            messages: [
-              const {
-                'role': 'system',
-                'content':
-                    'Rewrite the user draft for a railway board post. '
-                    'Return only the rewritten text.',
-              },
-              {'role': 'user', 'content': draft},
-            ],
-          ),
+          _client.improveDraft(key: key, draft: draft),
     );
   }
 
@@ -122,6 +120,13 @@ class _RewriteBarState extends State<RewriteBar> {
   @override
   Widget build(BuildContext context) {
     final hasKey = _hasKey;
+    // Empty draft disables the call: no request is ever made with blank text
+    // (RewriteState.improve keeps the same gate as defense-in-depth).
+    final bool draftEmpty = _state.draft.trim().isEmpty;
+    // 401 surfaces the re-setup path to the existing key-setup screen.
+    final bool showKeySetup =
+        _state.status == RewriteStatus.error &&
+        (_state.errorMessage?.contains('key invalid') ?? false);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -170,6 +175,13 @@ class _RewriteBarState extends State<RewriteBar> {
                 child: const Text('Improve Wording'),
               ),
             ),
+            const SizedBox(height: 4),
+            TextButton(
+              // String literal avoids an app-layer import from this slice;
+              // mirrors AppRoutes.keySetup ('/ai/key-setup').
+              onPressed: () => Navigator.of(context).pushNamed('/ai/key-setup'),
+              child: const Text('Open AI Settings'),
+            ),
           ] else ...[
             CheckboxListTile(
               contentPadding: EdgeInsets.zero,
@@ -194,10 +206,17 @@ class _RewriteBarState extends State<RewriteBar> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                onPressed: _state.isLoading ? null : _onImprove,
+                onPressed: (_state.isLoading || draftEmpty) ? null : _onImprove,
                 child: const Text('Improve Wording'),
               ),
             ),
+            if (draftEmpty && hasKey != false) ...[
+              const SizedBox(height: 4),
+              const Text(
+                'Write a draft first.',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+            ],
           ],
           if (_state.isLoading) ...[
             const SizedBox(height: 12),
@@ -218,6 +237,17 @@ class _RewriteBarState extends State<RewriteBar> {
                 style: const TextStyle(color: _danger, fontSize: 13),
               ),
             ),
+            if (showKeySetup)
+              TextButton(
+                // String literal avoids an app-layer import from this slice;
+                // mirrors AppRoutes.keySetup ('/ai/key-setup').
+                onPressed: () =>
+                    Navigator.of(context).pushNamed('/ai/key-setup'),
+                child: const Text(
+                  'Open AI Settings',
+                  style: TextStyle(color: _danger),
+                ),
+              ),
           ],
           if (_state.hasSuggestion) ...[
             const SizedBox(height: 12),

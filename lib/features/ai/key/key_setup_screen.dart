@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'byok_vault.dart';
-import 'openrouter_client_stub.dart';
+import 'openrouter_client.dart';
+import '../rewrite/rewrite_state.dart' show mapRewriteError;
 
 /// AI Settings / BYOK key setup screen (packet B10 / R-23, ref-10 AI Settings).
 ///
@@ -14,16 +15,15 @@ import 'openrouter_client_stub.dart';
 /// - Test Connection reads the key from the vault ONLY inside the explicit
 ///   button handler AND requires the per-request consent checkbox
 ///   ('Send my key with this request only') before passing the key to
-///   [OpenRouterClientStub.sendWithKey]. No auto-attach anywhere.
+///   [OpenRouterClient.sendWithKey]. No auto-attach anywhere.
 class KeySetupScreen extends StatefulWidget {
   final ByokVault vault;
-  final OpenRouterClientStub client;
 
-  const KeySetupScreen({
-    super.key,
-    required this.vault,
-    this.client = const OpenRouterClientStub(),
-  });
+  /// Real OpenRouter client. Null constructs one on demand; tests inject
+  /// `OpenRouterClient(httpClient: fake)`.
+  final OpenRouterClient? client;
+
+  const KeySetupScreen({super.key, required this.vault, this.client});
 
   @override
   State<KeySetupScreen> createState() => _KeySetupScreenState();
@@ -42,7 +42,8 @@ class _KeySetupScreenState extends State<KeySetupScreen> {
   String? _notice;
   bool _noticeIsError = false;
 
-  OpenRouterClientStub get _client => widget.client;
+  OpenRouterClient get _client => widget.client ?? _ownedClient;
+  late final OpenRouterClient _ownedClient = OpenRouterClient();
 
   @override
   void initState() {
@@ -128,7 +129,10 @@ class _KeySetupScreenState extends State<KeySetupScreen> {
     } on ArgumentError catch (e) {
       _setNotice(e.message?.toString() ?? 'Test failed.', isError: true);
     } catch (e) {
-      _setNotice('Test failed: $e', isError: true);
+      // Honest cause mapping (401 → invalid key, 402/429 → quota,
+      // network → connection failed). The mapped text never contains key
+      // material — only the failure class.
+      _setNotice(mapRewriteError(e), isError: true);
     } finally {
       if (mounted) {
         setState(() {

@@ -11,6 +11,8 @@ import '../features/auth/username/username_availability.dart';
 import '../features/board/comments/comment.dart';
 import '../features/board/post/post.dart';
 import '../features/board/post/post_feed_state.dart';
+import '../features/board/ratings/rating.dart';
+import '../features/board/reactions/reaction.dart';
 import '../features/booking/seat_ui/seat_selection_state.dart' show SeatFetcher;
 import '../features/bookings/booking_history.dart';
 import '../features/graphql/graphql_client.dart';
@@ -173,6 +175,101 @@ class AppDependencies {
         .from('posts')
         .delete()
         .eq('id', postId)
+        .timeout(const Duration(seconds: 15));
+  }
+
+  // ------------------------------------------------------------------
+  // Board reactions + ratings data path (F13). Tables + RLS
+  // (`post_reactions` / `post_ratings`) are live in the hosted schema;
+  // the feed UI renders them in a later packet — these closures are the
+  // production fetch/upsert/delete path its state objects will consume.
+  // ------------------------------------------------------------------
+
+  /// All reactions for one post (RLS: public read).
+  Future<List<PostReaction>> fetchBoardReactions(String postId) async {
+    final rows = await _backend
+        .from('post_reactions')
+        .select()
+        .eq('post_id', postId)
+        .timeout(const Duration(seconds: 15));
+    return (rows as List)
+        .map(
+          (row) => PostReaction.fromMap(Map<String, dynamic>.from(row as Map)),
+        )
+        .toList();
+  }
+
+  /// Upserts one user's reaction on a post (RLS: own rows only).
+  Future<void> upsertBoardReaction({
+    required String postId,
+    required String userId,
+    required ReactionValue reaction,
+  }) {
+    return _backend
+        .from('post_reactions')
+        .upsert(
+          PostReaction(
+            postId: postId,
+            userId: userId,
+            reaction: reaction,
+          ).toUpsertMap(),
+        )
+        .timeout(const Duration(seconds: 15));
+  }
+
+  /// Removes one user's reaction (RLS: own rows only).
+  Future<void> deleteBoardReaction({
+    required String postId,
+    required String userId,
+  }) {
+    return _backend
+        .from('post_reactions')
+        .delete()
+        .eq('post_id', postId)
+        .eq('user_id', userId)
+        .timeout(const Duration(seconds: 15));
+  }
+
+  /// All ratings for one post (RLS: public read).
+  Future<List<PostRating>> fetchBoardRatings(String postId) async {
+    final rows = await _backend
+        .from('post_ratings')
+        .select()
+        .eq('post_id', postId)
+        .timeout(const Duration(seconds: 15));
+    return (rows as List)
+        .map((row) => PostRating.fromMap(Map<String, dynamic>.from(row as Map)))
+        .toList();
+  }
+
+  /// Upserts one user's star rating (RLS: own rows only).
+  Future<void> upsertBoardRating({
+    required String postId,
+    required String userId,
+    required int stars,
+  }) {
+    return _backend
+        .from('post_ratings')
+        .upsert(
+          PostRating.create(
+            postId: postId,
+            userId: userId,
+            stars: stars,
+          ).toUpsertMap(),
+        )
+        .timeout(const Duration(seconds: 15));
+  }
+
+  /// Removes one user's rating (RLS: own rows only).
+  Future<void> deleteBoardRating({
+    required String postId,
+    required String userId,
+  }) {
+    return _backend
+        .from('post_ratings')
+        .delete()
+        .eq('post_id', postId)
+        .eq('user_id', userId)
         .timeout(const Duration(seconds: 15));
   }
 

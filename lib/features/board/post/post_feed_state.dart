@@ -51,4 +51,13 @@ class PostFeedState extends ChangeNotifier {
 
   /// Reloads the window (pull-to-refresh wiring). Same as [load].
   Future<void> refresh() => load();
+
+  /// Replaces the loaded window after an externally-mapped mutation (F13
+  /// realtime bridge) and notifies listeners. The bridge computes the new
+  /// list; this method is the only non-[load] writer of [posts] so listener
+  /// notification stays inside the [ChangeNotifier].
+  void replaceWindow(List<Post> rows) {
+    posts = List<Post>.unmodifiable(rows);
+    notifyListeners();
+  }
 }

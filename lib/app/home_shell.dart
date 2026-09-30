@@ -1,6 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
+import '../features/board/post/post.dart';
+import '../features/board/post/post_feed_realtime.dart';
 import '../features/board/post/post_feed_state.dart';
 import '../features/board/post/feed_screen.dart';
 import '../features/booking/passenger_ui/passenger.dart';
@@ -58,10 +63,88 @@ class _HomeShellState extends State<HomeShell> {
     fetchPosts: widget.dependencies.fetchBoardPosts,
   );
 
+  /// F13 live-update subscription for the board feed (transport-free seam:
+  /// the shell maps the channel into [BoardPostEvent]s).
+  final BoardPostFeedRealtime _boardRealtime = BoardPostFeedRealtime();
+  StreamController<BoardPostEvent>? _boardEvents;
+  RealtimeChannel? _boardChannel;
+
   @override
   void initState() {
     super.initState();
     widget.dependencies.auth.addListener(_onAuthChanged);
+    _subscribeBoardRealtime();
+  }
+
+  /// Subscribes to `postgres_changes` on `public.posts` so inserts, updates
+  /// and deletes from other clients merge into [_boardFeed] without
+  /// pull-to-refresh. Null client (widget tests, unwired hosts) means an
+  /// honest non-live list: no channel is opened and no rows are fabricated.
+  void _subscribeBoardRealtime() {
+    final SupabaseClient? client = widget.dependencies.client;
+    if (client == null) return;
+    final StreamController<BoardPostEvent> events =
+        StreamController<BoardPostEvent>.broadcast();
+    _boardEvents = events;
+    final RealtimeChannel channel = client.channel('public:board-posts');
+    _boardChannel = channel;
+    channel
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'posts',
+          callback: (PostgresChangePayload payload) {
+            if (_boardChannel == null) return;
+            final BoardPostEvent? event = _mapBoardPayload(payload);
+            if (event != null) events.add(event);
+          },
+        )
+        .subscribe();
+    unawaited(
+      _boardRealtime.subscribe(
+        stream: events.stream,
+        onEvent: (BoardPostEvent event) {
+          if (!mounted) return;
+          applyPostEventToFeed(_boardFeed, event);
+        },
+      ),
+    );
+  }
+
+  /// Maps one realtime payload onto a [BoardPostEvent]; returns null when
+  /// the payload carries no usable row (malformed payloads are dropped,
+  /// never synthesised into posts).
+  BoardPostEvent? _mapBoardPayload(PostgresChangePayload payload) {
+    final String eventId = payload.commitTimestamp.toIso8601String();
+    switch (payload.eventType) {
+      case PostgresChangeEvent.insert:
+      case PostgresChangeEvent.update:
+        if (payload.newRecord.isEmpty) return null;
+        try {
+          final Post post = Post.fromMap(
+            Map<String, dynamic>.from(payload.newRecord),
+          );
+          return BoardPostEvent(
+            eventId: eventId,
+            kind: payload.eventType == PostgresChangeEvent.insert
+                ? BoardPostEventKind.insert
+                : BoardPostEventKind.update,
+            post: post,
+          );
+        } catch (_) {
+          return null;
+        }
+      case PostgresChangeEvent.delete:
+        final Object? id = payload.oldRecord['id'];
+        if (id == null) return null;
+        return BoardPostEvent(
+          eventId: eventId,
+          kind: BoardPostEventKind.delete,
+          postId: id.toString(),
+        );
+      default:
+        return null;
+    }
   }
 
   void _onAuthChanged() {
@@ -201,6 +284,17 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   void dispose() {
+    // Tear down realtime first so no late event touches the feed: stop the
+    // channel, close the event bridge, then dispose the dedupe seam.
+    final RealtimeChannel? channel = _boardChannel;
+    _boardChannel = null;
+    final SupabaseClient? client = widget.dependencies.client;
+    if (channel != null && client != null) {
+      unawaited(client.removeChannel(channel));
+    }
+    unawaited(_boardEvents?.close());
+    _boardEvents = null;
+    unawaited(_boardRealtime.dispose());
     widget.dependencies.auth.removeListener(_onAuthChanged);
     _searchState.dispose();
     _boardFeed.dispose();

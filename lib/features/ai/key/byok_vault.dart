@@ -43,7 +43,8 @@ class SecureStorageBackend implements KeyStorageBackend {
 /// - No developer fallback key: no hardcoded/default key anywhere.
 /// - The key is sent to OpenRouter ONLY on explicit user action: callers
 ///   must read the key here and pass it to
-///   `OpenRouterClientStub.sendWithKey(key: ..., ...)` at call time.
+///   `OpenRouterClient.sendWithKey(key: ..., ...)` (F14 real HTTPS client;
+///   B10 stub kept for contract tests) at call time.
 ///   This class never performs network calls itself.
 /// - [removeKey]/[logout] isolate the account: delete from secure storage
 ///   AND clear the in-memory cache.

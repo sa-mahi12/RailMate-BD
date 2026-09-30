@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 
 import '../features/ai/key/byok_vault.dart';
 import '../features/ai/rewrite/rewrite_launcher.dart';
+import '../features/board/media/board_image_picker.dart';
 import '../features/board/post/compose_screen.dart';
 import '../features/board/post/post.dart';
 import '../features/board/post/post_compose_state.dart';
 import 'dependencies.dart';
 import 'routes.dart';
 
-/// Board compose flow host (F02 wired, F12 adds the image picker).
+/// Board compose flow host (F02 wired, F12 image picker live).
 ///
 /// Owns a [PostComposeState] + draft [TextEditingController] and is the ONLY
 /// place in the app that wires B11's `launchRewrite` seam: the
@@ -18,9 +19,8 @@ import 'routes.dart';
 /// [BoardComposeScreen] for submit.
 ///
 /// Post submit uses the hosted Supabase closures from [dependencies]
-/// (authenticated insert + `post-media` upload + orphan cleanup). The image
-/// picker stays null until F12 wires `image_picker`, which hides the attach
-/// button — text posts work end-to-end now.
+/// (authenticated insert + `post-media` upload + orphan cleanup). The attach
+/// button is live via [boardGalleryPicker]; text-only posts keep working.
 class BoardComposeHost extends StatefulWidget {
   /// Current author uid. Null shows the setup note: draft + AI Improve
   /// Wording stay usable, only the submit step is gated.
@@ -86,8 +86,10 @@ class _BoardComposeHostState extends State<BoardComposeHost> {
           deletePost: dependencies?.deleteBoardPost ?? _unwiredDelete,
           deleteObject: dependencies?.deleteBoardObject,
           updatePostImage: dependencies?.updateBoardPostImage,
-          // Null picker hides the attach button until F12 wires image_picker.
-          pickImageBytes: null,
+          // F12: gallery picker feeds the attach seam; cancel/denial are
+          // handled inside the compose screen (silent cancel, settings
+          // nudge on denial, retry on failure).
+          pickImageBytes: boardGalleryPicker(),
           onDone: () => Navigator.of(context).pop(),
         ),
       ),

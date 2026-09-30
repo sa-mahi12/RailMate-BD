@@ -15,7 +15,7 @@ typedef ReadRewriteKey = Future<String?> Function();
 
 /// Explicit-key send, injected so tests use a fake backend. Production
 /// wiring passes a closure over
-/// `OpenRouterClientStub.sendWithKey(key: ..., messages: ...)` (B10),
+/// `OpenRouterClient.improveDraft(key: ..., draft: ...)` (F14),
 /// keeping the exact explicit-key signature: the key travels only as the
 /// `key:` argument of one user-tapped request.
 typedef SendRewrite = Future<String> Function({
@@ -26,7 +26,7 @@ typedef SendRewrite = Future<String> Function({
 /// Provider failure surfaced by a rewrite backend.
 ///
 /// [statusCode] carries the HTTP status when the backend knows it
-/// (401 = bad key, 429 = quota). A backend that only has a message may
+/// (401 = bad key, 402/429 = quota). A backend that only has a message may
 /// leave it null; [mapRewriteError] then falls back to message sniffing.
 class RewriteRequestException implements Exception {
   final int? statusCode;
@@ -41,9 +41,10 @@ class RewriteRequestException implements Exception {
 
 /// Maps a backend failure to the user-facing B11 error text.
 ///
-/// Contract: 401 → key invalid, 429 → quota exceeded, network → connection
-/// failed. Anything unrecognized maps to a neutral retry message (never
-/// leaks key material or raw provider payloads).
+/// Contract: 401 → key invalid, 402 → quota exhausted, 429 → quota exceeded,
+/// network → connection failed, empty/unparseable provider response → honest
+/// "could not improve" note. Anything unrecognized maps to a neutral retry
+/// message (never leaks key material or raw provider payloads).
 String mapRewriteError(Object error) {
   int? code;
   if (error is RewriteRequestException) {
@@ -63,6 +64,22 @@ String mapRewriteError(Object error) {
   if (code == 429 ||
       _mentions(text, const ['429', 'too many requests', 'quota exceeded'])) {
     return 'AI rewrite failed: quota exceeded, try later.';
+  }
+  if (code == 402 ||
+      _mentions(text, const [
+        '402',
+        'payment required',
+        'quota exhausted',
+        'insufficient',
+      ])) {
+    return 'AI rewrite failed: quota exhausted, try later.';
+  }
+  if (_mentions(text, const [
+    'empty response',
+    'could not improve',
+    'missing content',
+  ])) {
+    return 'AI rewrite could not improve this draft. Try again later.';
   }
   if (_looksLikeNetworkError(error, text)) {
     return 'AI rewrite failed: connection failed.';
@@ -110,7 +127,9 @@ bool _looksLikeNetworkError(Object error, String text) {
 ///   lands in [RewriteStatus.error] with a setup prompt instead of calling
 ///   [send], and the widget disables the entry point.
 /// - No live calls from this slice beyond the injected backend; production
-///   wiring uses the B10 stub (canned DEMONSTRATION ONLY reply).
+///   wiring uses the F14 [OpenRouterClient.improveDraft] (real OpenRouter
+///   HTTPS call, explicit vault key only) through the same [SendRewrite] seam
+///   the tests fake.
 class RewriteState extends ChangeNotifier {
   // Field is private (_draft) so an initializing formal cannot reuse the
   // public parameter name `draft`.

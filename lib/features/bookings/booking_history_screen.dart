@@ -72,12 +72,25 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
       ),
     );
     if (confirmed != true || !mounted) return;
+    await _cancelNow(booking);
+  }
+
+  /// Executes the whole-booking cancel WITHOUT re-asking for confirmation.
+  ///
+  /// [_confirmAndCancel] shows the confirm dialog once, then delegates here;
+  /// the failure SnackBar's Retry action also calls here directly so an
+  /// already-confirmed cancel retries without a second dialog. The ONLY
+  /// write path is [BookingHistoryRepository.cancelOwned] (injected
+  /// `cancelRpc` -> deployed `cancel-booking` Edge); a `false` return (Edge
+  /// status was not CANCELLED) is treated as failure, never fake success.
+  Future<void> _cancelNow(BookingSummary booking) async {
     setState(() => _cancelling.add(booking.id));
     try {
-      await widget.repository.cancelOwned(
+      final ok = await widget.repository.cancelOwned(
         ownerId: widget.ownerId,
         bookingId: booking.id,
       );
+      if (!ok) throw Exception('BOOKING_CANCEL_FAILED');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Booking cancelled (demo).')),
@@ -86,7 +99,13 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Cancel failed: ${_publicMessage(e)}')),
+        SnackBar(
+          content: Text('Cancel failed: ${_publicMessage(e)}'),
+          action: SnackBarAction(
+            label: 'Retry',
+            onPressed: () => _cancelNow(booking),
+          ),
+        ),
       );
     } finally {
       if (mounted) setState(() => _cancelling.remove(booking.id));
@@ -94,10 +113,25 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
   }
 
   /// Maps internal errors to public UI codes without leaking internals.
+  ///
+  /// Covers the genuine Edge failure shapes: NOT_FOUND (unknown id or
+  /// non-owner), UNAUTHORIZED (missing/expired JWT), and transport failures
+  /// (network/timeout) — each with an honest message plus the SnackBar
+  /// Retry above. Anything else maps to BOOKING_CANCEL_FAILED.
   String _publicMessage(Object e) {
     final text = e.toString();
     if (text.contains('NOT_FOUND')) {
       return 'NOT_FOUND — booking does not exist or is not yours.';
+    }
+    if (text.contains('UNAUTHORIZED')) {
+      return 'UNAUTHORIZED — please sign in again.';
+    }
+    if (text.contains('SocketException') ||
+        text.contains('ClientException') ||
+        text.contains('TimeoutException') ||
+        text.contains('Network is unreachable') ||
+        text.contains('Failed host lookup')) {
+      return 'Network error — check connection and retry.';
     }
     return 'BOOKING_CANCEL_FAILED';
   }

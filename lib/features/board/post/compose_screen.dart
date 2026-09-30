@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../media/board_image_picker.dart';
 import '../media/post_media.dart';
 import 'post.dart';
 import 'post_compose_state.dart';
@@ -83,12 +84,52 @@ class _BoardComposeScreenState extends State<BoardComposeScreen> {
     super.dispose();
   }
 
+  /// Runs the injected picker and attaches validated bytes.
+  ///
+  /// Cancel (null/empty pick) is a silent no-op. Permission denial shows an
+  /// honest settings message; rejected files show the validation reason;
+  /// unexpected picker failures show a retry SnackBar. Bytes are attached
+  /// only after [validateBoardImageBytes] passes, so oversize/non-image
+  /// picks never reach the F11 upload seam.
   Future<void> _pick() async {
     final pick = widget.pickImageBytes;
     if (pick == null) return;
-    final bytes = await pick();
+    late final List<int>? bytes;
+    try {
+      bytes = await pick();
+    } on BoardImageDeniedException catch (e) {
+      if (mounted) _showPickError(e.message, retry: false);
+      return;
+    } on BoardImageRejectedException catch (e) {
+      if (mounted) _showPickError(e.message, retry: true);
+      return;
+    } catch (e) {
+      if (mounted) {
+        _showPickError(
+          'Could not pick the photo ($e). Retry or continue without a photo.',
+          retry: true,
+        );
+      }
+      return;
+    }
     if (bytes == null || bytes.isEmpty) return;
+    final validation = validateBoardImageBytes(bytes);
+    if (validation != null) {
+      if (mounted) _showPickError(validation, retry: true);
+      return;
+    }
     widget.compose.attachImageBytes(bytes);
+  }
+
+  /// Honest picker-failure notice. Denials point at app settings (retry
+  /// cannot help); other failures offer a Retry action re-running [_pick].
+  void _showPickError(String message, {required bool retry}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        action: retry ? SnackBarAction(label: 'Retry', onPressed: _pick) : null,
+      ),
+    );
   }
 
   Future<void> _submit() async {

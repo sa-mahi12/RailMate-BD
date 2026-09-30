@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../key/byok_vault.dart';
-import '../key/openrouter_client_stub.dart';
+import '../key/openrouter_client.dart';
 import 'rewrite_bar.dart';
 
 /// Integration seam for the I01 navigation worker (packet B11 / R-23).
@@ -19,9 +19,12 @@ import 'rewrite_bar.dart';
 ///   required ByokVault vault,
 ///   required String initialDraft,
 ///   required ValueChanged<String> onAccepted,
-///   OpenRouterClientStub client = const OpenRouterClientStub(),
+///   OpenRouterClient? client,
 /// })
 /// ```
+///
+/// A null [client] constructs the real F14 [OpenRouterClient] on demand
+/// (tests inject `OpenRouterClient(httpClient: fake)`).
 ///
 /// Example host call (I01):
 ///
@@ -40,7 +43,7 @@ Future<void> launchRewrite(
   required ByokVault vault,
   required String initialDraft,
   required ValueChanged<String> onAccepted,
-  OpenRouterClientStub client = const OpenRouterClientStub(),
+  OpenRouterClient? client,
 }) {
   return showModalBottomSheet<void>(
     context: context,
