@@ -8,16 +8,32 @@ import 'search_repository.dart';
 /// Hosted seat-inventory reader for one trip (F02 seed, F05 demo horizon).
 ///
 /// Reads `public.trip_seats` filtered by `trip_id`, ordered by `seat_code`.
-/// Effective unavailable rule (formalised by the F05 corrective migration,
-/// pending coordinator apply): a seat is unavailable when
-/// `booking_id IS NOT NULL OR demo_reserved = true`. Rows with
-/// `demo_reserved = true` and no `booking_id` are reported unavailable by
-/// mapping them onto a reserved marker here, so the UI treats demo-held and
-/// really-booked seats identically without this reader ever writing.
+/// Effective unavailable rule (server-enforced in `book_trip_service`): a
+/// seat is unavailable when `booking_id IS NOT NULL OR demo_reserved =
+/// true`. Rows with `demo_reserved = true` and no `booking_id` are passed
+/// through with the real flag ([TripSeat.demoReserved]) so the UI treats
+/// demo-held and really-booked seats as identically disabled without this
+/// reader ever synthesising a `booking_id` or writing anything.
 /// Read-only: never writes `booking_id` (booking stays server-side in the
 /// A05/F07 lane) and never touches `demo_reserved` (owned by the
 /// `refresh_demo_horizon()` owner/admin function, which itself never
 /// overwrites `booking_id`).
+///
+/// Columns are selected explicitly so a missing/renamed column surfaces
+/// as a query error, never as silently wrong availability.
+///
+/// NOTE (F06 hermetic testing): [fetchTripSeats] takes a real
+/// [SupabaseClient] and is therefore verified live by the coordinator
+/// (F21 device run). The row mapping itself is the pure [mapSeatRow]
+/// function below, unit-tested hermetically in `test/seat_f06_test.dart`.
+///
+/// Pure row mapper: converts one `trip_seats` row into a [TripSeat],
+/// carrying the real `demo_reserved` flag through. Never synthesises a
+/// `booking_id` — demo-held rows keep `bookingId == null` with
+/// `demoReserved == true`.
+TripSeat mapSeatRow(Map<String, dynamic> row) =>
+    TripSeat.fromMap(Map<String, dynamic>.from(row));
+
 Future<List<TripSeat>> fetchTripSeats(
   SupabaseClient client,
   String tripId,
@@ -25,17 +41,13 @@ Future<List<TripSeat>> fetchTripSeats(
   try {
     final rows = await client
         .from('trip_seats')
-        .select()
+        .select('id,trip_id,seat_code,booking_id,demo_reserved')
         .eq('trip_id', tripId)
         .order('seat_code', ascending: true)
         .timeout(SupabaseSearchApi.queryTimeout);
-    return (rows as List).map((row) {
-      final map = Map<String, dynamic>.from(row as Map);
-      if (map['demo_reserved'] == true && map['booking_id'] == null) {
-        map['booking_id'] = 'demo-reserved';
-      }
-      return TripSeat.fromMap(map);
-    }).toList();
+    return (rows as List)
+        .map((row) => mapSeatRow(row as Map<String, dynamic>))
+        .toList();
   } on TimeoutException {
     throw const NetworkError('Seat request timed out', isTimeout: true);
   } catch (e) {

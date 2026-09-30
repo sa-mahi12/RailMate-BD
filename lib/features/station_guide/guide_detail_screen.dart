@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 
+import 'guide_webview_screen.dart';
 import 'station_guide.dart';
 
 const Color _primaryTeal = Color(0xFF0E5A66);
 const Color _pageBackground = Color(0xFFF4F7F9);
 
-/// Offline station guide detail (B09 compliant slice, ref-9 Overview).
+/// Offline station guide detail (B09 slice, ref-9 Overview) + F15 entry point.
 ///
 /// Shows hero placeholder, name, facility fact chips, description
-/// (how-to-reach), and Quick Information rows (helpline). Map and Video
-/// sections are explicit local placeholders — R-09/R-10/R-15/R-16 are
-/// BLOCKED pending teacher approval, so no embeds, iframes, or web views.
+/// (how-to-reach), and Quick Information rows (helpline) — all offline.
+/// The "Interactive guide" card opens [GuideWebViewScreen], which loads the
+/// bundled `web-guide/index.html` page (Leaflet map, YouTube embed, GSAP).
+/// The legacy Map/Video placeholder cards below it remain as explicit
+/// local-only placeholders.
 class GuideDetailScreen extends StatelessWidget {
   final StationGuide guide;
 
@@ -33,6 +36,8 @@ class GuideDetailScreen extends StatelessWidget {
                   _buildOverviewCard(),
                   const SizedBox(height: 12),
                   _buildQuickInfoCard(),
+                  const SizedBox(height: 12),
+                  _buildInteractiveGuideCard(context),
                   const SizedBox(height: 12),
                   _buildPendingEmbedCard(
                     title: 'Map',
@@ -202,6 +207,47 @@ class GuideDetailScreen extends StatelessWidget {
         ),
         Expanded(child: Text(value, style: const TextStyle(fontSize: 13))),
       ],
+    );
+  }
+
+  /// F15 entry point: opens the bundled interactive guide page
+  /// (Leaflet map + video + GSAP) in a WebView. The offline list and detail
+  /// above stay intact; without network or unwired assets the WebView screen
+  /// degrades to a genuine offline message.
+  Widget _buildInteractiveGuideCard(BuildContext context) {
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Interactive guide',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Map, video and animation in one page. DEMONSTRATION ONLY — needs network for map/video.',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute<void>(
+                    builder: (_) => GuideWebViewScreen(guide: guide),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.map_outlined),
+              label: const Text('Open interactive guide'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

@@ -14,15 +14,16 @@ typedef SeatFetcher = Future<List<TripSeat>> Function(String tripId);
 
 /// ChangeNotifier holding seat inventory + selection for one trip.
 ///
-/// Rules (packet A04 / R-06):
+/// Rules (packet A04 / R-06, F06 demo_reserved):
 /// - at most [maxSelection] distinct seats may be selected;
-/// - only seats with `bookingId == null` are selectable;
-/// - booked seats (`bookingId != null`) are disabled in the UI;
-/// - [toggle] adds/removes available seats, ignoring booked codes and
+/// - only seats with `isAvailable` (`bookingId == null && !demoReserved`)
+///   are selectable;
+/// - unavailable seats (really booked OR demo-held) are disabled in the UI;
+/// - [toggle] adds/removes available seats, ignoring unavailable codes and
 ///   ignoring additions beyond the max;
-/// - [revalidate] refetches and drops selected codes that became booked
-///   (stale detection); [refresh] is the same refetch keeping still-valid
-///   selections and updating [loadedAt].
+/// - [revalidate] refetches and drops selected codes that became booked or
+///   demo-held (stale detection); [refresh] is the same refetch keeping
+///   still-valid selections and updating [loadedAt].
 class SeatSelectionState extends ChangeNotifier {
   /// Maximum distinct seats per booking (product contract: 1-4).
   static const int maxSelection = 4;
@@ -78,8 +79,9 @@ class SeatSelectionState extends ChangeNotifier {
 
   bool isSelected(String seatCode) => _selected.contains(seatCode);
 
-  /// True when the known row for [seatCode] is booked (`bookingId != null`).
-  /// Unknown codes are treated as not selectable (safe default).
+  /// True when the known row for [seatCode] is unavailable (really booked
+  /// or demo-held: `!isAvailable`). Unknown codes are treated as not
+  /// selectable (safe default).
   bool isBooked(String seatCode) {
     final seat = seatByCode(seatCode);
     if (seat == null) return true;
@@ -145,9 +147,9 @@ class SeatSelectionState extends ChangeNotifier {
   /// Updates [loadedAt] on success so [isStale] resets.
   Future<void> refresh() async => revalidate();
 
-  /// Refetch latest inventory and drop selected seats that are newly booked
-  /// (or vanished). Returns the dropped codes so the UI can surface a
-  /// "stale result detected" notice.
+  /// Refetch latest inventory and drop selected seats that are newly
+  /// unavailable — booked OR demo-held — (or vanished). Returns the dropped
+  /// codes so the UI can surface a "stale result detected" notice.
   Future<List<String>> revalidate() async {
     status = SeatSelectionStatus.loading;
     errorMessage = null;

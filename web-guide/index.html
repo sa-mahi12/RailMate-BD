@@ -3,77 +3,84 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>RailMate BD — Station Guide (Offline Demo Scaffold)</title>
-  <!-- Local stylesheet only. No CDN stylesheets. -->
-  <!-- B09 NOTE: Sass-compiled CSS output will be linked here AFTER teacher
-       approval (R-16 BLOCKED). Do not add any Sass build output until the
-       approval is recorded in RailMate-BD-internal coordination/DECISIONS.md. -->
+  <title>RailMate BD — Station Guide (DEMONSTRATION ONLY)</title>
+  <!-- F15: styling compiled from the real SCSS source web-guide/guide.scss
+       via `npx -p sass sass web-guide/guide.scss web-guide/styles.css`.
+       Both files are committed; this page links the compiled CSS only. -->
   <link rel="stylesheet" href="styles.css" />
+  <!-- F15 CDN: Leaflet 1.9.4 map (OpenStreetMap tiles). No live GPS — the
+       map is centered on static demonstration coordinates per station. -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
   <header class="guide-header">
-    <h1>Station Guide</h1>
-    <p class="demo-banner">OFFLINE DEMO SCAFFOLD — DEMONSTRATION ONLY</p>
+    <h1 id="station-title">Station Guide</h1>
+    <p class="demo-banner">DEMONSTRATION ONLY — demo data, static coordinates, no live GPS</p>
   </header>
 
   <main class="guide-main">
+    <section class="card" id="station-select">
+      <h2>Choose a station</h2>
+      <p>One parameterized page drives all demo stations via <code>?station=CODE</code>
+        (default <code>DAC</code>). The Flutter WebView calls
+        <code>window.RailMateGuide.showStation(code)</code> after load.</p>
+      <div class="station-picker" id="station-picker" role="group" aria-label="Demo stations"></div>
+    </section>
+
     <section class="card" id="overview">
       <h2>Overview</h2>
-      <p>Local placeholder overview for demo stations DAC / CGP / SYL / RJH.
-         Rendered fully offline; no network calls.</p>
-      <ul class="fact-chips">
-        <li>DAC — Dhaka</li>
-        <li>CGP — Chattogram</li>
-        <li>SYL — Sylhet</li>
-        <li>RJH — Rajshahi</li>
-      </ul>
+      <p id="overview-text">Loading…</p>
+      <ul class="fact-chips" id="facility-chips"></ul>
     </section>
 
     <section class="card" id="quick-info">
       <h2>Quick Information</h2>
-      <dl>
-        <dt>Helpline</dt>
-        <dd>Demo helpline 0000 (DEMONSTRATION ONLY)</dd>
-        <dt>Mode</dt>
-        <dd>Offline demo — no network required</dd>
-      </dl>
+      <p id="quick-text">Loading…</p>
     </section>
 
-    <!-- B09 PLACEHOLDER (R-10 BLOCKED): Google Maps embed goes here ONLY
-         after teacher approval for embedded web technologies is recorded.
-         Approved implementation: insert one Maps iframe inside the
-         #map-slot div below. No iframe exists until approval. -->
-    <section class="card" id="map">
+    <section class="card" id="map-card">
       <h2>Map</h2>
-      <div id="map-slot" data-embed-pending="google-maps">
-        <p class="placeholder-note">Map embed placeholder — pending teacher approval (R-10 BLOCKED).</p>
-      </div>
+      <div id="map" aria-label="Station map"></div>
+      <p class="coords-note" id="coords-note"></p>
+      <p class="fallback-note" id="map-fallback" hidden>
+        Map library (Leaflet CDN) did not load — you appear to be offline.
+        The station coordinates are listed above. No map is faked.
+      </p>
     </section>
 
-    <!-- B09 PLACEHOLDER (R-09 BLOCKED): YouTube embed goes here ONLY after
-         teacher approval is recorded. Approved implementation: insert one
-         YouTube iframe inside the #video-slot div below. No iframe exists
-         until approval. -->
-    <section class="card" id="video">
+    <section class="card" id="video-card">
       <h2>Video</h2>
-      <div id="video-slot" data-embed-pending="youtube">
-        <p class="placeholder-note">Video embed placeholder — pending teacher approval (R-09 BLOCKED).</p>
+      <p>External YouTube embed below: a <strong>live YouTube search</strong> for
+        “Bangladesh railway” (DEMONSTRATION ONLY — requires network). A fixed
+        video ID is deliberately NOT hardcoded because no single public video
+        ID could be verified as stable and appropriate; see the F15 handoff.</p>
+      <div class="video-wrap">
+        <!-- F15: YouTube search-embed (R-09). Requires network; without it the
+             frame stays empty and the offline note below applies. -->
+        <iframe id="rail-video"
+          src="https://www.youtube.com/embed?listType=search&amp;list=bangladesh+railway+train"
+          title="Bangladesh railway videos on YouTube (demonstration)"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowfullscreen
+          loading="lazy"></iframe>
       </div>
+      <p class="fallback-note">Video is external content from YouTube, not RailMate data.
+        DEMONSTRATION ONLY.</p>
     </section>
 
-    <!-- B09 PLACEHOLDER (R-15 BLOCKED): GSAP entrance animation hooks here
-         ONLY after teacher approval is recorded. Approved implementation:
-         load local gsap bundle and animate .card elements on load. No CDN
-         scripts and no animation library until approval. -->
     <section class="card" id="animation-note">
-      <h2>Animation</h2>
-      <p class="placeholder-note">Entrance-animation placeholder — GSAP pending teacher approval (R-15 BLOCKED).</p>
+      <h2>About this page</h2>
+      <p class="placeholder-note">Cards animate in with GSAP (CDN) when network is
+        available; without it the content renders statically — no animation is
+        faked. Map tiles © OpenStreetMap contributors.</p>
     </section>
   </main>
 
-  <!-- Local script only. No CDN scripts, no GSAP until approval. -->
-  <!-- B09 NOTE: GSAP animation wiring will be added to guide.js ONLY after
-       teacher approval (R-15 BLOCKED). -->
+  <!-- F15 CDN: GSAP 3.12.5 entrance animation. Page works without it (static
+       fallback in guide.js); nothing is claimed when the CDN is unreachable. -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <!-- F15 CDN: Leaflet 1.9.4 interactive map library. -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="guide.js"></script>
 </body>
 </html>

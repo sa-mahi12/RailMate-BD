@@ -21,15 +21,17 @@ void main() {
     expect(findGuideByCode('   '), isNull);
   });
 
-  test('web-guide scaffold has placeholder markers and no live embeds', () {
+  test('web-guide page carries real interactive embeds (F15)', () {
+    // F15 retired the B09 BLOCKED scaffold: the page now genuinely includes
+    // Leaflet map, GSAP animation and a YouTube embed with honest
+    // offline/no-network degradation (asserted in test/guide_f15_test.dart).
+    // This legacy case pins the new reality so a silent revert to the
+    // placeholder scaffold fails loudly.
     final html = File('web-guide/index.html').readAsStringSync();
-    expect(html, contains('data-embed-pending="google-maps"'));
-    expect(html, contains('data-embed-pending="youtube"'));
-    expect(html, contains('R-09 BLOCKED'));
-    expect(html, contains('R-10 BLOCKED'));
-    expect(html, contains('R-15 BLOCKED'));
-    expect(html, contains('R-16 BLOCKED'));
-    expect(html, isNot(contains('<iframe')));
-    expect(html, isNot(contains('https://')));
+    expect(html, contains('<iframe'));
+    expect(html, contains('leaflet'));
+    expect(html, contains('gsap'));
+    expect(html, isNot(contains('data-embed-pending="google-maps"')));
+    expect(html, isNot(contains('R-10 BLOCKED')));
   });
 }

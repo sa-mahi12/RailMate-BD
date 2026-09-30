@@ -9,13 +9,17 @@ const Color _primaryTeal = Color(0xFF0E5A66);
 const Color _pageBackground = Color(0xFFF4F7F9);
 const Color _seatAvailableBg = Color(0xFFEAF0F6);
 const Color _seatBookedBg = Color(0xFFF2994A);
+const Color _seatReservedBg = Color(0xFFB0BEC5);
 const Color _accentGreen = Color(0xFF1E9E6A);
 
 /// Ref-1 "Select Your Seat" screen: train header card, route row, legend,
 /// coach chips, seat grid, selected-seats bar and continue button.
 ///
 /// Renders purely from [state.seats] ([TripSeat] rows where
-/// `bookingId != null` means booked/disabled). Performs no client writes of
+/// `!isAvailable` means unavailable/disabled — really booked
+/// (`bookingId != null`) or demo-held (`demoReserved == true`)). Demo-held
+/// seats render disabled in a distinct grey "Reserved" shade; really-booked
+/// seats keep the orange "Booked" shade. Performs no client writes of
 /// booked state — booking is the A05 lane. [onContinue] receives the sorted
 /// selected codes when the user taps "Continue to Passenger Details".
 ///
@@ -318,6 +322,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
         _LegendItem(color: _seatAvailableBg, label: 'Available'),
         _LegendItem(color: _primaryTeal, label: 'Selected'),
         _LegendItem(color: _seatBookedBg, label: 'Booked'),
+        _LegendItem(color: _seatReservedBg, label: 'Reserved'),
       ],
     );
   }
@@ -527,10 +532,18 @@ class _SeatCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final booked = !seat.isAvailable;
+    // Unavailable covers both really-booked and demo-held seats
+    // (TripSeat.isAvailable == false); both are disabled. Demo-held seats
+    // get a distinct grey shade via TripSeat.isDemoHeld — no structural
+    // change to the cell API, which already receives the full TripSeat.
+    final unavailable = !seat.isAvailable;
+    final reserved = seat.isDemoHeld;
     final Color background;
     final Color foreground;
-    if (booked) {
+    if (reserved) {
+      background = _seatReservedBg;
+      foreground = Colors.white;
+    } else if (unavailable) {
       background = _seatBookedBg;
       foreground = Colors.white;
     } else if (selected) {
@@ -542,7 +555,7 @@ class _SeatCell extends StatelessWidget {
     }
     return InkWell(
       borderRadius: BorderRadius.circular(8),
-      onTap: booked ? null : onTap,
+      onTap: unavailable ? null : onTap,
       child: Container(
         height: 40,
         alignment: Alignment.center,

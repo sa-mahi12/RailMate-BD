@@ -1,0 +1,167 @@
+// RailMate BD — Station Guide styles (F15).
+// Real SCSS source. Compiled with `npx -p sass sass web-guide/guide.scss
+// web-guide/styles.css`. The compiled styles.css is committed alongside this
+// file and linked from index.html. Do not hand-edit styles.css.
+//
+// Design tokens follow the app spec: teal #0E5A66, page bg #F4F7F9,
+// card radius 16px. Everything user-facing is DEMONSTRATION ONLY data.
+
+$teal: #0e5a66;
+$teal-soft: rgba(14, 90, 102, 0.1);
+$teal-faint: rgba(14, 90, 102, 0.06);
+$page-bg: #f4f7f9;
+$ink: #1c2b33;
+$muted: #6b7c85;
+$card-bg: #ffffff;
+$card-radius: 16px;
+$header-radius: 24px;
+$chip-radius: 999px;
+$max-col: 720px;
+
+@mixin card {
+  background: $card-bg;
+  border-radius: $card-radius;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+@mixin section-title {
+  margin: 0 0 8px;
+  color: $teal;
+  font-size: 16px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: $page-bg;
+  color: $ink;
+}
+
+.guide-header {
+  background: $teal;
+  color: #fff;
+  padding: 32px 20px 24px;
+  border-bottom-left-radius: $header-radius;
+  border-bottom-right-radius: $header-radius;
+
+  h1 {
+    margin: 0 0 4px;
+    font-size: 24px;
+  }
+
+  .demo-banner {
+    margin: 0;
+    font-size: 12px;
+    opacity: 0.85;
+  }
+}
+
+.guide-main {
+  padding: 16px;
+  max-width: $max-col;
+  margin: 0 auto;
+}
+
+.card {
+  @include card;
+
+  h2 {
+    @include section-title;
+  }
+
+  p {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+}
+
+.fact-chips {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  li {
+    background: $teal-soft;
+    color: $teal;
+    border-radius: $chip-radius;
+    padding: 4px 12px;
+    font-size: 12px;
+  }
+}
+
+.station-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+
+  button {
+    border: 1px solid $teal;
+    background: #fff;
+    color: $teal;
+    border-radius: $chip-radius;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+
+    &[aria-pressed="true"] {
+      background: $teal;
+      color: #fff;
+    }
+  }
+}
+
+#map {
+  height: 260px;
+  border-radius: 12px;
+  background: $teal-faint;
+
+  &.map-unavailable {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 16px;
+    font-size: 12px;
+    color: $muted;
+  }
+}
+
+.video-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #000;
+
+  iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+}
+
+.fallback-note,
+.placeholder-note {
+  font-size: 12px;
+  color: $muted;
+}
+
+.coords-note {
+  font-size: 11px;
+  color: $muted;
+  margin-top: 8px;
+}

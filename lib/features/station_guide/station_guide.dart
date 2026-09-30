@@ -103,3 +103,43 @@ StationGuide? findGuideByCode(String code) {
   }
   return null;
 }
+
+/// F15: bundled WebView asset path for the parameterized station guide page.
+///
+/// The file must be registered under `flutter/assets` in pubspec.yaml
+/// (coordinator-owned) before the WebView can load it; until then
+/// [GuideWebViewScreen] degrades to a genuine offline message.
+const String guideAssetPath = 'web-guide/index.html';
+
+/// F15: static demonstration coordinates (decimal degrees) backing the
+/// Leaflet map in `web-guide/index.html`. Static seed values only — never
+/// live GPS. Entries are `[latitude, longitude]`.
+const Map<String, List<double>> stationCoordinates = <String, List<double>>{
+  'DAC': <double>[23.8103, 90.4125],
+  'CGP': <double>[22.3569, 91.7832],
+  'SYL': <double>[24.8949, 91.8692],
+  'RJH': <double>[24.3745, 88.6042],
+  'AIR': <double>[23.8431, 90.3973],
+  'CML': <double>[23.4607, 91.1809],
+  'FEN': <double>[23.0235, 91.3841],
+  'KHL': <double>[22.8456, 89.5403],
+};
+
+/// F15: default station code used when a requested code is unknown/blank.
+const String defaultGuideStationCode = 'DAC';
+
+/// Normalizes a raw station [code] to a known F15 map key.
+///
+/// Returns [defaultGuideStationCode] for unknown or blank input instead of
+/// throwing, so the WebView always lands on a real demo station.
+String normalizeGuideStationCode(String code) {
+  final String needle = code.trim().toUpperCase();
+  if (stationCoordinates.containsKey(needle)) return needle;
+  return defaultGuideStationCode;
+}
+
+/// Builds the in-page query string selecting [code] on the bundled guide
+/// page (e.g. `?station=CGP`). Unknown codes fall back to the default.
+String guideStationQuery(String code) {
+  return '?station=${normalizeGuideStationCode(code)}';
+}
