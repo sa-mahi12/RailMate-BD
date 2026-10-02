@@ -265,9 +265,12 @@ jobs:
         env:
           NAME: ${{ steps.version.outputs.name }}
           CODE: ${{ steps.version.outputs.code }}
+          # `gh` refuses to run in Actions without an explicit token. The
+          # default GITHUB_TOKEN is scoped to this repo only.
+          GH_TOKEN: ${{ github.token }}
+          TAG: v${{ steps.version.outputs.name }}+${{ steps.version.outputs.code }}
         run: |
           set -euo pipefail
-          TAG="v$NAME+$CODE"
           DIR="dist/RailMate-BD-$NAME-$CODE"
           # Attach the installable artifacts to a real GitHub Release so the
           # owner can download them directly (Actions artifacts expire, a
