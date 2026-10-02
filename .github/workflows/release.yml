@@ -13,7 +13,7 @@ on:
         default: "1"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   release:
@@ -259,6 +259,39 @@ jobs:
             echo "schedules, and tickets that are NOT valid for travel."
           } > dist/PROVENANCE.md
           cat dist/PROVENANCE.md
+
+      - name: Publish GitHub Release
+        shell: bash
+        env:
+          NAME: ${{ steps.version.outputs.name }}
+          CODE: ${{ steps.version.outputs.code }}
+        run: |
+          set -euo pipefail
+          TAG="v$NAME+$CODE"
+          DIR="dist/RailMate-BD-$NAME-$CODE"
+          # Attach the installable artifacts to a real GitHub Release so the
+          # owner can download them directly (Actions artifacts expire, a
+          # Release does not). Re-running the same build number replaces the
+          # existing assets instead of failing.
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" \
+              "$DIR"/*.apk "$DIR"/*.aab \
+              "$DIR/SHA256SUMS.txt" \
+              dist/release-manifest.json dist/PROVENANCE.md \
+              --clobber
+            echo "Updated existing release $TAG"
+          else
+            gh release create "$TAG" \
+              "$DIR"/*.apk "$DIR"/*.aab \
+              "$DIR/SHA256SUMS.txt" \
+              dist/release-manifest.json dist/PROVENANCE.md \
+              --title "RailMate BD $NAME (build $CODE)" \
+              --notes-file dist/PROVENANCE.md
+            echo "Created release $TAG"
+          fi
+          echo "--- release contents ---"
+          gh release view "$TAG" --json url,assets \
+            --jq '.url, (.assets[] | "  " + .name)'
 
       - name: Upload release bundle
         uses: actions/upload-artifact@v4
