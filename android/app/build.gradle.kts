@@ -38,29 +38,34 @@ android {
     // running `flutter run --release` locally), the release build type falls
     // back to debug signing so the build still succeeds — CI, which always
     // sets them, produces the genuinely signed artifact.
-    val keystorePath = System.getenv("RAILMATE_KEYSTORE_PATH")
-    val keystorePassword = System.getenv("RAILMATE_KEYSTORE_PASSWORD")
-    val keyAlias = System.getenv("RAILMATE_KEY_ALIAS")
-    val keyPassword = System.getenv("RAILMATE_KEY_PASSWORD")
+    // NOTE: the local names deliberately do NOT match the SigningConfig
+    // property names (`keyAlias`, `keyPassword`, ...). In Kotlin DSL a
+    // `keyAlias = keyAlias` inside the signing-config scope resolves the left
+    // side to this local `val` and fails to compile ("val cannot be
+    // reassigned"), so the locals are prefixed.
+    val signingKeystorePath = System.getenv("RAILMATE_KEYSTORE_PATH")
+    val signingStorePassword = System.getenv("RAILMATE_KEYSTORE_PASSWORD")
+    val signingKeyAlias = System.getenv("RAILMATE_KEY_ALIAS")
+    val signingKeyPassword = System.getenv("RAILMATE_KEY_PASSWORD")
+    val signingConfigured = signingKeystorePath != null &&
+        signingStorePassword != null &&
+        signingKeyAlias != null &&
+        signingKeyPassword != null
 
     signingConfigs {
-        if (keystorePath != null && keystorePassword != null &&
-            keyAlias != null && keyPassword != null
-        ) {
+        if (signingConfigured) {
             create("release") {
-                storeFile = file(keystorePath)
-                storePassword = keystorePassword
-                keyAlias = keyAlias
-                keyPassword = keyPassword
+                storeFile = file(signingKeystorePath!!)
+                storePassword = signingStorePassword
+                keyAlias = signingKeyAlias
+                keyPassword = signingKeyPassword
             }
         }
     }
 
     buildTypes {
         release {
-            signingConfig = if (keystorePath != null && keystorePassword != null &&
-                keyAlias != null && keyPassword != null
-            ) {
+            signingConfig = if (signingConfigured) {
                 signingConfigs.getByName("release")
             } else {
                 logger.warn(
