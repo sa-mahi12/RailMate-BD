@@ -1,41 +1,10 @@
-# Flutter/Dart/Android output
-.dart_tool/
-.packages
-.pub-cache/
-.pub/
-build/
-.flutter-plugins*
-.metadata
-android/.gradle/
-android/local.properties
-android/key.properties
+# Release signing material — NEVER COMMIT
+# The keystore and its passwords live in .runtime/ and are excluded from Git.
+# The only copy that matters is the owner's offline backup plus the four
+# GitHub Secrets (ANDROID_KEYSTORE_BASE64 / _PASSWORD / ALIAS / KEY_PASSWORD).
 *.jks
 *.keystore
-*.apk
-*.aab
-# Private and generated configuration
-.env
-.env.*
-!.env.example
-app.env.json
-*.local.json
-**/service_role*
-**/service-role*
-*.pem
 *.p12
-*.pfx
-# Worker runtime/lock/logs
-.locks/
-.worker-runtime/
-.bootstrap-tmp/
-coverage/
-*.log
-# Editors/OS
-.idea/
-.vscode/
-.DS_Store
-desktop.ini
-Thumbs.db
-
-supabase/.temp/
-
+*.pem
+key.properties
+.runtime/

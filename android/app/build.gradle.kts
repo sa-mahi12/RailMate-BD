@@ -29,11 +29,56 @@ android {
         versionName = flutter.versionName
     }
 
+    // P28: real release signing. The keystore and its passwords are supplied
+    // ONLY through environment variables (populated from GitHub Secrets on the
+    // CI runner, or from the owner's shell locally). Nothing secret is
+    // committed: no keystore file, no key.properties, no literal password.
+    //
+    // When the four RAILMATE_* variables are absent (e.g. a contributor
+    // running `flutter run --release` locally), the release build type falls
+    // back to debug signing so the build still succeeds — CI, which always
+    // sets them, produces the genuinely signed artifact.
+    val keystorePath = System.getenv("RAILMATE_KEYSTORE_PATH")
+    val keystorePassword = System.getenv("RAILMATE_KEYSTORE_PASSWORD")
+    val keyAlias = System.getenv("RAILMATE_KEY_ALIAS")
+    val keyPassword = System.getenv("RAILMATE_KEY_PASSWORD")
+
+    signingConfigs {
+        if (keystorePath != null && keystorePassword != null &&
+            keyAlias != null && keyPassword != null
+        ) {
+            create("release") {
+                storeFile = file(keystorePath)
+                storePassword = keystorePassword
+                keyAlias = keyAlias
+                keyPassword = keyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (keystorePath != null && keystorePassword != null &&
+                keyAlias != null && keyPassword != null
+            ) {
+                signingConfigs.getByName("release")
+            } else {
+                logger.warn(
+                    "P28: release signing env vars missing; falling back to the " +
+                        "debug key. The resulting APK is NOT the owner-facing " +
+                        "release artifact. Set RAILMATE_KEYSTORE_PATH, " +
+                        "RAILMATE_KEYSTORE_PASSWORD, RAILMATE_KEY_ALIAS and " +
+                        "RAILMATE_KEY_PASSWORD (or the equivalent GitHub " +
+                        "Secrets) for a signed release."
+                )
+                signingConfigs.getByName("debug")
+            }
+            // P28: no debuggable flag, no debug banner, minify off (the app has
+            // no reflection-heavy hot paths that need R8 rules) but resource
+            // shrinking kept off too so the demo build stays inspectable.
+            isDebuggable = false
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 }

@@ -1,0 +1,251 @@
+name: Release — signed APKs + AAB
+
+# P29: the owner-facing artifact is a signed RELEASE build, never a debug APK.
+# Manual dispatch only: release builds are expensive and produce the artifacts
+# the owner installs and demonstrates from.
+on:
+  workflow_dispatch:
+    inputs:
+      build_number:
+        description: "Build number (int). Increments the Android versionCode."
+        required: false
+        type: string
+        default: "1"
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    # A release build needs more headroom than the debug CI job.
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      # P28: signing material arrives as GitHub Secrets, is decoded into the
+      # runner workspace only, and is never echoed, uploaded or committed.
+      RAILMATE_KEYSTORE_PATH: ${{ github.workspace }}/upload-keystore.jks
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ensure only main is released
+        shell: bash
+        run: |
+          test "$GITHUB_REF_NAME" = main
+          test "$(git branch --show-current)" = main
+
+      - name: Refuse to run if signing secrets are absent
+        shell: bash
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KA: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KP: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          missing=""
+          [ -n "$KS_B64" ] || missing="$missing ANDROID_KEYSTORE_BASE64"
+          [ -n "$KS_PASS" ] || missing="$missing ANDROID_KEYSTORE_PASSWORD"
+          [ -n "$KA" ] || missing="$missing ANDROID_KEY_ALIAS"
+          [ -n "$KP" ] || missing="$missing ANDROID_KEY_PASSWORD"
+          if [ -n "$missing" ]; then
+            echo "::error::Missing required signing secrets:$missing"
+            echo "Add them under Settings -> Secrets and variables -> Actions."
+            exit 1
+          fi
+          # Only the presence of the values is reported, never the values.
+          echo "All four signing secrets are present."
+
+      - name: Decode signing keystore (runner-local only)
+        shell: bash
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KA: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KP: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          umask 077
+          printf '%s' "$KS_B64" | base64 --decode > "$RAILMATE_KEYSTORE_PATH"
+          test -s "$RAILMATE_KEYSTORE_PATH" || { echo "::error::keystore decode produced an empty file"; exit 1; }
+          # Export to the Gradle-visible names WITHOUT printing them.
+          {
+            echo "RAILMATE_KEYSTORE_PASSWORD=$KS_PASS"
+            echo "RAILMATE_KEY_ALIAS=$KA"
+            echo "RAILMATE_KEY_PASSWORD=$KP"
+          } >> "$GITHUB_ENV"
+          echo "Keystore decoded."
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Dependencies
+        run: flutter pub get
+
+      - name: Format
+        run: dart format --output=none --set-exit-if-changed lib test
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test
+
+      - name: Resolve version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          # pubspec holds the single source of truth for versionName.
+          VERSION="$(grep -E '^version:' pubspec.yaml | head -1 | sed -E 's/^version:[[:space:]]*//')"
+          NAME="${VERSION%%+*}"
+          CODE="${VERSION##*+}"
+          OVERRIDE="${{ inputs.build_number }}"
+          if [ -n "$OVERRIDE" ] && [ "$OVERRIDE" != "1" ]; then
+            CODE="$OVERRIDE"
+          fi
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "code=$CODE" >> "$GITHUB_OUTPUT"
+          echo "RailMate BD $NAME (build $CODE)"
+
+      - name: Apply build number to pubspec
+        shell: bash
+        env:
+          NAME: ${{ steps.version.outputs.name }}
+          CODE: ${{ steps.version.outputs.code }}
+        run: |
+          set -euo pipefail
+          python3 - "$NAME" "$CODE" <<'PY'
+          import re, sys, pathlib
+          name, code = sys.argv[1], sys.argv[2]
+          p = pathlib.Path("pubspec.yaml")
+          t = p.read_text(encoding="utf-8")
+          t = re.sub(r"^version:.*$", f"version: {name}+{code}", t, count=1, flags=re.M)
+          p.write_text(t, encoding="utf-8")
+          print(f"pubspec version -> {name}+{code}")
+          PY
+          # The edit is a build-time value, never committed.
+
+      - name: Release defines
+        id: defines
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo "URL=${{ vars.SUPABASE_URL }}"
+            echo "ANON=${{ vars.SUPABASE_ANON_KEY }}"
+            echo "PUB=${{ vars.SUPABASE_PUBLISHABLE_KEY }}"
+          } >> "$GITHUB_ENV"
+          missing=""
+          [ -n "${{ vars.SUPABASE_URL }}" ] || missing="$missing SUPABASE_URL"
+          [ -n "${{ vars.SUPABASE_ANON_KEY }}" ] || missing="$missing SUPABASE_ANON_KEY"
+          [ -n "${{ vars.SUPABASE_PUBLISHABLE_KEY }}" ] || missing="$missing SUPABASE_PUBLISHABLE_KEY"
+          if [ -n "$missing" ]; then
+            echo "::error::Missing repository variables:$missing"
+            echo "The release APK would boot to the setup-error screen. Add them"
+            echo "under Settings -> Secrets and variables -> Actions -> Variables."
+            exit 1
+          fi
+
+      - name: Build universal release APK
+        run: |
+          flutter build apk --release \
+            --dart-define=SUPABASE_URL="$SUPABASE_URL" \
+            --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY" \
+            --dart-define=SUPABASE_PUBLISHABLE_KEY="$SUPABASE_PUBLISHABLE_KEY"
+
+      - name: Build split-per-ABI release APKs
+        run: |
+          flutter build apk --release --split-per-abi \
+            --dart-define=SUPABASE_URL="$SUPABASE_URL" \
+            --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY" \
+            --dart-define=SUPABASE_PUBLISHABLE_KEY="$SUPABASE_PUBLISHABLE_KEY"
+
+      - name: Build release AAB
+        run: |
+          flutter build appbundle --release \
+            --dart-define=SUPABASE_URL="$SUPABASE_URL" \
+            --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY" \
+            --dart-define=SUPABASE_PUBLISHABLE_KEY="$SUPABASE_PUBLISHABLE_KEY"
+
+      - name: Stage, rename and hash release artifacts
+        id: stage
+        shell: bash
+        env:
+          NAME: ${{ steps.version.outputs.name }}
+          CODE: ${{ steps.version.outputs.code }}
+          COMMIT: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          OUT="dist/RailMate-BD-$NAME-$CODE"
+          mkdir -p "$OUT"
+
+          cp build/app/outputs/flutter-apk/app-release.apk \
+             "$OUT/RailMate-BD-$NAME-universal.apk"
+
+          for abi in arm64-v8a armeabi-v7a x86_64; do
+            src="build/app/outputs/flutter-apk/app-$abi-release.apk"
+            if [ -f "$src" ]; then
+              cp "$src" "$OUT/RailMate-BD-$NAME-$abi.apk"
+            fi
+          done
+
+          cp build/app/outputs/bundle/release/app-release.aab \
+             "$OUT/RailMate-BD-$NAME.aab"
+
+          ( cd "$OUT" && sha256sum ./* > SHA256SUMS.txt )
+
+          {
+            echo "appName=RailMate BD"
+            echo "package=bd.railmate.railmate_bd"
+            echo "versionName=$NAME"
+            echo "versionCode=$CODE"
+            echo "commit=$COMMIT"
+            echo "builtBy=GitHub Actions release workflow"
+            echo "signed=true"
+            echo "supabaseUrl=$SUPABASE_URL"
+            echo "artifacts:"
+            ( cd "$OUT" && ls -1 ./*.apk ./*.aab 2>/dev/null | sed 's|^\./|  - |' )
+          } > dist/release-manifest.json
+
+          echo "Staged:"; ls -1 "$OUT"
+          echo "--- release-manifest.json ---"; cat dist/release-manifest.json
+
+      - name: Provenance summary
+        run: |
+          {
+            echo "# RailMate BD release provenance"
+            echo
+            echo "- commit: ${{ github.sha }}"
+            echo "- workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            echo "- version: ${{ steps.version.outputs.name }}+${{ steps.version.outputs.code }}"
+            echo "- signing: dedicated release key from GitHub Secrets (values never logged)"
+            echo "- backend: hosted Supabase via repository variables"
+            echo
+            echo "Artifacts are demonstration-only: simulated payment, synthetic"
+            echo "schedules, and tickets that are NOT valid for travel."
+          } > dist/PROVENANCE.md
+          cat dist/PROVENANCE.md
+
+      - name: Upload release bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: railmate-release-${{ steps.version.outputs.name }}-${{ steps.version.outputs.code }}
+          path: |
+            dist/RailMate-BD-${{ steps.version.outputs.name }}-${{ steps.version.outputs.code }}/**
+            dist/release-manifest.json
+            dist/PROVENANCE.md
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Remove keystore from the runner
+        if: always()
+        shell: bash
+        run: |
+          rm -f "$RAILMATE_KEYSTORE_PATH" || true
+          echo "Keystore removed from the runner workspace."
