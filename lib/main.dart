@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'app/app.dart';
 import 'app/dependencies.dart';
+import 'app/onboarding_store.dart';
 import 'core/supabase/supabase_client.dart';
 import 'features/auth/supabase_auth_client.dart';
 
@@ -17,6 +18,10 @@ import 'features/auth/supabase_auth_client.dart';
 /// When step 1 fails (missing config, no network), the app boots to a
 /// genuine boot-error screen naming the problem — never to a fake backend.
 /// No service-role key is ever read here.
+///
+/// P03: the first-run onboarding flag is loaded here (device-local) and
+/// handed to the root gate, so `AppGate` can choose onboarding vs welcome
+/// independently of the auth session.
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SupabaseBootstrap.instance.initialize(connect: supabaseConnect);
@@ -27,5 +32,6 @@ Future<void> main() async {
   }
   final AppDependencies dependencies = AppDependencies.create();
   await dependencies.auth.restore();
-  runApp(RailMateApp(dependencies: dependencies));
+  final OnboardingStore onboarding = await SharedPrefsOnboardingStore.open();
+  runApp(RailMateApp(dependencies: dependencies, onboardingStore: onboarding));
 }

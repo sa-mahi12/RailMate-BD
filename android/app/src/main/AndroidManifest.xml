@@ -6,9 +6,10 @@
          network at all). No cleartext: all endpoints are HTTPS. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <application
-        android:label="railmate_bd"
+        android:label="RailMate BD"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"
             android:exported="true"

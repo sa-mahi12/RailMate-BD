@@ -85,6 +85,19 @@ abstract class AuthClient {
     required String email,
     required String token,
   });
+
+  /// Requests a password-reset email for [email].
+  ///
+  /// Always resolves successfully for a well-formed address regardless of
+  /// whether the account exists (no account enumeration). Network failures
+  /// surface as exceptions so the UI can report them honestly.
+  Future<void> requestPasswordReset(String email);
+
+  /// Completes a password reset using the recovery link/OTP.
+  ///
+  /// [newPassword] must satisfy the project password policy; the caller is
+  /// responsible for surfacing [ArgumentError] as a validation message.
+  Future<void> updatePassword({required String newPassword});
 }
 
 /// Repository wrapping Supabase Auth behind the injectable [AuthClient].
@@ -156,6 +169,18 @@ class AuthRepository {
       throw ArgumentError('Verification code must be 6 digits.');
     }
     return client.verifyEmailOtp(email: email.trim(), token: token.trim());
+  }
+
+  /// Requests a password-reset email for [email] (no account enumeration).
+  Future<void> requestPasswordReset(String email) {
+    _requireEmail(email);
+    return client.requestPasswordReset(email.trim().toLowerCase());
+  }
+
+  /// Completes a password reset with the recovery credential.
+  Future<void> updatePassword({required String newPassword}) {
+    _requirePassword(newPassword);
+    return client.updatePassword(newPassword: newPassword);
   }
 
   static void _requireEmail(String email) {

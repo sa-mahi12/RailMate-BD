@@ -13,6 +13,8 @@
 
          This Theme is only used starting with V2 of Flutter's Android embedding. -->
     <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
-        <item name="android:windowBackground">?android:colorBackground</item>
+        <!-- P02: brand surface behind the Flutter UI (was ?android:colorBackground,
+             which flashes white before the first frame). -->
+        <item name="android:windowBackground">@color/railmate_surface</item>
     </style>
 </resources>

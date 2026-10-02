@@ -57,6 +57,12 @@ class _FailingSignInClient implements AuthClient {
   }) async {
     return null;
   }
+
+  @override
+  Future<void> requestPasswordReset(String email) async {}
+
+  @override
+  Future<void> updatePassword({required String newPassword}) async {}
 }
 
 void main() {

@@ -3,6 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:railmate_bd/app/app.dart';
+import 'package:railmate_bd/app/home_shell.dart';
+import 'package:railmate_bd/app/onboarding_store.dart';
+import 'package:railmate_bd/app/routes.dart';
+import 'package:railmate_bd/features/auth/welcome_screen.dart';
 import 'package:railmate_bd/app/dependencies.dart';
 import 'package:railmate_bd/features/auth/auth_repository.dart';
 import 'package:railmate_bd/features/auth/auth_state.dart';
@@ -44,6 +48,12 @@ class _LoggedOutClient implements AuthClient {
     required String email,
     required String token,
   }) => throw UnimplementedError();
+
+  @override
+  Future<void> requestPasswordReset(String email) async {}
+
+  @override
+  Future<void> updatePassword({required String newPassword}) async {}
 }
 
 class _ThrowingSearchApi implements SearchApi {
@@ -65,10 +75,30 @@ AppDependencies _testDeps() => AppDependencies.test(
 );
 
 void main() {
-  testWidgets('app boots to Home tab; each tab shows its screen', (
+  // P03: the root is no longer an unconditional HomeShell. A signed-out user
+  // with completed onboarding lands on the auth Welcome screen, so the tab
+  // assertions below drive HomeShell directly (its own tab contract is
+  // unchanged).
+  testWidgets('signed-out boot lands on Welcome, not the tab shell', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(RailMateApp(dependencies: _testDeps()));
+    await tester.pumpWidget(
+      RailMateApp(
+        dependencies: _testDeps(),
+        onboardingStore: InMemoryOnboardingStore(initiallyCompleted: true),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Home'), findsNothing); // no tab shell while signed out
+    expect(find.byType(WelcomeScreen), findsOneWidget);
+  });
+
+  testWidgets('HomeShell tabs each show their screen', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(home: HomeShell(dependencies: _testDeps())),
+    );
     await tester.pumpAndSettle();
     expect(find.text('Home'), findsWidgets); // Home tab root rendered
     await tester.tap(find.text('Bookings').last);
@@ -85,7 +115,12 @@ void main() {
   });
 
   testWidgets('unknown route shows error screen', (WidgetTester tester) async {
-    await tester.pumpWidget(RailMateApp(dependencies: _testDeps()));
+    await tester.pumpWidget(
+      MaterialApp(
+        onGenerateRoute: AppRoutes.onGenerateRoute,
+        home: HomeShell(dependencies: _testDeps()),
+      ),
+    );
     await tester.pumpAndSettle();
     final NavigatorState nav = tester.state(find.byType(Navigator).first);
     nav.pushNamed('/no-such-route-xyz');

@@ -58,6 +58,12 @@ class F19AuthClient implements AuthClient {
     required String email,
     required String token,
   }) async => stubUser;
+
+  @override
+  Future<void> requestPasswordReset(String email) async {}
+
+  @override
+  Future<void> updatePassword({required String newPassword}) async {}
 }
 
 /// In-memory [SearchApi]: preset stations/trips, never the network.
@@ -89,10 +95,26 @@ const AuthUser kF19StubUser = AuthUser(
 
 /// Session state for composition tests. Logged-in goes through the real
 /// [AuthState.signIn] path against [F19AuthClient] (no network).
-Future<AuthState> f19AuthState({required bool loggedIn}) async {
+///
+/// [emailConfirmed] false models a registered-but-unconfirmed account, which
+/// the P03 root gate must route to the verify screen.
+Future<AuthState> f19AuthState({
+  required bool loggedIn,
+  bool emailConfirmed = true,
+}) async {
   final AuthState auth = AuthState(
     repository: AuthRepository(
-      client: F19AuthClient(stubUser: loggedIn ? kF19StubUser : null),
+      client: F19AuthClient(
+        stubUser: loggedIn
+            ? AuthUser(
+                id: 'u-f19',
+                email: 'qa@example.com',
+                emailConfirmed: emailConfirmed,
+                fullName: 'QA Engineer',
+                username: 'qaeng',
+              )
+            : null,
+      ),
     ),
   );
   if (loggedIn) {

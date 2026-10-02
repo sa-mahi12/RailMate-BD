@@ -170,6 +170,39 @@ class AuthState extends ChangeNotifier {
     }
   }
 
+  /// Requests a password-reset email. Always reports neutral success so the
+  /// UI cannot be used to discover which addresses have accounts; only a
+  /// genuine transport/project failure sets [AuthStatus.error].
+  Future<bool> requestPasswordReset(String email) async {
+    _setStatus(AuthStatus.authenticating);
+    try {
+      await repository.requestPasswordReset(email);
+      _errorMessage = '';
+      _setStatus(AuthStatus.unauthenticated);
+      return true;
+    } catch (e) {
+      _fail('Could not send the reset email: $e');
+      return false;
+    }
+  }
+
+  /// Completes a password reset with the recovery credential.
+  ///
+  /// Returns true on success. On success the user is signed in (Supabase
+  /// establishes a recovery session), so the gate advances to Home.
+  Future<bool> completePasswordReset({required String newPassword}) async {
+    _setStatus(AuthStatus.authenticating);
+    try {
+      await repository.updatePassword(newPassword: newPassword);
+      final AuthUser? refreshed = await repository.refreshSession();
+      _applyUser(refreshed);
+      return true;
+    } catch (e) {
+      _fail('Could not update the password: $e');
+      return false;
+    }
+  }
+
   void _applyUser(AuthUser? next) {
     _user = next;
     _errorMessage = '';

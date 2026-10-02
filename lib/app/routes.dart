@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../features/ai/key/byok_vault.dart';
 import '../features/ai/key/key_setup_screen.dart';
+import '../features/auth/forgot_password_screen.dart';
 import '../features/auth/login_screen.dart';
+import '../features/auth/register_screen.dart';
 import '../features/auth/welcome_screen.dart';
 import '../features/booking/passenger_ui/booking_review_screen.dart';
 import '../features/booking/passenger_ui/passenger.dart';
@@ -35,6 +37,8 @@ abstract final class AppRoutes {
   static const String home = '/';
   static const String welcome = '/welcome';
   static const String login = '/login';
+  static const String register = '/register';
+  static const String forgotPassword = '/forgot-password';
   static const String searchResults = '/search-results';
   static const String seatSelection = '/seat-selection';
   static const String passengerDetails = '/passenger-details';
@@ -71,6 +75,22 @@ abstract final class AppRoutes {
         return MaterialPageRoute<void>(
           settings: settings,
           builder: (_) => LoginScreen(auth: dependencies.auth),
+        );
+      case register:
+        if (dependencies == null) {
+          return _error(settings, 'App dependencies missing.');
+        }
+        return MaterialPageRoute<void>(
+          settings: settings,
+          builder: (_) => RegisterScreen(auth: dependencies.auth),
+        );
+      case forgotPassword:
+        if (dependencies == null) {
+          return _error(settings, 'App dependencies missing.');
+        }
+        return MaterialPageRoute<void>(
+          settings: settings,
+          builder: (_) => ForgotPasswordScreen(auth: dependencies.auth),
         );
       case searchResults:
         final args = settings.arguments;

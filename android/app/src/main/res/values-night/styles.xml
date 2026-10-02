@@ -13,6 +13,8 @@
 
          This Theme is only used starting with V2 of Flutter's Android embedding. -->
     <style name="NormalTheme" parent="@android:style/Theme.Black.NoTitleBar">
-        <item name="android:windowBackground">?android:colorBackground</item>
+        <!-- P02: same brand surface as the light theme so the dark-mode
+             window does not flash black before the first Flutter frame. -->
+        <item name="android:windowBackground">@color/railmate_surface</item>
     </style>
 </resources>

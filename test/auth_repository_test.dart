@@ -63,6 +63,12 @@ class FakeAuthClient implements AuthClient {
     user = AuthUser(id: 'u1', email: email, emailConfirmed: true);
     return user;
   }
+
+  @override
+  Future<void> requestPasswordReset(String email) async {}
+
+  @override
+  Future<void> updatePassword({required String newPassword}) async {}
 }
 
 void main() {

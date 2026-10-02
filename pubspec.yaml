@@ -1,5 +1,5 @@
 name: railmate_bd
-description: "A new Flutter project."
+description: "RailMate BD - academic railway booking demo (Flutter + hosted Supabase). Demonstration only: simulated payment, synthetic schedules, tickets are not valid for travel."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -45,6 +45,7 @@ dependencies:
   pdf: ^3.11.0 # ticket PDF export (F10)
   printing: ^5.13.0 # ticket PDF share/print (F10)
   webview_flutter: ^4.8.0 # station guide WebView (F15)
+  shared_preferences: ^2.3.3 # P03: first-run onboarding completion flag
 
 dev_dependencies:
   flutter_test:

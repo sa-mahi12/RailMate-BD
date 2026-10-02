@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:railmate_bd/app/app.dart';
+import 'package:railmate_bd/app/home_shell.dart';
 import 'package:railmate_bd/app/dependencies.dart';
 import 'package:railmate_bd/app/routes.dart';
 import 'package:railmate_bd/features/auth/auth_state.dart';
@@ -62,8 +63,13 @@ void main() {
     ) async {
       final AuthState auth = await f19AuthState(loggedIn: false);
       addTearDown(auth.dispose);
+      // P03: a signed-out root now shows the Welcome gate, not the tab shell.
+      // These cases assert the shell's own logged-out sub-states, so they
+      // drive HomeShell directly (its contract is unchanged).
       await tester.pumpWidget(
-        RailMateApp(dependencies: f19TestDeps(auth: auth)),
+        MaterialApp(
+          home: HomeShell(dependencies: f19TestDeps(auth: auth)),
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -95,8 +101,12 @@ void main() {
     ) async {
       final AuthState auth = await f19AuthState(loggedIn: false);
       addTearDown(auth.dispose);
+      // P03: signed-out root is the Welcome gate; drive the shell directly to
+      // assert its logged-out per-tab gates.
       await tester.pumpWidget(
-        RailMateApp(dependencies: f19TestDeps(auth: auth)),
+        MaterialApp(
+          home: HomeShell(dependencies: f19TestDeps(auth: auth)),
+        ),
       );
       await tester.pumpAndSettle();
 

@@ -77,6 +77,12 @@ class _ProfileFakeClient implements AuthClient {
   }) async {
     return user;
   }
+
+  @override
+  Future<void> requestPasswordReset(String email) async {}
+
+  @override
+  Future<void> updatePassword({required String newPassword}) async {}
 }
 
 Future<AuthState> _signedIn(_ProfileFakeClient fake) async {

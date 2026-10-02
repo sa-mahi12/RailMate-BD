@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- P02: RailMate BD brand palette mirrored from
+         lib/design/tokens/app_colors.dart so native launch UI and the
+         Flutter UI cannot drift apart. -->
+    <color name="railmate_teal">#0E5A66</color>
+    <color name="railmate_teal_deep">#0A434C</color>
+    <color name="railmate_surface">#F4F7F9</color>
+</resources>

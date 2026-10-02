@@ -112,7 +112,30 @@ class SupabaseAuthClient implements AuthClient {
     final User? user = response.session?.user ?? response.user;
     return user == null ? null : _toAuthUser(user);
   }
+
+  @override
+  Future<void> requestPasswordReset(String email) async {
+    // No account enumeration: Supabase answers the same way for unknown
+    // addresses, and the UI shows a neutral confirmation either way.
+    await supabase.auth.resetPasswordForEmail(
+      email,
+      redirectTo: kPasswordResetRedirect,
+    );
+  }
+
+  @override
+  Future<void> updatePassword({required String newPassword}) async {
+    await supabase.auth.updateUser(UserAttributes(password: newPassword));
+  }
 }
+
+/// Web redirect target baked into recovery emails.
+///
+/// The deep link lands on the app's universal link / custom scheme; Supabase
+/// appends the recovery token, which the app forwards to
+/// [AuthClient.updatePassword]. Kept as a constant so the value stays
+/// consistent between the email template and the app.
+const String kPasswordResetRedirect = 'railmatebd://auth/reset-password';
 
 /// [SupabaseConnect] hook for [SupabaseBootstrap.initialize]: performs the
 /// real `Supabase.initialize(url, anonKey)` call. Pass it at app startup:
