@@ -132,15 +132,14 @@ jobs:
           # The edit is a build-time value, never committed.
 
       - name: Release defines
-        id: defines
         shell: bash
         run: |
           set -euo pipefail
-          {
-            echo "URL=${{ vars.SUPABASE_URL }}"
-            echo "ANON=${{ vars.SUPABASE_ANON_KEY }}"
-            echo "PUB=${{ vars.SUPABASE_PUBLISHABLE_KEY }}"
-          } >> "$GITHUB_ENV"
+          # These exact names are what `flutter build` is invoked with below and
+          # what AppConfig.fromEnvironment reads. An earlier revision exported
+          # URL/ANON/PUB here, which left every --dart-define EMPTY (the build
+          # steps had no `set -u`, so it failed silently and produced an APK
+          # that boots to the setup-error screen). Fail loudly instead.
           missing=""
           [ -n "${{ vars.SUPABASE_URL }}" ] || missing="$missing SUPABASE_URL"
           [ -n "${{ vars.SUPABASE_ANON_KEY }}" ] || missing="$missing SUPABASE_ANON_KEY"
@@ -151,27 +150,56 @@ jobs:
             echo "under Settings -> Secrets and variables -> Actions -> Variables."
             exit 1
           fi
+          {
+            echo "SUPABASE_URL=${{ vars.SUPABASE_URL }}"
+            echo "SUPABASE_ANON_KEY=${{ vars.SUPABASE_ANON_KEY }}"
+            echo "SUPABASE_PUBLISHABLE_KEY=${{ vars.SUPABASE_PUBLISHABLE_KEY }}"
+          } >> "$GITHUB_ENV"
+          echo "Supabase defines resolved from repository variables."
 
       - name: Build universal release APK
+        shell: bash
         run: |
+          set -euo pipefail
           flutter build apk --release \
             --dart-define=SUPABASE_URL="$SUPABASE_URL" \
             --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY" \
             --dart-define=SUPABASE_PUBLISHABLE_KEY="$SUPABASE_PUBLISHABLE_KEY"
 
       - name: Build split-per-ABI release APKs
+        shell: bash
         run: |
+          set -euo pipefail
           flutter build apk --release --split-per-abi \
             --dart-define=SUPABASE_URL="$SUPABASE_URL" \
             --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY" \
             --dart-define=SUPABASE_PUBLISHABLE_KEY="$SUPABASE_PUBLISHABLE_KEY"
 
       - name: Build release AAB
+        shell: bash
         run: |
+          set -euo pipefail
           flutter build appbundle --release \
             --dart-define=SUPABASE_URL="$SUPABASE_URL" \
             --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY" \
             --dart-define=SUPABASE_PUBLISHABLE_KEY="$SUPABASE_PUBLISHABLE_KEY"
+
+      - name: Verify live config is embedded in the universal APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Regression guard: an earlier revision silently built the release
+          # with EMPTY --dart-defines (env-name mismatch), producing an APK that
+          # boots to the setup-error screen. Assert the host really is inside
+          # the artifact before anything is published.
+          APK=build/app/outputs/flutter-apk/app-release.apk
+          test -f "$APK"
+          if ! grep -qa "$SUPABASE_URL" "$APK"; then
+            echo "::error::Supabase URL is NOT embedded in the release APK."
+            echo "The artifact would boot to the setup-error screen."
+            exit 1
+          fi
+          echo "Supabase host confirmed inside the release APK."
 
       - name: Stage, rename and hash release artifacts
         id: stage

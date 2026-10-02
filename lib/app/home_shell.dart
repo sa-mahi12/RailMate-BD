@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
+import '../design/design.dart';
 import '../features/board/post/post.dart';
 import '../features/board/post/post_feed_realtime.dart';
 import '../features/board/post/post_feed_state.dart';
@@ -12,8 +13,11 @@ import '../features/booking/passenger_ui/passenger.dart';
 import '../features/booking/passenger_ui/passenger_form_state.dart';
 import '../features/booking/payment_ui/payment_state.dart';
 import '../features/booking/seat_ui/seat_selection_state.dart';
+import '../features/bookings/booking_history.dart';
 import '../features/bookings/booking_history_screen.dart';
 import '../features/profile/profile_screen.dart';
+import '../features/search/home/recent_searches_store.dart';
+import '../features/search/home/upcoming_booking.dart';
 import '../features/search/home_search_screen.dart';
 import '../features/search/models/trip.dart';
 import '../features/search/search_state.dart';
@@ -46,8 +50,6 @@ class HomeShell extends StatefulWidget {
 }
 
 class _HomeShellState extends State<HomeShell> {
-  static const Color _teal = Color(0xFF0E5A66);
-
   int _index = 0;
 
   final List<GlobalKey<NavigatorState>> _keys =
@@ -181,6 +183,34 @@ class _HomeShellState extends State<HomeShell> {
   /// `book-trip` Edge Function (F07) with a UUID idempotency key, then
   /// pushes the ticket route with the confirmed [TicketData]. Failures land
   /// on an explicit error screen — a ticket is never fabricated.
+  /// P10 seam: the next upcoming booking for the Home card.
+  ///
+  /// Returns `null` (which the card renders as its honest "no upcoming
+  /// booking" empty state) until a trip-lookup seam exists. `BookingSummary`
+  /// carries only `id`/`userId`/`tripId`/`status`/`totalFareBdt` — no origin,
+  /// destination or departure time — and the search repository has no
+  /// get-trip-by-id. Building a route card would mean inventing journey
+  /// details, which this app never does.
+  ///
+  /// Next action (P13 follow-up): add `fetchTripById` to the search
+  /// repository (plain REST read of an already-RLS-covered table) and map the
+  /// resolved trip here.
+  Future<UpcomingBooking?> _loadNextUpcomingBooking(String uid) async {
+    try {
+      final rows = await widget.dependencies.historyFor(uid).listOwned(uid);
+      if (rows.any((BookingSummary b) => b.isActive)) {
+        debugPrint(
+          'P10: active booking found for $uid, but no trip lookup is wired yet; '
+          'rendering the honest empty state.',
+        );
+      }
+      return null;
+    } catch (e) {
+      debugPrint('P10: upcoming booking lookup failed: $e');
+      return null;
+    }
+  }
+
   void _openSeatSelection({required int tab, required Trip trip}) {
     final SeatSelectionState seats = SeatSelectionState(
       tripId: trip.id,
@@ -316,97 +346,375 @@ class _HomeShellState extends State<HomeShell> {
         body: IndexedStack(
           index: _index,
           children: [
-            _TabNavigator(
-              navigatorKey: _keys[0],
-              dependencies: widget.dependencies,
-              root: HomeSearchScreen(
-                state: _searchState,
-                onSearchSubmitted: () {
-                  _keys[0].currentState?.pushNamed(
-                    AppRoutes.searchResults,
-                    arguments: SearchResultsArgs(
-                      state: _searchState,
-                      onSelectTrip: (Trip trip) =>
-                          _openSeatSelection(tab: 0, trip: trip),
-                    ),
-                  );
-                },
-                onStationGuideTap: () {
-                  _keys[0].currentState?.pushNamed(AppRoutes.guide);
-                },
+            _TabBodyEntrance(
+              active: _index == 0,
+              child: _TabNavigator(
+                navigatorKey: _keys[0],
+                dependencies: widget.dependencies,
+                root: HomeSearchScreen(
+                  state: _searchState,
+                  // P10: real session for the personalised greeting, a
+                  // device-persistent recent-search history, and the next
+                  // upcoming booking read through the SAME repository the
+                  // Bookings tab uses (no fabricated rows).
+                  auth: widget.dependencies.auth,
+                  recentSearches: SharedPreferencesRecentSearchStore(),
+                  loadUpcomingBooking: uid == null
+                      ? null
+                      : () => _loadNextUpcomingBooking(uid),
+                  onViewBooking: () =>
+                      _keys[1].currentState?.pushNamed(AppRoutes.history),
+                  onSignIn: uid == null
+                      ? () => _keys[0].currentState?.pushNamed(AppRoutes.login)
+                      : null,
+                  onSearchSubmitted: () {
+                    _keys[0].currentState?.pushNamed(
+                      AppRoutes.searchResults,
+                      arguments: SearchResultsArgs(
+                        state: _searchState,
+                        onSelectTrip: (Trip trip) =>
+                            _openSeatSelection(tab: 0, trip: trip),
+                      ),
+                    );
+                  },
+                  onStationGuideTap: () {
+                    _keys[0].currentState?.pushNamed(AppRoutes.guide);
+                  },
+                ),
               ),
             ),
-            _TabNavigator(
-              navigatorKey: _keys[1],
-              dependencies: widget.dependencies,
-              root: uid == null
-                  ? SignInRequiredScreen(
-                      title: 'Bookings',
-                      onSignIn: () =>
-                          _keys[1].currentState?.pushNamed(AppRoutes.login),
-                    )
-                  : BookingHistoryScreen(
-                      repository: widget.dependencies.historyFor(uid),
-                      ownerId: uid,
-                    ),
+            _TabBodyEntrance(
+              active: _index == 1,
+              child: _TabNavigator(
+                navigatorKey: _keys[1],
+                dependencies: widget.dependencies,
+                root: uid == null
+                    ? SignInRequiredScreen(
+                        title: 'Bookings',
+                        onSignIn: () =>
+                            _keys[1].currentState?.pushNamed(AppRoutes.login),
+                      )
+                    : BookingHistoryScreen(
+                        repository: widget.dependencies.historyFor(uid),
+                        ownerId: uid,
+                      ),
+              ),
             ),
-            _TabNavigator(
-              navigatorKey: _keys[2],
-              dependencies: widget.dependencies,
-              root: BoardFeedScreen(
-                feed: _boardFeed,
-                imageUrlFor: widget.dependencies.boardImageUrl,
-                // F13b engagement seams: per-post reactions/ratings fed by
-                // the production closures; signed-out readers (uid null)
-                // see aggregates read-only.
-                currentUserId: uid,
-                fetchReactions: widget.dependencies.fetchBoardReactions,
-                upsertReaction: widget.dependencies.upsertBoardReaction,
-                deleteReaction: widget.dependencies.deleteBoardReaction,
-                fetchRatings: widget.dependencies.fetchBoardRatings,
-                upsertRating: widget.dependencies.upsertBoardRating,
-                deleteRating: widget.dependencies.deleteBoardRating,
-                onCompose: () {
-                  _keys[2].currentState?.pushNamed(
-                    AppRoutes.boardCompose,
-                    arguments: BoardComposeRouteArgs(userId: uid),
-                  );
-                },
+            _TabBodyEntrance(
+              active: _index == 2,
+              child: _TabNavigator(
+                navigatorKey: _keys[2],
+                dependencies: widget.dependencies,
+                root: BoardFeedScreen(
+                  feed: _boardFeed,
+                  imageUrlFor: widget.dependencies.boardImageUrl,
+                  // F13b engagement seams: per-post reactions/ratings fed by
+                  // the production closures; signed-out readers (uid null)
+                  // see aggregates read-only.
+                  currentUserId: uid,
+                  fetchReactions: widget.dependencies.fetchBoardReactions,
+                  upsertReaction: widget.dependencies.upsertBoardReaction,
+                  deleteReaction: widget.dependencies.deleteBoardReaction,
+                  fetchRatings: widget.dependencies.fetchBoardRatings,
+                  upsertRating: widget.dependencies.upsertBoardRating,
+                  deleteRating: widget.dependencies.deleteBoardRating,
+                  onCompose: () {
+                    _keys[2].currentState?.pushNamed(
+                      AppRoutes.boardCompose,
+                      arguments: BoardComposeRouteArgs(userId: uid),
+                    );
+                  },
+                ),
               ),
             ),
             // F16: Profile tab (contract tabs are Home/Bookings/Board/
             // Profile). The Guide lives on Home (guide card) + its own
             // named routes, not as a tab.
-            _TabNavigator(
-              navigatorKey: _keys[3],
-              dependencies: widget.dependencies,
-              root: ProfileScreen(auth: widget.dependencies.auth),
+            _TabBodyEntrance(
+              active: _index == 3,
+              child: _TabNavigator(
+                navigatorKey: _keys[3],
+                dependencies: widget.dependencies,
+                root: ProfileScreen(auth: widget.dependencies.auth),
+              ),
             ),
           ],
         ),
-        bottomNavigationBar: BottomNavigationBar(
+        bottomNavigationBar: _AnimatedBottomNavBar(
           currentIndex: _index,
           onTap: _selectTab,
-          type: BottomNavigationBarType.fixed,
-          selectedItemColor: _teal,
-          unselectedItemColor: Colors.grey,
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Home'),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.confirmation_number_outlined),
-              label: 'Bookings',
+        ),
+      ),
+    );
+  }
+}
+
+/// P09 — the four contract tabs with their unselected and selected icons.
+///
+/// Unselected icons are exactly the icons the V3 `BottomNavigationBar` used,
+/// so the resting appearance is unchanged; the filled variants only appear for
+/// the selected tab.
+const List<_ShellTab> _shellTabs = <_ShellTab>[
+  _ShellTab('Home', Icons.search, Icons.search),
+  _ShellTab(
+    'Bookings',
+    Icons.confirmation_number_outlined,
+    Icons.confirmation_number,
+  ),
+  _ShellTab('Board', Icons.forum_outlined, Icons.forum),
+  _ShellTab('Profile', Icons.person_outline, Icons.person),
+];
+
+class _ShellTab {
+  final String label;
+  final IconData icon;
+  final IconData selectedIcon;
+
+  const _ShellTab(this.label, this.icon, this.selectedIcon);
+}
+
+/// P09 — animated replacement for the plain `BottomNavigationBar`.
+///
+/// Selection feedback, matching `28_MOTION_COMPONENT_MATRIX.md`
+/// (bottom nav icon select: scale 1.0 -> 1.12, 160 ms; reduced motion: colour
+/// only):
+///
+/// * a teal selection indicator slides between slots (aligned tween, 220 ms),
+/// * the selected icon crossfades outline -> filled and scales to 1.12,
+/// * every tab is a [PressScale] (0.985 on press, 100 ms) so the tap fires
+///   immediately and no animation ever postpones navigation.
+///
+/// Behaviour kept identical to the previous bar: fixed four items, the same
+/// labels, teal selected / grey unselected colour, `onTap` routed to the
+/// shell's `_selectTab` (including the re-tap-pops-to-root rule), and the same
+/// screen-reader contract (one labelled, `selected`-exposed button per tab,
+/// 56 px tall so touch targets stay at or above 48 logical px).
+class _AnimatedBottomNavBar extends StatelessWidget {
+  final int currentIndex;
+  final ValueChanged<int> onTap;
+
+  const _AnimatedBottomNavBar({
+    required this.currentIndex,
+    required this.onTap,
+  });
+
+  /// Maps a tab index onto an [Alignment] x coordinate in `-1..1`.
+  static double _alignmentFor(int index, int count) {
+    if (count <= 1) return 0;
+    return -1 + (index / (count - 1)) * 2;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bool reduced = ReducedMotion.isReduced(context);
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        border: Border(top: BorderSide(color: AppColors.border)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            // Sliding selection indicator: an aligned tween rather than a
+            // rebuild, so only the indicator's position animates.
+            SizedBox(
+              height: 3,
+              child: AnimatedAlign(
+                alignment: Alignment(
+                  _alignmentFor(currentIndex, _shellTabs.length),
+                  0,
+                ),
+                duration: reduced ? Duration.zero : AppMotion.standard,
+                curve: AppMotion.emphasized,
+                child: const SizedBox(
+                  width: 44,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(AppRadii.pill),
+                      ),
+                    ),
+                    child: SizedBox(height: 3, width: 44),
+                  ),
+                ),
+              ),
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.forum_outlined),
-              label: 'Board',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_outlined),
-              label: 'Profile',
+            Row(
+              children: <Widget>[
+                for (int i = 0; i < _shellTabs.length; i++)
+                  _ShellTabButton(
+                    tab: _shellTabs[i],
+                    index: i,
+                    selected: i == currentIndex,
+                    onTap: onTap,
+                  ),
+              ],
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// One bottom-navigation tab: semantic button, press-scale feedback and the
+/// icon/label motion for its selection state.
+class _ShellTabButton extends StatelessWidget {
+  final _ShellTab tab;
+  final int index;
+  final bool selected;
+  final ValueChanged<int> onTap;
+
+  const _ShellTabButton({
+    required this.tab,
+    required this.index,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bool reduced = ReducedMotion.isReduced(context);
+    final Duration motion = reduced ? Duration.zero : AppMotion.fast;
+    final Color color = selected ? AppColors.primary : AppColors.secondaryText;
+    final Widget content = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        AnimatedScale(
+          scale: selected ? 1.12 : 1.0,
+          duration: motion,
+          curve: AppMotion.enter,
+          child: AnimatedSwitcher(
+            duration: motion,
+            switchInCurve: AppMotion.enter,
+            switchOutCurve: AppMotion.exit,
+            transitionBuilder: (Widget child, Animation<double> animation) {
+              return FadeTransition(opacity: animation, child: child);
+            },
+            child: Icon(
+              selected ? tab.selectedIcon : tab.icon,
+              key: ValueKey<String>('shell-tab-icon-$index-$selected'),
+              size: 24,
+              color: color,
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.s4),
+        Text(
+          tab.label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: AppTypography.caption.copyWith(
+            color: color,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
+          ),
+        ),
+      ],
+    );
+    return Expanded(
+      child: Semantics(
+        button: true,
+        selected: selected,
+        label: tab.label,
+        child: PressScale(
+          onTap: () => onTap(index),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 56),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.s8),
+              // The outer Semantics node already carries the tab label and
+              // state; the visual text/icon are decorative duplicates.
+              child: ExcludeSemantics(child: Center(child: content)),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// P09 — tab-body entrance (matrix: tab content crossfade, 180 ms; instant
+/// under reduced motion).
+///
+/// The shell keeps its [IndexedStack] so each tab's [Navigator] and inner
+/// route stack survive a tab switch; wrapping the stack itself in an
+/// [AnimatedSwitcher] is impossible because both copies of the tree would hold
+/// the same per-tab `GlobalKey<NavigatorState>`. Instead every tab body fades
+/// in through this wrapper when it is first shown.
+///
+/// The fade plays **once per tab** (it is not replayed on rebuilds or on every
+/// later selection — the matrix forbids replaying hero motion), which keeps a
+/// realtime Board feed from repainting a full-screen layer on every switch.
+class _TabBodyEntrance extends StatefulWidget {
+  final bool active;
+  final Widget child;
+
+  const _TabBodyEntrance({required this.active, required this.child});
+
+  @override
+  State<_TabBodyEntrance> createState() => _TabBodyEntranceState();
+}
+
+class _TabBodyEntranceState extends State<_TabBodyEntrance>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: AppMotion.fast,
+  );
+
+  bool _reduced = false;
+  bool _played = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _reduced = ReducedMotion.isReduced(context);
+    _playIfNeeded();
+  }
+
+  @override
+  void didUpdateWidget(_TabBodyEntrance oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.active != oldWidget.active) {
+      _playIfNeeded();
+    }
+  }
+
+  void _playIfNeeded() {
+    if (_reduced || _played || !widget.active) return;
+    _played = true;
+    // Start after the frame so the fade always begins from the hidden state
+    // instead of flashing the already-visible first frame.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _controller.forward();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_reduced) {
+      return widget.child;
+    }
+    return AnimatedBuilder(
+      animation: _controller,
+      child: widget.child,
+      builder: (BuildContext context, Widget? child) {
+        return Opacity(
+          opacity: _controller.value.clamp(0.0, 1.0),
+          child: child,
+        );
+      },
     );
   }
 }
