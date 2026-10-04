@@ -1,20 +1,34 @@
+/// P22 - station guide list.
+///
+/// Offline-first: renders the bundled [stationGuideCatalog] (twenty-four
+/// demonstration entries, one per live station code) with no network call,
+/// no WebView and no external URL. Tapping a card pushes
+/// [GuideDetailScreen].
+///
+/// P22 polish:
+/// * entrance stagger that plays once per entry ([StaggeredList], 40 ms
+///   step, y10 rise),
+/// * press feedback on every card ([PressScale] around a Material card),
+/// * an honest empty state through the P26 `EmptyState` when a caller passes
+///   no guides - never a bare sentence,
+/// * the demonstration notice stays visible in the header.
+library;
+
 import 'package:flutter/material.dart';
 
+import '../../../design/design.dart';
+import '../../../design/state/state.dart';
 import 'guide_detail_screen.dart';
 import 'station_guide.dart';
 
 const Color _primaryTeal = Color(0xFF0E5A66);
 const Color _pageBackground = Color(0xFFF4F7F9);
 
-/// Offline-first station guide list (B09 compliant slice).
-///
-/// Renders the 4 seeded demo guides; tapping a card pushes
-/// [GuideDetailScreen]. No network, no WebView, no external URLs.
-/// R-09/R-10/R-15/R-16 remain BLOCKED pending teacher approval.
 class GuideListScreen extends StatelessWidget {
+  /// Entries to render. Defaults to the full demonstration catalog.
   final List<StationGuide> guides;
 
-  const GuideListScreen({super.key, this.guides = demoStationGuides});
+  const GuideListScreen({super.key, this.guides = stationGuideCatalog});
 
   @override
   Widget build(BuildContext context) {
@@ -22,20 +36,30 @@ class GuideListScreen extends StatelessWidget {
       backgroundColor: _pageBackground,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
+        children: <Widget>[
           _buildHeader(context),
           Expanded(
             child: guides.isEmpty
-                ? const Center(
-                    child: Text('No station guides available offline.'),
+                ? const EmptyState(
+                    icon: Icons.map_outlined,
+                    title: 'No station guides available offline',
+                    message:
+                        'This build ships demonstration guides only. Reinstall '
+                        'the app to restore the bundled station list.',
                   )
-                : ListView.separated(
-                    padding: const EdgeInsets.all(16),
+                : StaggeredList(
+                    key: const ValueKey<String>('guide-list'),
+                    padding: const EdgeInsets.all(AppSpacing.s16),
                     itemCount: guides.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final StationGuide guide = guides[index];
-                      return _GuideCard(guide: guide);
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: AppSpacing.s12),
+                        child: _GuideCard(
+                          key: ValueKey<String>('guide-${guide.stationCode}'),
+                          guide: guide,
+                        ),
+                      );
                     },
                   ),
           ),
@@ -46,7 +70,12 @@ class GuideListScreen extends StatelessWidget {
 
   Widget _buildHeader(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 48, 16, 20),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.s16,
+        AppSpacing.s40 + AppSpacing.s8,
+        AppSpacing.s16,
+        AppSpacing.s20,
+      ),
       decoration: const BoxDecoration(
         color: _primaryTeal,
         borderRadius: BorderRadius.only(
@@ -55,7 +84,7 @@ class GuideListScreen extends StatelessWidget {
         ),
       ),
       child: Row(
-        children: [
+        children: <Widget>[
           Container(
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.2),
@@ -66,11 +95,11 @@ class GuideListScreen extends StatelessWidget {
               onPressed: () => Navigator.maybePop(context),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppSpacing.s12),
           const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+              children: <Widget>[
                 Text(
                   'Station Guide',
                   style: TextStyle(
@@ -95,33 +124,32 @@ class GuideListScreen extends StatelessWidget {
 class _GuideCard extends StatelessWidget {
   final StationGuide guide;
 
-  const _GuideCard({required this.guide});
+  const _GuideCard({super.key, required this.guide});
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      elevation: 2,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute<void>(
-              builder: (_) => GuideDetailScreen(guide: guide),
-            ),
-          );
-        },
+    return PressScale(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute<void>(
+            builder: (_) => GuideDetailScreen(guide: guide),
+          ),
+        );
+      },
+      child: Card(
+        shape: RoundedRectangleBorder(borderRadius: AppRadii.cardRadius),
+        elevation: 2,
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppSpacing.s16),
           child: Row(
-            children: [
+            children: <Widget>[
               Container(
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
                   color: _primaryTeal.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: AppRadii.chipRadius,
                 ),
                 alignment: Alignment.center,
                 child: Text(
@@ -133,11 +161,11 @@ class _GuideCard extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: AppSpacing.s12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+                  children: <Widget>[
                     Text(
                       guide.stationName,
                       style: const TextStyle(
@@ -145,10 +173,17 @@ class _GuideCard extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: AppSpacing.s4),
+                    Text(
+                      '${guide.city} · ${guide.division} Division',
+                      style: AppTypography.caption,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: AppSpacing.s4),
                     Text(
                       guide.facilities.join(' • '),
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                      style: AppTypography.caption,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),

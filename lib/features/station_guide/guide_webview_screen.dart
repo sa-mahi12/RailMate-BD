@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
+import '../../../design/design.dart';
 import 'station_guide.dart';
 
 /// F15: interactive station guide rendered through a Flutter WebView.
@@ -31,6 +32,10 @@ class _GuideWebViewScreenState extends State<GuideWebViewScreen> {
   bool _loadFailed = false;
   String _failureDetail = '';
 
+  /// True once the page reports it finished loading; drives the 220 ms fade
+  /// (motion matrix: "WebView | loaded | opacity | 220 ms | reduced: instant").
+  bool _pageLoaded = false;
+
   @override
   void initState() {
     super.initState();
@@ -46,6 +51,9 @@ class _GuideWebViewScreenState extends State<GuideWebViewScreen> {
             _controller.runJavaScript(
               "if (window.RailMateGuide) { window.RailMateGuide.showStation('$code'); }",
             );
+            // The Flutter wrapper and the page must stay visually consistent,
+            // so the WebView is only revealed once the page has painted.
+            if (mounted) setState(() => _pageLoaded = true);
           },
           onWebResourceError: (WebResourceError error) {
             // Main-frame failures (e.g. asset missing) degrade to the
@@ -81,12 +89,15 @@ class _GuideWebViewScreenState extends State<GuideWebViewScreen> {
     setState(() {
       _loadFailed = false;
       _failureDetail = '';
+      _pageLoaded = false;
     });
     _loadGuide();
   }
 
   @override
   Widget build(BuildContext context) {
+    final bool reduced = ReducedMotion.isReduced(context);
+    final Widget webView = WebViewWidget(controller: _controller);
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF0E5A66),
@@ -99,7 +110,15 @@ class _GuideWebViewScreenState extends State<GuideWebViewScreen> {
       ),
       body: _loadFailed
           ? _buildOffline(context)
-          : WebViewWidget(controller: _controller),
+          : AnimatedOpacity(
+              // Held at zero opacity until the page reports it finished, so
+              // the reader never sees a half-painted page; instant when
+              // reduced motion is on.
+              opacity: _pageLoaded ? 1.0 : 0.0,
+              duration: reduced ? Duration.zero : AppMotion.standard,
+              curve: AppMotion.enter,
+              child: webView,
+            ),
     );
   }
 
