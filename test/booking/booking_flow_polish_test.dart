@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:railmate_bd/design/design.dart';
-import 'package:railmate_bd/design/state/state.dart';
 import 'package:railmate_bd/features/booking/passenger_ui/booking_review_screen.dart';
 import 'package:railmate_bd/features/booking/passenger_ui/passenger.dart';
 import 'package:railmate_bd/features/booking/passenger_ui/passenger_details_screen.dart';
