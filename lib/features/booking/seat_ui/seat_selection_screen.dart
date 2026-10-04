@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../design/design.dart';
+import '../../../design/state/state.dart';
 import '../../search/models/trip.dart';
 import '../../search/models/trip_seat.dart';
 import '../../search/search_date_utils.dart';
@@ -26,6 +28,13 @@ const Color _accentGreen = Color(0xFF1E9E6A);
 /// The seat grid is derived from the data (grouped by row prefix, five
 /// columns) so no hardcoded seat map is embedded: with the demo seed this
 /// yields rows A-E x 1-5 as in the reference.
+///
+/// V4 P14 polish (behavior unchanged): P26 [ErrorState]/[EmptyState] for
+/// the error/empty branches, a fixed-size [SkeletonBlock] shimmer while
+/// loading, one-shot [FadeSlideIn] entrances per section, [PressScale] on
+/// available seat taps only, and an [AnimatedSwap] on the selected-codes
+/// text. Seat semantics (available/booked/demo-held/disabled) are exactly
+/// as documented above.
 class SeatSelectionScreen extends StatefulWidget {
   final Trip trip;
   final SeatSelectionState state;
@@ -97,72 +106,44 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   Widget _buildBody(BuildContext context) {
     final state = widget.state;
     if (state.status == SeatSelectionStatus.loading && state.seats.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      return const _SeatLoadingSkeleton();
     }
     if (state.status == SeatSelectionStatus.error && state.seats.isEmpty) {
       return Center(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.cloud_off_outlined,
-                size: 48,
-                color: Colors.grey,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                state.errorMessage ?? 'Could not load seats. Please try again.',
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              FilledButton(
-                onPressed: () => state.load(),
-                style: FilledButton.styleFrom(
-                  backgroundColor: _primaryTeal,
-                  foregroundColor: Colors.white,
-                ),
-                child: const Text('Retry'),
-              ),
-            ],
+          child: ErrorState(
+            icon: Icons.cloud_off_outlined,
+            title: 'Could not load seats',
+            message:
+                state.errorMessage ?? 'Please check your connection and retry.',
+            retryLabel: 'Retry',
+            onRetry: () => state.load(),
           ),
         ),
       );
     }
     if (state.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildHeaderCard(),
-              const SizedBox(height: 16),
-              const Icon(
-                Icons.event_seat_outlined,
-                size: 48,
-                color: Colors.grey,
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'No seats available for this trip',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'Try another train or date.',
-                style: TextStyle(color: Colors.grey),
-              ),
-            ],
+      return ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          FadeSlideIn(child: _buildHeaderCard()),
+          const SizedBox(height: 16),
+          const FadeSlideIn(
+            delay: Duration(milliseconds: 40),
+            child: EmptyState(
+              icon: Icons.event_seat_outlined,
+              title: 'No seats available for this trip',
+              message: 'Try another train or date.',
+            ),
           ),
-        ),
+        ],
       );
     }
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        _buildHeaderCard(),
+        FadeSlideIn(child: _buildHeaderCard()),
         if (state.isStale)
           Container(
             margin: const EdgeInsets.only(top: 12),
@@ -188,15 +169,30 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
             ),
           ),
         const SizedBox(height: 12),
-        _buildLegend(),
+        FadeSlideIn(
+          delay: const Duration(milliseconds: 40),
+          child: _buildLegend(),
+        ),
         const SizedBox(height: 12),
-        _buildCoachChips(),
+        FadeSlideIn(
+          delay: const Duration(milliseconds: 80),
+          child: _buildCoachChips(),
+        ),
         const SizedBox(height: 12),
-        _buildSeatGrid(),
+        FadeSlideIn(
+          delay: const Duration(milliseconds: 120),
+          child: _buildSeatGrid(),
+        ),
         const SizedBox(height: 12),
-        _buildSelectedBar(),
+        FadeSlideIn(
+          delay: const Duration(milliseconds: 160),
+          child: _buildSelectedBar(),
+        ),
         const SizedBox(height: 12),
-        _buildContinueButton(),
+        FadeSlideIn(
+          delay: const Duration(milliseconds: 200),
+          child: _buildContinueButton(),
+        ),
       ],
     );
   }
@@ -448,11 +444,14 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
             'Selected Seats (${codes.length})',
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
-          Text(
-            codes.isEmpty ? '--' : codes.join(', '),
-            style: const TextStyle(
-              color: _accentGreen,
-              fontWeight: FontWeight.bold,
+          AnimatedSwap(
+            child: Text(
+              codes.isEmpty ? '--' : codes.join(', '),
+              key: ValueKey<String>(codes.join(',')),
+              style: const TextStyle(
+                color: _accentGreen,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],
@@ -553,25 +552,61 @@ class _SeatCell extends StatelessWidget {
       background = _seatAvailableBg;
       foreground = Colors.black87;
     }
-    return InkWell(
-      borderRadius: BorderRadius.circular(8),
-      onTap: unavailable ? null : onTap,
-      child: Container(
-        height: 40,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: background,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Text(
-          seat.seatCode,
-          style: TextStyle(
-            color: foreground,
-            fontWeight: FontWeight.bold,
-            fontSize: 13,
-          ),
+    if (unavailable) {
+      // Disabled cells stay static: no press target, no ripple.
+      return _cellBox(background, foreground);
+    }
+    return PressScale(onTap: onTap, child: _cellBox(background, foreground));
+  }
+
+  Widget _cellBox(Color background, Color foreground) {
+    return Container(
+      height: 40,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        seat.seatCode,
+        style: TextStyle(
+          color: foreground,
+          fontWeight: FontWeight.bold,
+          fontSize: 13,
         ),
       ),
+    );
+  }
+}
+
+/// Fixed-size shimmer shown while the seat map loads, so the layout does
+/// not jump when the real grid arrives. Static under reduced motion.
+class _SeatLoadingSkeleton extends StatelessWidget {
+  const _SeatLoadingSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: const [
+        SkeletonBlock(height: 190, borderRadius: 16),
+        SizedBox(height: 12),
+        SkeletonBlock(height: 20),
+        SizedBox(height: 12),
+        SkeletonBlock(height: 36, borderRadius: 10),
+        SizedBox(height: 12),
+        SkeletonBlock(height: 40),
+        SizedBox(height: 8),
+        SkeletonBlock(height: 40),
+        SizedBox(height: 8),
+        SkeletonBlock(height: 40),
+        SizedBox(height: 8),
+        SkeletonBlock(height: 40),
+        SizedBox(height: 12),
+        SkeletonBlock(height: 48, borderRadius: 12),
+        SizedBox(height: 12),
+        SkeletonBlock(height: 52, borderRadius: 12),
+      ],
     );
   }
 }

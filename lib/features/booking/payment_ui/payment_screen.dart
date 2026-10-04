@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../design/design.dart';
 import '../passenger_ui/passenger_form_state.dart';
 import 'payment_state.dart';
 
@@ -23,6 +24,11 @@ const Color _pageBackground = Color(0xFFF4F7F9);
 /// failure creates no booking intent and stays on this screen.
 ///
 /// Includes a one-line demonstration notice (no real money is charged).
+///
+/// V4 P16 polish (behavior unchanged): one-shot [FadeSlideIn] entrances,
+/// an [AnimatedSwap] keyed by [PaymentStatus] so every state change
+/// cross-fades, a real spinner while processing, and an [AnimatedContainer]
+/// stepper dot.
 class PaymentScreen extends StatelessWidget {
   final PassengerFormState formState;
   final PaymentState paymentState;
@@ -77,11 +83,24 @@ class PaymentScreen extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        const _Stepper(currentStep: 2),
+        FadeSlideIn(child: _Stepper(currentStep: 2)),
         const SizedBox(height: 16),
-        _FareCard(breakdown: breakdown),
+        FadeSlideIn(
+          delay: const Duration(milliseconds: 40),
+          child: _FareCard(breakdown: breakdown),
+        ),
         const SizedBox(height: 12),
-        _StatusCard(status: status),
+        FadeSlideIn(
+          delay: const Duration(milliseconds: 80),
+          // Keyed by status so every honest state change (idle →
+          // processing → succeeded/failed) cross-fades instead of popping.
+          child: AnimatedSwap(
+            child: _StatusCard(
+              key: ValueKey<PaymentStatus>(status),
+              status: status,
+            ),
+          ),
+        ),
         const SizedBox(height: 12),
         const Text(
           'DEMONSTRATION ONLY — no real money is charged and no payment credentials are collected.',
@@ -207,7 +226,7 @@ class _FareCard extends StatelessWidget {
 class _StatusCard extends StatelessWidget {
   final PaymentStatus status;
 
-  const _StatusCard({required this.status});
+  const _StatusCard({super.key, required this.status});
 
   @override
   Widget build(BuildContext context) {
@@ -241,7 +260,14 @@ class _StatusCard extends StatelessWidget {
     return _Card(
       child: Row(
         children: [
-          Icon(icon, color: color),
+          if (status == PaymentStatus.processing)
+            const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(strokeWidth: 2.5),
+            )
+          else
+            Icon(icon, color: color),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -347,7 +373,9 @@ class _StepDot extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
+        AnimatedContainer(
+          duration: AppMotion.standard,
+          curve: AppMotion.enter,
           width: 32,
           height: 32,
           alignment: Alignment.center,

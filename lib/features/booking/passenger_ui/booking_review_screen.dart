@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../design/design.dart';
+import '../../../design/state/state.dart';
 import 'passenger.dart';
 import 'passenger_form_state.dart';
 
@@ -16,6 +18,11 @@ const Color _pageBackground = Color(0xFFF4F7F9);
 /// server-side in the later booking lane; this screen writes nothing.
 ///
 /// Includes a one-line demonstration notice (no real money is charged).
+///
+/// V4 P15 polish (behavior unchanged): P26 [EmptyState] for the
+/// no-passengers branch, one-shot [FadeSlideIn] entrances per section, a
+/// [StaggeredColumn] over the passenger rows, an [AnimatedSwap] on the
+/// fare total, and an [AnimatedContainer] stepper dot.
 class BookingReviewScreen extends StatefulWidget {
   final PassengerFormState formState;
   final String trainName;
@@ -94,11 +101,12 @@ class _BookingReviewScreenState extends State<BookingReviewScreen> {
     final form = widget.formState;
     if (form.count == 0) {
       return const Center(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: EdgeInsets.all(24),
-          child: Text(
-            'No passengers to review. Go back and add passenger details first.',
-            textAlign: TextAlign.center,
+          child: EmptyState(
+            icon: Icons.receipt_long_outlined,
+            title: 'No passengers to review',
+            message: 'Go back and add passenger details first.',
           ),
         ),
       );
@@ -108,17 +116,32 @@ class _BookingReviewScreenState extends State<BookingReviewScreen> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        const _Stepper(currentStep: 1),
+        FadeSlideIn(child: _Stepper(currentStep: 1)),
         const SizedBox(height: 16),
-        _buildJourneyCard(),
+        FadeSlideIn(
+          delay: const Duration(milliseconds: 40),
+          child: _buildJourneyCard(),
+        ),
         const SizedBox(height: 12),
-        _buildTrainCard(),
+        FadeSlideIn(
+          delay: const Duration(milliseconds: 80),
+          child: _buildTrainCard(),
+        ),
         const SizedBox(height: 12),
-        _buildPassengersCard(),
+        FadeSlideIn(
+          delay: const Duration(milliseconds: 120),
+          child: _buildPassengersCard(),
+        ),
         const SizedBox(height: 12),
-        _buildFareCard(breakdown),
+        FadeSlideIn(
+          delay: const Duration(milliseconds: 160),
+          child: _buildFareCard(breakdown),
+        ),
         const SizedBox(height: 12),
-        _buildTermsRow(),
+        FadeSlideIn(
+          delay: const Duration(milliseconds: 200),
+          child: _buildTermsRow(),
+        ),
         const SizedBox(height: 12),
         const Text(
           'Demonstration booking — no real money is charged.',
@@ -126,29 +149,32 @@ class _BookingReviewScreenState extends State<BookingReviewScreen> {
           style: TextStyle(color: Colors.grey, fontSize: 12),
         ),
         const SizedBox(height: 8),
-        SizedBox(
-          width: double.infinity,
-          child: FilledButton(
-            onPressed: confirmEnabled ? widget.onConfirm : null,
-            style: FilledButton.styleFrom(
-              backgroundColor: _primaryTeal,
-              foregroundColor: Colors.white,
-              disabledBackgroundColor: Colors.grey.shade300,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              padding: const EdgeInsets.symmetric(vertical: 16),
-            ),
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  'Confirm Booking',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+        FadeSlideIn(
+          delay: const Duration(milliseconds: 240),
+          child: SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: confirmEnabled ? widget.onConfirm : null,
+              style: FilledButton.styleFrom(
+                backgroundColor: _primaryTeal,
+                foregroundColor: Colors.white,
+                disabledBackgroundColor: Colors.grey.shade300,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                SizedBox(width: 8),
-                Icon(Icons.arrow_forward),
-              ],
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Confirm Booking',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(width: 8),
+                  Icon(Icons.arrow_forward),
+                ],
+              ),
             ),
           ),
         ),
@@ -294,6 +320,13 @@ class _BookingReviewScreenState extends State<BookingReviewScreen> {
 
   Widget _buildPassengersCard() {
     final passengers = widget.formState.passengers;
+    final rows = <Widget>[];
+    for (var i = 0; i < passengers.length; i++) {
+      rows.add(_PassengerRow(index: i, passenger: passengers[i]));
+      if (i < passengers.length - 1) {
+        rows.add(const Divider(height: 20));
+      }
+    }
     return _Card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -314,10 +347,7 @@ class _BookingReviewScreenState extends State<BookingReviewScreen> {
               ),
             ],
           ),
-          for (var i = 0; i < passengers.length; i++) ...[
-            _PassengerRow(index: i, passenger: passengers[i]),
-            if (i < passengers.length - 1) const Divider(height: 20),
-          ],
+          StaggeredColumn(children: rows),
         ],
       ),
     );
@@ -352,12 +382,15 @@ class _BookingReviewScreenState extends State<BookingReviewScreen> {
                 'Total Amount',
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
-              Text(
-                'BDT ${breakdown['total'] ?? 0}',
-                style: const TextStyle(
-                  color: _primaryTeal,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
+              AnimatedSwap(
+                child: Text(
+                  'BDT ${breakdown['total'] ?? 0}',
+                  key: ValueKey<int>(breakdown['total'] ?? 0),
+                  style: const TextStyle(
+                    color: _primaryTeal,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
                 ),
               ),
             ],
@@ -572,7 +605,9 @@ class _StepDot extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
+        AnimatedContainer(
+          duration: AppMotion.standard,
+          curve: AppMotion.enter,
           width: 32,
           height: 32,
           alignment: Alignment.center,

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../design/design.dart';
+import '../../../design/state/state.dart';
 import 'passenger.dart';
 import 'passenger_form_state.dart';
 
@@ -20,6 +22,14 @@ const Color _hintGrey = Color(0xFF9AA5B1);
 /// collected anywhere on this screen (packet stop condition).
 ///
 /// [onContinue] receives the validated passenger list snapshot.
+///
+/// V4 P15 polish (behavior unchanged): P26 [EmptyState] for the no-seats
+/// branch, one-shot [FadeSlideIn] entrances per section, an [AnimatedSwap]
+/// keyed by seat code when switching passenger tabs, and an
+/// [AnimatedContainer] stepper dot so step changes ease instead of popping.
+/// The Continue button stays disabled until [PassengerFormState.isValid] —
+/// a shake-on-invalid-submit would require enabling the button while
+/// invalid, which is a behavior change, so it was deliberately not applied.
 class PassengerDetailsScreen extends StatefulWidget {
   final PassengerFormState formState;
   final String trainName;
@@ -170,11 +180,12 @@ class _PassengerDetailsScreenState extends State<PassengerDetailsScreen> {
     final form = widget.formState;
     if (form.count == 0) {
       return const Center(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: EdgeInsets.all(24),
-          child: Text(
-            'No seats selected. Go back and choose 1–4 seats first.',
-            textAlign: TextAlign.center,
+          child: EmptyState(
+            icon: Icons.event_seat_outlined,
+            title: 'No seats selected',
+            message: 'Go back and choose 1–4 seats first.',
           ),
         ),
       );
@@ -183,19 +194,36 @@ class _PassengerDetailsScreenState extends State<PassengerDetailsScreen> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        const _Stepper(currentStep: 0),
+        FadeSlideIn(child: _Stepper(currentStep: 0)),
         const SizedBox(height: 16),
-        _buildJourneyCard(),
+        FadeSlideIn(
+          delay: const Duration(milliseconds: 40),
+          child: _buildJourneyCard(),
+        ),
         const SizedBox(height: 16),
-        _buildPassengerTabs(),
+        FadeSlideIn(
+          delay: const Duration(milliseconds: 80),
+          child: _buildPassengerTabs(),
+        ),
         const SizedBox(height: 12),
-        _buildNameField(index),
-        const SizedBox(height: 12),
-        _buildTypeField(index),
+        // Tab-switched fields cross-fade/slide instead of popping.
+        AnimatedSwap(
+          child: _PassengerFields(
+            key: ValueKey<String>(form.passengers[index].seatCode),
+            nameField: _buildNameField(index),
+            typeField: _buildTypeField(index),
+          ),
+        ),
         const SizedBox(height: 16),
-        _buildContactCard(),
+        FadeSlideIn(
+          delay: const Duration(milliseconds: 120),
+          child: _buildContactCard(),
+        ),
         const SizedBox(height: 16),
-        _buildContinueButton(),
+        FadeSlideIn(
+          delay: const Duration(milliseconds: 160),
+          child: _buildContinueButton(),
+        ),
       ],
     );
   }
@@ -558,6 +586,28 @@ class _PassengerDetailsScreenState extends State<PassengerDetailsScreen> {
   }
 }
 
+/// Tab-switched name/type field pair. The caller keys this by seat code
+/// inside an [AnimatedSwap] so switching passenger tabs cross-fades the
+/// fields instead of popping them.
+class _PassengerFields extends StatelessWidget {
+  final Widget nameField;
+  final Widget typeField;
+
+  const _PassengerFields({
+    super.key,
+    required this.nameField,
+    required this.typeField,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [nameField, const SizedBox(height: 12), typeField],
+    );
+  }
+}
+
 /// Three-step header shared with the review screen: 1 Passengers,
 /// 2 Review, 3 Payment. [currentStep] is 0-indexed.
 class _Stepper extends StatelessWidget {
@@ -608,7 +658,9 @@ class _StepDot extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
+        AnimatedContainer(
+          duration: AppMotion.standard,
+          curve: AppMotion.enter,
           width: 32,
           height: 32,
           alignment: Alignment.center,

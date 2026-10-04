@@ -3,6 +3,8 @@ import 'package:printing/printing.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:railmate_bd/features/booking/passenger_ui/passenger.dart';
 
+import '../../design/design.dart';
+import '../../design/state/state.dart';
 import 'ticket_data.dart';
 import 'ticket_export.dart';
 
@@ -23,6 +25,12 @@ const Color _pageBackground = Color(0xFFF4F7F9);
 /// no implied travel entitlement.
 ///
 /// Invalid snapshots keep the error state: no QR, no download button.
+///
+/// V4 P17 polish (behavior unchanged): one-shot [FadeSlideIn] entrances per
+/// section, a delayed QR reveal, a [StaggeredColumn] over the passenger
+/// rows, the P26 [ErrorState] for invalid snapshots (same copy), and an
+/// [AnimatedSwap] on the download button's busy state. The deterministic QR
+/// payload, DEMONSTRATION ONLY wording and PDF contract are untouched.
 class TicketScreen extends StatelessWidget {
   final TicketData ticket;
 
@@ -57,18 +65,33 @@ class TicketScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const _DemoBanner(),
+          const FadeSlideIn(child: _DemoBanner()),
           const SizedBox(height: 12),
           if (!ticket.isValid)
-            const _InvalidTicketCard()
+            const FadeSlideIn(
+              delay: Duration(milliseconds: 40),
+              child: _InvalidTicketCard(),
+            )
           else ...[
-            _buildTicketCard(),
+            FadeSlideIn(
+              delay: const Duration(milliseconds: 40),
+              child: _buildTicketCard(),
+            ),
             const SizedBox(height: 12),
-            _buildPassengersCard(),
+            FadeSlideIn(
+              delay: const Duration(milliseconds: 80),
+              child: _buildPassengersCard(),
+            ),
             const SizedBox(height: 12),
-            _buildFareCard(),
+            FadeSlideIn(
+              delay: const Duration(milliseconds: 120),
+              child: _buildFareCard(),
+            ),
             const SizedBox(height: 12),
-            _TicketDownloadButton(ticket: ticket),
+            FadeSlideIn(
+              delay: const Duration(milliseconds: 160),
+              child: _TicketDownloadButton(ticket: ticket),
+            ),
           ],
         ],
       ),
@@ -114,7 +137,14 @@ class TicketScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            Center(child: _TicketQr(ticket: ticket)),
+            // The QR reveals slightly after the card settles, so the
+            // reference feels issued rather than pasted.
+            Center(
+              child: FadeSlideIn(
+                delay: const Duration(milliseconds: 220),
+                child: _TicketQr(ticket: ticket),
+              ),
+            ),
             const SizedBox(height: 8),
             Center(
               child: Text(
@@ -149,6 +179,13 @@ class TicketScreen extends StatelessWidget {
   }
 
   Widget _buildPassengersCard() {
+    final rows = <Widget>[];
+    for (var i = 0; i < ticket.passengers.length; i++) {
+      rows.add(_buildPassengerRow(i));
+      if (i < ticket.passengers.length - 1) {
+        rows.add(const Divider(height: 16));
+      }
+    }
     return Card(
       color: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -166,10 +203,7 @@ class TicketScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            for (var i = 0; i < ticket.passengers.length; i++) ...[
-              _buildPassengerRow(i),
-              if (i < ticket.passengers.length - 1) const Divider(height: 16),
-            ],
+            StaggeredColumn(children: rows),
           ],
         ),
       ),
@@ -332,29 +366,13 @@ class _InvalidTicketCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Card(
-      color: Colors.white,
-      child: Padding(
-        padding: EdgeInsets.all(24),
-        child: Column(
-          children: [
-            Icon(Icons.error_outline, color: _dangerRed, size: 40),
-            SizedBox(height: 8),
-            Text(
-              'Ticket unavailable',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 4),
-            Text(
-              'The booking reference or passenger details are invalid. '
-              'Go back and complete the booking first. '
-              'DEMONSTRATION ONLY \u2014 invalid for travel.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: Colors.black54),
-            ),
-          ],
-        ),
-      ),
+    return const ErrorState(
+      icon: Icons.error_outline,
+      title: 'Ticket unavailable',
+      message:
+          'The booking reference or passenger details are invalid. '
+          'Go back and complete the booking first. '
+          'DEMONSTRATION ONLY — invalid for travel.',
     );
   }
 }
@@ -473,16 +491,19 @@ class _TicketDownloadButtonState extends State<_TicketDownloadButton> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            FilledButton.icon(
-              onPressed: _busy ? null : _download,
-              icon: _busy
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.download),
-              label: Text(_busy ? 'Building demo PDF…' : 'Download demo PDF'),
+            AnimatedSwap(
+              child: FilledButton.icon(
+                key: ValueKey<bool>(_busy),
+                onPressed: _busy ? null : _download,
+                icon: _busy
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.download),
+                label: Text(_busy ? 'Building demo PDF…' : 'Download demo PDF'),
+              ),
             ),
             const SizedBox(height: 4),
             Text(

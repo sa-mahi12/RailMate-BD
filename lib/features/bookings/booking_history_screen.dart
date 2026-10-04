@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../design/design.dart';
+import '../../design/state/state.dart';
 import 'booking_history.dart';
 
 const Color _primaryTeal = Color(0xFF0E5A66);
@@ -15,6 +17,12 @@ const Color _pageBackground = Color(0xFFF4F7F9);
 /// stop-condition comment) behind a confirm dialog, and a repeat cancel is
 /// a no-op success. Every state carries a DEMONSTRATION ONLY banner; demo
 /// bookings grant no travel entitlement and no real money moves.
+///
+/// V4 P18 polish (behavior unchanged): a fixed-size skeleton while loading,
+/// the P26 [ErrorState]/[EmptyState] for error/empty (same copy), a
+/// [StaggeredColumn] entrance over the booking cards, an [AnimatedSwap] on
+/// the status chip (so the cancelled state visibly transitions) and on the
+/// cancel button's busy state.
 class BookingHistoryScreen extends StatefulWidget {
   /// History + cancel repository with injected fetch/rpc functions.
   final BookingHistoryRepository repository;
@@ -171,37 +179,26 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
             future: _future,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(32),
-                    child: CircularProgressIndicator(color: _primaryTeal),
-                  ),
-                );
+                return const _HistoryLoadingSkeleton();
               }
               if (snapshot.hasError) {
-                return _ErrorCard(
+                return ErrorState(
                   message: 'Could not load bookings.',
+                  retryLabel: 'Retry',
                   onRetry: _reload,
                 );
               }
               final items = snapshot.data ?? const <BookingSummary>[];
               if (items.isEmpty) {
-                return const Card(
-                  color: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(16)),
-                  ),
-                  child: Padding(
-                    padding: EdgeInsets.all(24),
-                    child: Text(
-                      'No bookings yet. DEMONSTRATION ONLY.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 13, color: Colors.black54),
-                    ),
-                  ),
+                return const EmptyState(
+                  icon: Icons.confirmation_number_outlined,
+                  title: 'No bookings yet',
+                  message:
+                      'Demo bookings appear here after a booking. '
+                      'DEMONSTRATION ONLY.',
                 );
               }
-              return Column(
+              return StaggeredColumn(
                 children: [
                   for (final booking in items) ...[
                     _BookingCard(
@@ -254,43 +251,21 @@ class _DemoNote extends StatelessWidget {
   }
 }
 
-class _ErrorCard extends StatelessWidget {
-  final String message;
-  final VoidCallback onRetry;
-
-  const _ErrorCard({required this.message, required this.onRetry});
+/// Fixed-size shimmer shown while the history loads. Static under reduced
+/// motion; the layout does not jump when the real cards arrive.
+class _HistoryLoadingSkeleton extends StatelessWidget {
+  const _HistoryLoadingSkeleton();
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            const Icon(Icons.error_outline, color: _dangerRed, size: 40),
-            const SizedBox(height: 8),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 13, color: Colors.black54),
-            ),
-            const SizedBox(height: 12),
-            ElevatedButton(
-              onPressed: onRetry,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _primaryTeal,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: const Text('Retry'),
-            ),
-          ],
-        ),
-      ),
+    return const Column(
+      children: [
+        SkeletonBlock(height: 120, borderRadius: 16),
+        SizedBox(height: 12),
+        SkeletonBlock(height: 120, borderRadius: 16),
+        SizedBox(height: 12),
+        SkeletonBlock(height: 120, borderRadius: 16),
+      ],
     );
   }
 }
@@ -346,12 +321,17 @@ class _BookingCard extends StatelessWidget {
                     color: statusColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Text(
-                    statusLabel,
-                    style: TextStyle(
-                      color: statusColor,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
+                  // Keyed by status so CONFIRMED → CANCELLED visibly
+                  // transitions after a cancel + reload.
+                  child: AnimatedSwap(
+                    child: Text(
+                      statusLabel,
+                      key: ValueKey<String>(statusLabel),
+                      style: TextStyle(
+                        color: statusColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
                     ),
                   ),
                 ),
@@ -367,25 +347,28 @@ class _BookingCard extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 height: 46,
-                child: OutlinedButton(
-                  onPressed: busy ? null : onCancel,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: _dangerRed,
-                    side: const BorderSide(color: _dangerRed),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                child: AnimatedSwap(
+                  child: OutlinedButton(
+                    key: ValueKey<bool>(busy),
+                    onPressed: busy ? null : onCancel,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: _dangerRed,
+                      side: const BorderSide(color: _dangerRed),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
+                    child: busy
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              color: _dangerRed,
+                              strokeWidth: 2.5,
+                            ),
+                          )
+                        : const Text('Cancel whole booking'),
                   ),
-                  child: busy
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            color: _dangerRed,
-                            strokeWidth: 2.5,
-                          ),
-                        )
-                      : const Text('Cancel whole booking'),
                 ),
               ),
             ],
