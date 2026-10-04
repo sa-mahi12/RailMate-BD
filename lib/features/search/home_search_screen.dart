@@ -301,22 +301,34 @@ class _HomeSearchScreenState extends State<HomeSearchScreen> {
           Expanded(
             child: Column(
               children: <Widget>[
-                _StationField(
-                  label: 'From',
-                  icon: Icons.trip_origin,
-                  value: widget.state.origin,
-                  stations: widget.state.stations,
-                  hint: 'Select origin',
-                  onChanged: widget.state.selectOrigin,
+                // Keyed by station so picking another endpoint cross-fades
+                // the field instead of popping it.
+                AnimatedSwap(
+                  child: _StationField(
+                    key: ValueKey<String>(
+                      'from_${widget.state.origin?.id ?? 'none'}',
+                    ),
+                    label: 'From',
+                    icon: Icons.trip_origin,
+                    value: widget.state.origin,
+                    stations: widget.state.stations,
+                    hint: 'Select origin',
+                    onChanged: widget.state.selectOrigin,
+                  ),
                 ),
                 const Divider(height: AppSpacing.s24),
-                _StationField(
-                  label: 'To',
-                  icon: Icons.location_on_outlined,
-                  value: widget.state.destination,
-                  stations: widget.state.stations,
-                  hint: 'Select destination',
-                  onChanged: widget.state.selectDestination,
+                AnimatedSwap(
+                  child: _StationField(
+                    key: ValueKey<String>(
+                      'to_${widget.state.destination?.id ?? 'none'}',
+                    ),
+                    label: 'To',
+                    icon: Icons.location_on_outlined,
+                    value: widget.state.destination,
+                    stations: widget.state.stations,
+                    hint: 'Select destination',
+                    onChanged: widget.state.selectDestination,
+                  ),
                 ),
               ],
             ),
@@ -388,25 +400,29 @@ class _HomeSearchScreenState extends State<HomeSearchScreen> {
 
   Widget _buildSearchButton(BuildContext context) {
     final bool loading = widget.state.isLoading;
-    return FilledButton.icon(
-      onPressed: loading ? null : () => _submit(context),
-      icon: loading
-          ? const SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: Colors.white,
-              ),
-            )
-          : const Icon(Icons.search),
-      label: Text(loading ? 'Searching…' : 'Search Trains'),
-      style: FilledButton.styleFrom(
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.onPrimary,
-        minimumSize: const Size.fromHeight(52),
-        shape: RoundedRectangleBorder(borderRadius: AppRadii.buttonRadius),
-        textStyle: AppTypography.button,
+    // Keyed by state so idle <-> searching cross-fades instead of popping.
+    return AnimatedSwap(
+      child: FilledButton.icon(
+        key: ValueKey<bool>(loading),
+        onPressed: loading ? null : () => _submit(context),
+        icon: loading
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
+            : const Icon(Icons.search),
+        label: Text(loading ? 'Searching…' : 'Search Trains'),
+        style: FilledButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          foregroundColor: AppColors.onPrimary,
+          minimumSize: const Size.fromHeight(52),
+          shape: RoundedRectangleBorder(borderRadius: AppRadii.buttonRadius),
+          textStyle: AppTypography.button,
+        ),
       ),
     );
   }
@@ -487,6 +503,7 @@ class _StationField extends StatelessWidget {
   final ValueChanged<Station?> onChanged;
 
   const _StationField({
+    super.key,
     required this.label,
     required this.icon,
     required this.value,

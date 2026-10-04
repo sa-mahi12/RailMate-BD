@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../design/design.dart';
+import '../../design/state/state.dart';
 import 'models/trip.dart';
 import 'search_date_utils.dart';
 import 'search_state.dart';
@@ -17,6 +19,11 @@ const Color _pageBackground = Color(0xFFF4F7F9);
 /// Empty results render "No trains on this route/date"; network and
 /// timeout failures render an error state with a retry button — a timeout
 /// is never shown as "no trains".
+///
+/// V4 P13 polish (behavior unchanged): fixed-size skeletons while loading,
+/// the P26 [ErrorState]/[EmptyState] for error/empty (timeout vs generic
+/// copy preserved verbatim), a [StaggeredList] entrance over the trip
+/// cards, and [PressScale] on trip cards and date-strip cells.
 class SearchResultsScreen extends StatelessWidget {
   final SearchState state;
   final ValueChanged<Trip> onSelectTrip;
@@ -60,8 +67,11 @@ class SearchResultsScreen extends StatelessWidget {
         builder: (context, _) {
           return Column(
             children: [
-              _buildRouteHeader(),
-              _buildDateStrip(),
+              FadeSlideIn(child: _buildRouteHeader()),
+              FadeSlideIn(
+                delay: const Duration(milliseconds: 40),
+                child: _buildDateStrip(),
+              ),
               Expanded(child: _buildBody(context)),
             ],
           );
@@ -184,8 +194,7 @@ class SearchResultsScreen extends StatelessWidget {
         itemBuilder: (context, index) {
           final day = days[index];
           final selected = dayStartOf(day) == dayStartOf(state.selectedDate);
-          return InkWell(
-            borderRadius: BorderRadius.circular(10),
+          return PressScale(
             onTap: () => _changeDate(day),
             child: Container(
               width: 56,
@@ -224,38 +233,21 @@ class SearchResultsScreen extends StatelessWidget {
 
   Widget _buildBody(BuildContext context) {
     if (state.isLoading && state.results.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      return const _ResultsLoadingSkeleton();
     }
     if (state.status == SearchStatus.error) {
       final isTimeout = state.errorKind == SearchErrorKind.timeout;
       return Center(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.cloud_off_outlined,
-                size: 48,
-                color: Colors.grey,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                isTimeout
-                    ? 'The request timed out. Please check your connection and try again.'
-                    : 'Something went wrong while searching. Please try again.',
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              FilledButton(
-                onPressed: onRetry ?? state.retry,
-                style: FilledButton.styleFrom(
-                  backgroundColor: _primaryTeal,
-                  foregroundColor: Colors.white,
-                ),
-                child: const Text('Retry'),
-              ),
-            ],
+          child: ErrorState(
+            icon: Icons.cloud_off_outlined,
+            title: 'Search failed',
+            message: isTimeout
+                ? 'The request timed out. Please check your connection and try again.'
+                : 'Something went wrong while searching. Please try again.',
+            retryLabel: 'Retry',
+            onRetry: onRetry ?? state.retry,
           ),
         ),
       );
@@ -263,23 +255,12 @@ class SearchResultsScreen extends StatelessWidget {
     if (state.isEmpty ||
         (state.status == SearchStatus.loaded && state.results.isEmpty)) {
       return const Center(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.train_outlined, size: 48, color: Colors.grey),
-              SizedBox(height: 12),
-              Text(
-                'No trains on this route/date',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-              SizedBox(height: 4),
-              Text(
-                'Try another date or route.',
-                style: TextStyle(color: Colors.grey),
-              ),
-            ],
+          child: EmptyState(
+            icon: Icons.train_outlined,
+            title: 'No trains on this route/date',
+            message: 'Try another date or route.',
           ),
         ),
       );
@@ -298,18 +279,21 @@ class SearchResultsScreen extends StatelessWidget {
             ),
           ),
         Expanded(
-          child: ListView.builder(
+          child: StaggeredList(
             padding: const EdgeInsets.all(16),
             itemCount: state.results.length,
             itemBuilder: (context, index) {
               final trip = state.results[index];
-              return _TripCard(
-                trip: trip,
-                originCode: state.stationCode(trip.originStationId),
-                originName: state.stationName(trip.originStationId),
-                destinationCode: state.stationCode(trip.destinationStationId),
-                destinationName: state.stationName(trip.destinationStationId),
-                onTap: () => onSelectTrip(trip),
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _TripCard(
+                  trip: trip,
+                  originCode: state.stationCode(trip.originStationId),
+                  originName: state.stationName(trip.originStationId),
+                  destinationCode: state.stationCode(trip.destinationStationId),
+                  destinationName: state.stationName(trip.destinationStationId),
+                  onTap: () => onSelectTrip(trip),
+                ),
               );
             },
           ),
@@ -338,11 +322,10 @@ class _TripCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
+    return PressScale(
+      onTap: onTap,
+      child: Card(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -465,6 +448,26 @@ class _TripCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Fixed-size shimmer cards shown while results load. Static under reduced
+/// motion; the layout does not jump when the real trip cards arrive.
+class _ResultsLoadingSkeleton extends StatelessWidget {
+  const _ResultsLoadingSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: const [
+        SkeletonBlock(height: 170, borderRadius: 16),
+        SizedBox(height: 12),
+        SkeletonBlock(height: 170, borderRadius: 16),
+        SizedBox(height: 12),
+        SkeletonBlock(height: 170, borderRadius: 16),
+      ],
     );
   }
 }
