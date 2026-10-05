@@ -64,34 +64,24 @@ void main() {
 
   group('formatAbsoluteDate', () {
     test('renders day, short month and year for every month', () {
+      const List<String> months = <String>[
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
       for (var month = 1; month <= 12; month++) {
         expect(
           formatAbsoluteDate(DateTime(2026, month, 9)),
-          contains(
-            '${month == 1
-                ? 'Jan'
-                : month == 2
-                ? 'Feb'
-                : month == 3
-                ? 'Mar'
-                : month == 4
-                ? 'Apr'
-                : month == 5
-                ? 'May'
-                : month == 6
-                ? 'Jun'
-                : month == 7
-                ? 'Jul'
-                : month == 8
-                ? 'Aug'
-                : month == 9
-                ? 'Sep'
-                : month == 10
-                ? 'Oct'
-                : month == 11
-                ? 'Nov'
-                : 'Dec'}',
-          ),
+          '9 ${months[month - 1]} 2026',
         );
       }
       expect(formatAbsoluteDate(DateTime(2026, 3, 9)), '9 Mar 2026');
