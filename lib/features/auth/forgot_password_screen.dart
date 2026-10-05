@@ -119,17 +119,20 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         const SizedBox(height: AppSpacing.s20),
                         PressScale(
                           onTap: _busy ? null : _sendResetEmail,
-                          child: FilledButton(
-                            onPressed: _busy ? null : _sendResetEmail,
-                            child: _busy
-                                ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Text('Send reset link'),
+                          child: AnimatedSwap(
+                            child: FilledButton(
+                              key: ValueKey<bool>(_busy),
+                              onPressed: _busy ? null : _sendResetEmail,
+                              child: _busy
+                                  ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Text('Send reset link'),
+                            ),
                           ),
                         ),
                       ] else ...<Widget>[
@@ -151,17 +154,20 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         const SizedBox(height: AppSpacing.s20),
                         PressScale(
                           onTap: _busy ? null : _setNewPassword,
-                          child: FilledButton(
-                            onPressed: _busy ? null : _setNewPassword,
-                            child: _busy
-                                ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Text('Set new password'),
+                          child: AnimatedSwap(
+                            child: FilledButton(
+                              key: ValueKey<bool>(_busy),
+                              onPressed: _busy ? null : _setNewPassword,
+                              child: _busy
+                                  ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Text('Set new password'),
+                            ),
                           ),
                         ),
                         const SizedBox(height: AppSpacing.s12),

@@ -8,6 +8,11 @@
 ///
 /// Phone OTP is the A03 lane and is email-verification state only here: the
 /// phone fallback button explains that and does not start any phone flow.
+///
+/// V4 P08 polish (behavior unchanged): one-shot [FadeSlideIn] entrances and
+/// [AnimatedSwap] on the error/info messages and the Verify button's busy
+/// state. The per-second resend countdown is deliberately NOT swapped — a
+/// cross-fade every second is visual noise, not signal.
 library;
 
 import 'dart:async';
@@ -15,6 +20,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../design/design.dart';
 import 'auth_state.dart';
 import 'auth_theme.dart';
 
@@ -196,162 +202,178 @@ class _VerifyScreenState extends State<VerifyScreen> {
       body: SingleChildScrollView(
         child: Column(
           children: <Widget>[
-            AuthHeader(
-              title: 'Verify your account',
-              subtitle:
-                  "We've sent a 6-digit code to ${widget.email}. Enter it below.",
+            FadeSlideIn(
+              child: AuthHeader(
+                title: 'Verify your account',
+                subtitle:
+                    "We've sent a 6-digit code to ${widget.email}. Enter it below.",
+              ),
             ),
-            AuthSheet(
-              child: ListenableBuilder(
-                listenable: widget.auth,
-                builder: (BuildContext context, _) {
-                  final bool busy = widget.auth.isBusy;
-                  return Column(
-                    children: <Widget>[
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: List<Widget>.generate(_codeLength, (int i) {
-                          return SizedBox(
-                            width: 44,
-                            height: 52,
-                            child: TextField(
-                              controller: _boxes[i],
-                              focusNode: _nodes[i],
-                              enabled: !busy,
-                              textAlign: TextAlign.center,
-                              keyboardType: TextInputType.number,
-                              maxLength: 2,
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
+            FadeSlideIn(
+              delay: const Duration(milliseconds: 60),
+              child: AuthSheet(
+                child: ListenableBuilder(
+                  listenable: widget.auth,
+                  builder: (BuildContext context, _) {
+                    final bool busy = widget.auth.isBusy;
+                    return Column(
+                      children: <Widget>[
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: List<Widget>.generate(_codeLength, (int i) {
+                            return SizedBox(
+                              width: 44,
+                              height: 52,
+                              child: TextField(
+                                controller: _boxes[i],
+                                focusNode: _nodes[i],
+                                enabled: !busy,
+                                textAlign: TextAlign.center,
+                                keyboardType: TextInputType.number,
+                                maxLength: 2,
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                inputFormatters: <TextInputFormatter>[
+                                  FilteringTextInputFormatter.digitsOnly,
+                                ],
+                                onChanged: (String v) => _onBoxChanged(i, v),
+                                decoration: InputDecoration(
+                                  counterText: '',
+                                  filled: true,
+                                  fillColor: Colors.white,
+                                  contentPadding: EdgeInsets.zero,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    borderSide: const BorderSide(
+                                      color: kAuthBorder,
+                                    ),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    borderSide: const BorderSide(
+                                      color: kAuthBorder,
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    borderSide: const BorderSide(
+                                      color: kAuthTeal,
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                ),
                               ),
-                              inputFormatters: <TextInputFormatter>[
-                                FilteringTextInputFormatter.digitsOnly,
-                              ],
-                              onChanged: (String v) => _onBoxChanged(i, v),
-                              decoration: InputDecoration(
-                                counterText: '',
-                                filled: true,
-                                fillColor: Colors.white,
-                                contentPadding: EdgeInsets.zero,
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: const BorderSide(
-                                    color: kAuthBorder,
-                                  ),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: const BorderSide(
-                                    color: kAuthBorder,
-                                  ),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: const BorderSide(
-                                    color: kAuthTeal,
-                                    width: 1.5,
-                                  ),
-                                ),
-                              ),
+                            );
+                          }),
+                        ),
+                        const SizedBox(height: 16),
+                        const Text("Didn't receive the code?"),
+                        const SizedBox(height: 4),
+                        if (_secondsLeft > 0)
+                          Text(
+                            'Resend in $_timerText',
+                            style: const TextStyle(
+                              color: kAuthTeal,
+                              fontWeight: FontWeight.w600,
                             ),
-                          );
-                        }),
-                      ),
-                      const SizedBox(height: 16),
-                      const Text("Didn't receive the code?"),
-                      const SizedBox(height: 4),
-                      if (_secondsLeft > 0)
-                        Text(
-                          'Resend in $_timerText',
-                          style: const TextStyle(
-                            color: kAuthTeal,
-                            fontWeight: FontWeight.w600,
+                          )
+                        else
+                          TextButton(
+                            onPressed: busy ? null : _resend,
+                            child: const Text(
+                              'Resend code',
+                              style: TextStyle(color: kAuthTeal),
+                            ),
                           ),
-                        )
-                      else
-                        TextButton(
-                          onPressed: busy ? null : _resend,
-                          child: const Text(
-                            'Resend code',
-                            style: TextStyle(color: kAuthTeal),
-                          ),
-                        ),
-                      if (_formError != null) ...<Widget>[
-                        const SizedBox(height: 8),
-                        Text(
-                          _formError!,
-                          style: const TextStyle(color: kAuthDanger),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                      if (_infoMessage != null) ...<Widget>[
-                        const SizedBox(height: 8),
-                        Text(
-                          _infoMessage!,
-                          style: const TextStyle(color: kAuthGreen),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                      const SizedBox(height: 16),
-                      AuthPrimaryButton(
-                        label: 'Verify',
-                        loading: busy,
-                        onPressed: busy || !_codeComplete ? null : _verify,
-                      ),
-                      const SizedBox(height: 8),
-                      TextButton(
-                        onPressed: busy ? null : _recheck,
-                        child: const Text(
-                          "I've confirmed — re-check",
-                          style: TextStyle(color: kAuthTeal),
-                        ),
-                      ),
-                      Row(
-                        children: <Widget>[
-                          const Expanded(child: Divider()),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                        if (_formError != null) ...<Widget>[
+                          const SizedBox(height: 8),
+                          AnimatedSwap(
                             child: Text(
-                              'Or',
-                              style: TextStyle(color: Colors.grey.shade600),
+                              _formError!,
+                              key: ValueKey<String>('err_${_formError!}'),
+                              style: const TextStyle(color: kAuthDanger),
+                              textAlign: TextAlign.center,
                             ),
                           ),
-                          const Expanded(child: Divider()),
                         ],
-                      ),
-                      const SizedBox(height: 8),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: OutlinedButton.icon(
-                          onPressed: busy ? null : _phoneFallback,
-                          icon: const Icon(
-                            Icons.phone_outlined,
-                            color: kAuthTeal,
+                        if (_infoMessage != null) ...<Widget>[
+                          const SizedBox(height: 8),
+                          AnimatedSwap(
+                            child: Text(
+                              _infoMessage!,
+                              key: ValueKey<String>('info_$_infoMessage'),
+                              style: const TextStyle(color: kAuthGreen),
+                              textAlign: TextAlign.center,
+                            ),
                           ),
-                          label: const Text(
-                            'Verify with Phone Number',
+                        ],
+                        const SizedBox(height: 16),
+                        AnimatedSwap(
+                          child: AuthPrimaryButton(
+                            key: ValueKey<bool>(busy),
+                            label: 'Verify',
+                            loading: busy,
+                            onPressed: busy || !_codeComplete ? null : _verify,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextButton(
+                          onPressed: busy ? null : _recheck,
+                          child: const Text(
+                            "I've confirmed — re-check",
                             style: TextStyle(color: kAuthTeal),
                           ),
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: kAuthTeal),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                        ),
+                        Row(
+                          children: <Widget>[
+                            const Expanded(child: Divider()),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
+                              child: Text(
+                                'Or',
+                                style: TextStyle(color: Colors.grey.shade600),
+                              ),
+                            ),
+                            const Expanded(child: Divider()),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 50,
+                          child: OutlinedButton.icon(
+                            onPressed: busy ? null : _phoneFallback,
+                            icon: const Icon(
+                              Icons.phone_outlined,
+                              color: kAuthTeal,
+                            ),
+                            label: const Text(
+                              'Verify with Phone Number',
+                              style: TextStyle(color: kAuthTeal),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: kAuthTeal),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        "We'll send a 6-digit code to your mobile number "
-                        'in a later release.',
-                        style: TextStyle(color: kAuthHint, fontSize: 12),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  );
-                },
+                        const SizedBox(height: 8),
+                        const Text(
+                          "We'll send a 6-digit code to your mobile number "
+                          'in a later release.',
+                          style: TextStyle(color: kAuthHint, fontSize: 12),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    );
+                  },
+                ),
               ),
             ),
           ],
