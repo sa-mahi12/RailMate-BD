@@ -333,6 +333,17 @@ const String smartRankingUnavailableNote =
     'smart ranking unavailable — showing unranked results '
     '(demonstration data)';
 
+/// P25 counterpart to [smartRankingUnavailableNote]: shown when the bundled
+/// on-device TFLite model DID order the list.
+///
+/// Deliberately factual rather than boastful: it claims only that an
+/// on-device model re-ordered the live departures, which is exactly what
+/// happened, and names the demo data so no reader mistakes this for a
+/// production recommendation engine.
+const String mlRankingAppliedNote =
+    'ML — ordered on-device by the bundled ranking model '
+    '(demonstration data)';
+
 /// Ordered trip list plus the honesty metadata the host surfaces.
 ///
 /// - [trips] never invents or drops trips: success re-orders the input,

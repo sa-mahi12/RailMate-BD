@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../design/design.dart';
 import '../../design/state/state.dart';
+import 'ml/trip_ranker.dart' show mlRankingAppliedNote;
 import 'models/trip.dart';
 import 'search_date_utils.dart';
 import 'search_state.dart';
@@ -268,16 +269,14 @@ class SearchResultsScreen extends StatelessWidget {
     final String? rankingNote = state.rankingNote;
     return Column(
       children: [
-        // F17 honesty caption: shown only when on-device smart ranking
-        // could not run (the list below is the unranked fetch order).
-        if (rankingNote != null)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: Text(
-              rankingNote,
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-          ),
+        // P25: always say WHICH ranking produced this list. When smart
+        // ranking ran the user gets a positive, honest confirmation; when it
+        // could not, the F17 honesty caption stays. Nothing here claims a
+        // capability the device did not actually use.
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          child: _RankingCaption(note: rankingNote),
+        ),
         Expanded(
           child: StaggeredList(
             padding: const EdgeInsets.all(16),
@@ -447,6 +446,48 @@ class _TripCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// P25 ranking caption: names the ranking that produced the visible list.
+///
+/// Two honest cases, both rendered from real state (never a fixed string):
+/// * [note] non-null -> on-device TFLite smart ranking did not run, so the
+///   list is the unranked fetch order. Shows [smartRankingUnavailableNote]
+///   verbatim (the F17 contract that its test pins).
+/// * [note] null -> the list WAS ordered by the bundled on-device model.
+///   This states only what a reader can check — that an on-device model
+///   re-ordered the live departures — and the `ML` tag distinguishes it at a
+///   glance from the unranked fallback.
+class _RankingCaption extends StatelessWidget {
+  final String? note;
+
+  const _RankingCaption({required this.note});
+
+  @override
+  Widget build(BuildContext context) {
+    final bool ranked = note == null;
+    final Color tint = ranked
+        ? const Color(0xFF1E9E6A)
+        : const Color(0xFF8A9BA3);
+    return FadeSlideIn(
+      child: Row(
+        children: <Widget>[
+          Icon(
+            ranked ? Icons.auto_awesome : Icons.info_outline,
+            size: 14,
+            color: tint,
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              ranked ? mlRankingAppliedNote : note!,
+              style: TextStyle(fontSize: 12, color: tint),
+            ),
+          ),
+        ],
       ),
     );
   }

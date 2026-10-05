@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:railmate_bd/design/design.dart';
+import 'package:railmate_bd/features/search/ml/trip_ranker.dart'
+    show mlRankingAppliedNote, smartRankingUnavailableNote;
 import 'package:railmate_bd/features/search/models/station.dart';
 import 'package:railmate_bd/features/search/models/trip.dart';
 import 'package:railmate_bd/features/search/search_repository.dart';
@@ -57,6 +59,42 @@ void main() {
     // elapse so no fake timer outlives the test.
     await tester.pump(const Duration(milliseconds: 100));
   }
+
+  group('P25 ranking caption honesty', () {
+    test('ml note and fallback note never both claim ranking', () {
+      // Exactly one of the two captions claims an ML order, so the UI can
+      // never show a confident "ML ordered this" beside an unranked list.
+      expect(mlRankingAppliedNote, isNot(contains('unavailable')));
+      expect(mlRankingAppliedNote, contains('on-device'));
+      expect(mlRankingAppliedNote, contains('demonstration data'));
+      expect(smartRankingUnavailableNote, contains('unranked'));
+      expect(
+        mlRankingAppliedNote.contains('demonstration data'),
+        smartRankingUnavailableNote.contains('demonstration data'),
+      );
+    });
+
+    testWidgets('null note shows the applied-ML caption', (
+      WidgetTester tester,
+    ) async {
+      final state = stateWith(results: [trip('t1', 'Padma Express (Demo)')])
+        ..rankingNote = null;
+      addTearDown(state.dispose);
+      await pumpResults(tester, state);
+      expect(find.text(mlRankingAppliedNote), findsOneWidget);
+    });
+
+    testWidgets('fallback note keeps the F17 caption verbatim', (
+      WidgetTester tester,
+    ) async {
+      final state = stateWith(results: [trip('t1', 'Padma Express (Demo)')])
+        ..rankingNote = smartRankingUnavailableNote;
+      addTearDown(state.dispose);
+      await pumpResults(tester, state);
+      expect(find.text(smartRankingUnavailableNote), findsOneWidget);
+      expect(find.text(mlRankingAppliedNote), findsNothing);
+    });
+  });
 
   group('P13 search results presentation', () {
     testWidgets('loading shows skeletons', (WidgetTester tester) async {

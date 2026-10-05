@@ -182,13 +182,19 @@ class _LoginScreenState extends State<LoginScreen> {
                         Row(
                           children: <Widget>[
                             const Expanded(child: Divider()),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                              ),
-                              child: Text(
-                                'or continue with',
-                                style: TextStyle(color: Colors.grey.shade600),
+                            // P27: Flexible + wrapping label, so this row
+                            // survives large accessibility text scales
+                            // instead of overflowing horizontally.
+                            Flexible(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                ),
+                                child: Text(
+                                  'or continue with',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(color: Colors.grey.shade600),
+                                ),
                               ),
                             ),
                             const Expanded(child: Divider()),
@@ -237,7 +243,14 @@ class _LoginScreenState extends State<LoginScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: <Widget>[
-                            const Text("Don't have an account? "),
+                            // P27: Flexible + wrapping, so the sign-up
+                            // prompt survives large text scales.
+                            Flexible(
+                              child: Text(
+                                "Don't have an account? ",
+                                textAlign: TextAlign.end,
+                              ),
+                            ),
                             TextButton(
                               onPressed: busy ? null : _goRegister,
                               child: const Text(
