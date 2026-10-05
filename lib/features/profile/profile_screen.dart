@@ -13,6 +13,8 @@ library;
 import 'package:flutter/material.dart';
 
 import '../../app/routes.dart';
+import '../../design/design.dart';
+import '../../design/state/state.dart';
 import '../auth/auth_state.dart';
 import '../auth/auth_theme.dart';
 
@@ -45,30 +47,12 @@ class ProfileScreen extends StatelessWidget {
           final user = auth.user;
           if (user == null) {
             return const Center(
-              child: Padding(
+              child: SingleChildScrollView(
                 padding: EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    Icon(
-                      Icons.account_circle_outlined,
-                      size: 48,
-                      color: kAuthTeal,
-                    ),
-                    SizedBox(height: 12),
-                    Text(
-                      'Not signed in',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      'Sign in to see your profile.',
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
+                child: EmptyState(
+                  icon: Icons.account_circle_outlined,
+                  title: 'Not signed in',
+                  message: 'Sign in to see your profile.',
                 ),
               ),
             );
@@ -90,62 +74,74 @@ class ProfileScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
-                AuthSheet(
-                  child: Column(
-                    children: <Widget>[
-                      CircleAvatar(
-                        radius: 28,
-                        backgroundColor: kAuthTeal,
-                        child: Text(
-                          displayName.isNotEmpty
-                              ? displayName[0].toUpperCase()
-                              : '?',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
+                FadeSlideIn(
+                  child: AuthSheet(
+                    child: Column(
+                      children: <Widget>[
+                        CircleAvatar(
+                          radius: 28,
+                          backgroundColor: kAuthTeal,
+                          child: Text(
+                            displayName.isNotEmpty
+                                ? displayName[0].toUpperCase()
+                                : '?',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        displayName,
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      if (user.email.isNotEmpty) ...<Widget>[
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 12),
                         Text(
-                          user.email,
-                          style: const TextStyle(color: kAuthHint),
+                          displayName,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
                           textAlign: TextAlign.center,
                         ),
-                      ],
-                      const SizedBox(height: 8),
-                      Text(
-                        user.emailConfirmed
-                            ? 'Email verified'
-                            : 'Email not verified yet',
-                        style: TextStyle(
-                          color: user.emailConfirmed ? kAuthGreen : kAuthDanger,
-                          fontWeight: FontWeight.w600,
+                        if (user.email.isNotEmpty) ...<Widget>[
+                          const SizedBox(height: 4),
+                          Text(
+                            user.email,
+                            style: const TextStyle(color: kAuthHint),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                        const SizedBox(height: 8),
+                        // Keyed by the verification verdict so switching to
+                        // "verified" cross-fades the badge.
+                        AnimatedSwap(
+                          child: Text(
+                            user.emailConfirmed
+                                ? 'Email verified'
+                                : 'Email not verified yet',
+                            key: ValueKey<bool>(user.emailConfirmed),
+                            style: TextStyle(
+                              color: user.emailConfirmed
+                                  ? kAuthGreen
+                                  : kAuthDanger,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-                AuthSheet(
-                  child: Column(
-                    children: <Widget>[
-                      if (username != null && username.isNotEmpty)
-                        _ProfileRow(label: 'Username', value: '@$username'),
-                      if (user.phone != null && user.phone!.isNotEmpty)
-                        _ProfileRow(label: 'Phone', value: user.phone!),
-                      _ProfileRow(label: 'Account ID', value: user.id),
-                    ],
+                FadeSlideIn(
+                  delay: const Duration(milliseconds: 60),
+                  child: AuthSheet(
+                    child: Column(
+                      children: <Widget>[
+                        if (username != null && username.isNotEmpty)
+                          _ProfileRow(label: 'Username', value: '@$username'),
+                        if (user.phone != null && user.phone!.isNotEmpty)
+                          _ProfileRow(label: 'Phone', value: user.phone!),
+                        _ProfileRow(label: 'Account ID', value: user.id),
+                      ],
+                    ),
                   ),
                 ),
                 if (auth.status == AuthStatus.needsVerification) ...<Widget>[
@@ -166,14 +162,17 @@ class ProfileScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                 ],
-                AuthPrimaryButton(
-                  label: 'Sign out',
-                  loading: busy,
-                  onPressed: busy
-                      ? null
-                      : () {
-                          auth.signOut();
-                        },
+                AnimatedSwap(
+                  child: AuthPrimaryButton(
+                    key: ValueKey<bool>(busy),
+                    label: 'Sign out',
+                    loading: busy,
+                    onPressed: busy
+                        ? null
+                        : () {
+                            auth.signOut();
+                          },
+                  ),
                 ),
                 const SizedBox(height: 12),
                 SizedBox(
@@ -190,6 +189,37 @@ class ProfileScreen extends StatelessWidget {
                       side: const BorderSide(color: kAuthTeal),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+                FadeSlideIn(
+                  delay: const Duration(milliseconds: 120),
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 20),
+                    child: TextButton.icon(
+                      onPressed: () => showAboutDialog(
+                        context: context,
+                        applicationName: 'RailMate BD',
+                        applicationVersion: '1.0.0',
+                        applicationLegalese:
+                            'DEMONSTRATION ONLY academic project. Timetable, '
+                            'fares and bookings are synthetic; no real '
+                            'money moves and no ticket is valid for travel.',
+                        children: const <Widget>[
+                          SizedBox(height: 12),
+                          Text(
+                            'Sources: Flutter + hosted Supabase. '
+                            'Sign-in is email + password; payment is '
+                            'simulated and books 1–4 seats atomically '
+                            'server-side.',
+                          ),
+                        ],
+                      ),
+                      icon: const Icon(Icons.info_outline, color: kAuthHint),
+                      label: const Text(
+                        'About this app',
+                        style: TextStyle(color: kAuthHint),
                       ),
                     ),
                   ),

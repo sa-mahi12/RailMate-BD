@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../design/design.dart';
 import 'byok_vault.dart';
 import 'openrouter_client.dart';
 import '../rewrite/rewrite_state.dart' show mapRewriteError;
@@ -151,38 +152,47 @@ class _KeySetupScreenState extends State<KeySetupScreen> {
       backgroundColor: _pageBg,
       body: Column(
         children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(16, 48, 16, 24),
-            decoration: const BoxDecoration(
-              color: _primary,
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(24),
-                bottomRight: Radius.circular(24),
+          FadeSlideIn(
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(16, 48, 16, 24),
+              decoration: const BoxDecoration(
+                color: _primary,
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(24),
+                  bottomRight: Radius.circular(24),
+                ),
               ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  decoration: const BoxDecoration(
-                    color: Colors.white24,
-                    shape: BoxShape.circle,
+              child: Row(
+                children: [
+                  PressScale(
+                    onTap: () => Navigator.of(context).maybePop(),
+                    semanticsLabel: 'Back',
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        color: Colors.white24,
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        icon: const Icon(
+                          Icons.chevron_left,
+                          color: Colors.white,
+                        ),
+                        onPressed: () => Navigator.of(context).maybePop(),
+                      ),
+                    ),
                   ),
-                  child: IconButton(
-                    icon: const Icon(Icons.chevron_left, color: Colors.white),
-                    onPressed: () => Navigator.of(context).maybePop(),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'AI Settings',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                const Text(
-                  'AI Settings',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           Expanded(
@@ -212,18 +222,23 @@ class _KeySetupScreenState extends State<KeySetupScreen> {
                       ),
                       const SizedBox(height: 12),
                       if (has == true)
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: _success.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: const Text(
-                            'Connected successfully.',
-                            style: TextStyle(
-                              color: _success,
-                              fontWeight: FontWeight.bold,
+                        // Keyed by the connected state so the banner
+                        // cross-fades in rather than popping.
+                        AnimatedSwap(
+                          child: Container(
+                            key: const ValueKey<String>('has_key'),
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: _success.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Text(
+                              'Connected successfully.',
+                              style: TextStyle(
+                                color: _success,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ),
@@ -254,7 +269,12 @@ class _KeySetupScreenState extends State<KeySetupScreen> {
                             ),
                           ),
                           onPressed: _busy ? null : _onSave,
-                          child: const Text('Save'),
+                          child: AnimatedSwap(
+                            child: Text(
+                              _busy ? 'Saving…' : 'Save',
+                              key: ValueKey<bool>(_busy),
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -269,7 +289,12 @@ class _KeySetupScreenState extends State<KeySetupScreen> {
                             ),
                           ),
                           onPressed: _busy ? null : _onRemove,
-                          child: const Text('Remove'),
+                          child: AnimatedSwap(
+                            child: Text(
+                              _busy ? 'Removing…' : 'Remove',
+                              key: ValueKey<bool>(_busy),
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -326,7 +351,12 @@ class _KeySetupScreenState extends State<KeySetupScreen> {
                             ),
                           ),
                           onPressed: _busy ? null : _onTestConnection,
-                          child: const Text('Test Connection'),
+                          child: AnimatedSwap(
+                            child: Text(
+                              _busy ? 'Testing…' : 'Test Connection',
+                              key: ValueKey<bool>(_busy),
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -339,20 +369,26 @@ class _KeySetupScreenState extends State<KeySetupScreen> {
                 ),
                 if (_notice != null) ...[
                   const SizedBox(height: 12),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: _noticeIsError
-                          ? _danger.withValues(alpha: 0.1)
-                          : _success.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      _notice!,
-                      style: TextStyle(
-                        color: _noticeIsError ? _danger : _success,
-                        fontSize: 13,
+                  // Keyed by message + severity: each new result
+                  // cross-fades in, and an error never reuses the style of
+                  // a previous success.
+                  AnimatedSwap(
+                    child: Container(
+                      key: ValueKey<String>('${_noticeIsError}_$_notice'),
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: _noticeIsError
+                            ? _danger.withValues(alpha: 0.1)
+                            : _success.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        _notice!,
+                        style: TextStyle(
+                          color: _noticeIsError ? _danger : _success,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
                   ),

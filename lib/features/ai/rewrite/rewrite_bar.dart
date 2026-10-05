@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../design/design.dart';
 import '../key/byok_vault.dart';
 import '../key/openrouter_client.dart';
 import 'rewrite_state.dart';
@@ -207,7 +208,12 @@ class _RewriteBarState extends State<RewriteBar> {
                   ),
                 ),
                 onPressed: (_state.isLoading || draftEmpty) ? null : _onImprove,
-                child: const Text('Improve Wording'),
+                child: AnimatedSwap(
+                  child: Text(
+                    _state.isLoading ? 'Improving…' : 'Improve Wording',
+                    key: ValueKey<bool>(_state.isLoading),
+                  ),
+                ),
               ),
             ),
             if (draftEmpty && hasKey != false) ...[
@@ -225,16 +231,21 @@ class _RewriteBarState extends State<RewriteBar> {
           if (_state.status == RewriteStatus.error &&
               _state.errorMessage != null) ...[
             const SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: _danger.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                _state.errorMessage!,
-                style: const TextStyle(color: _danger, fontSize: 13),
+            // Keyed by the message: a new failure cross-fades in instead of
+            // the old text silently swapping underneath.
+            AnimatedSwap(
+              child: Container(
+                key: ValueKey<String>(_state.errorMessage!),
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: _danger.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  _state.errorMessage!,
+                  style: const TextStyle(color: _danger, fontSize: 13),
+                ),
               ),
             ),
             if (showKeySetup)
@@ -251,18 +262,27 @@ class _RewriteBarState extends State<RewriteBar> {
           ],
           if (_state.hasSuggestion) ...[
             const SizedBox(height: 12),
-            const Icon(Icons.arrow_downward, color: _primary),
-            const SizedBox(height: 8),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: _success.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                _state.suggestion!,
-                style: const TextStyle(fontSize: 13),
+            // The suggestion arrives as a result the user did not type, so it
+            // slides in rather than appearing between two static panels.
+            FadeSlideIn(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.arrow_downward, color: _primary),
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: _success.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      _state.suggestion!,
+                      style: const TextStyle(fontSize: 13),
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 8),
