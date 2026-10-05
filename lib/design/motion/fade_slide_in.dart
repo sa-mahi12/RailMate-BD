@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 
 import 'app_motion.dart';
@@ -47,6 +49,9 @@ class _FadeSlideInState extends State<FadeSlideIn> {
   bool _scheduled = false;
   bool _visible = false;
 
+  /// Pending start-delay timer, held so [dispose] can cancel it.
+  Timer? _startDelay;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -61,12 +66,23 @@ class _FadeSlideInState extends State<FadeSlideIn> {
     if (reduced || widget.delay == Duration.zero) {
       _visible = true;
     } else {
-      Future.delayed(widget.delay, () {
+      _startDelay = Timer(widget.delay, () {
+        _startDelay = null;
         if (mounted) {
           setState(() => _visible = true);
         }
       });
     }
+  }
+
+  @override
+  void dispose() {
+    // A staggered entrance can still be waiting when the list is torn down
+    // (scroll away, route pop, test end). Cancel it so no timer outlives the
+    // widget — Flutter rejects pending timers at the end of a test.
+    _startDelay?.cancel();
+    _startDelay = null;
+    super.dispose();
   }
 
   @override

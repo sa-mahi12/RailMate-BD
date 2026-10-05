@@ -221,10 +221,17 @@ void main() {
       expect(find.text('4.0 (2)'), findsOneWidget);
       // ... but there is no vote affordance, only the honest hint.
       expect(find.text('Sign in to react or rate.'), findsOneWidget);
-      final likeBtn = tester.widget<OutlinedButton>(
-        find.widgetWithText(OutlinedButton, '2'),
+      // Signed out: the vote area is an InkWell (P21 replaced the
+      // OutlinedButton with an animated container), and no tap target
+      // exists when onTap is null.
+      expect(
+        tester
+            .widget<InkWell>(
+              find.ancestor(of: find.text('2'), matching: find.byType(InkWell)),
+            )
+            .onTap,
+        isNull,
       );
-      expect(likeBtn.onPressed, isNull);
       final starBtn = tester.widget<IconButton>(
         find.ancestor(
           of: find.byTooltip('Rate 1 star'),

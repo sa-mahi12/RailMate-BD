@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../design/design.dart';
+
 /// Star rating row for one board post (packet A08, R-07).
 ///
 /// Visual tokens per `design/UI_VISUAL_SPEC.md`: filled stars use deep
@@ -38,29 +40,44 @@ class StarRow extends StatelessWidget {
     // Highlight uses the caller's own stars when set, else the rounded
     // average (display-only; the authoritative mean stays in the state).
     final highlight = myStars ?? averageStars.round().clamp(0, 5);
+    final reduced = ReducedMotion.isReduced(context);
+    final duration = AppMotion.resolve(AppMotion.fast, reduced: reduced);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         for (var i = 1; i <= 5; i++)
-          IconButton(
-            tooltip: 'Rate $i star${i == 1 ? '' : 's'}',
-            onPressed: onRate == null || isBusy ? null : () => onRate!(i),
-            icon: Icon(
-              i <= highlight ? Icons.star : Icons.star_border,
-              size: 22,
-              color: i <= highlight
-                  ? const Color(0xFF0E5A66)
-                  : Colors.grey.shade400,
+          // P21: each star scales up briefly on hover/press and eases when
+          // the highlight passes it (motion matrix "Star rating").
+          AnimatedScale(
+            key: ValueKey<String>('star-$i-${i <= highlight}'),
+            scale: i <= highlight ? 1.08 : 1.0,
+            duration: duration,
+            curve: AppMotion.enter,
+            child: IconButton(
+              tooltip: 'Rate $i star${i == 1 ? '' : 's'}',
+              onPressed: onRate == null || isBusy ? null : () => onRate!(i),
+              icon: Icon(
+                i <= highlight ? Icons.star : Icons.star_border,
+                size: 22,
+                color: i <= highlight
+                    ? const Color(0xFF0E5A66)
+                    : Colors.grey.shade400,
+              ),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
             ),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
           ),
         const SizedBox(width: 4),
-        Text(
-          ratingCount == 0
-              ? 'No ratings yet'
-              : '${averageStars.toStringAsFixed(1)} ($ratingCount)',
-          style: const TextStyle(fontSize: 12, color: Colors.grey),
+        // Keyed by the authoritative aggregate so an optimistic rating
+        // cross-fades the label instead of popping it.
+        AnimatedSwap(
+          child: Text(
+            ratingCount == 0
+                ? 'No ratings yet'
+                : '${averageStars.toStringAsFixed(1)} ($ratingCount)',
+            key: ValueKey<String>('avg_${averageStars}_$ratingCount'),
+            style: const TextStyle(fontSize: 12, color: Colors.grey),
+          ),
         ),
       ],
     );

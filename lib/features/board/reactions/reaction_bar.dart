@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../design/design.dart';
 import 'reaction.dart';
 
 /// Reaction bar for one board post (packet A08, R-03).
@@ -45,6 +46,7 @@ class ReactionBar extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         _voteButton(
+          context,
           selected: myReaction == ReactionValue.like,
           icon: Icons.thumb_up_outlined,
           selectedIcon: Icons.thumb_up,
@@ -54,6 +56,7 @@ class ReactionBar extends StatelessWidget {
         ),
         const SizedBox(width: 8),
         _voteButton(
+          context,
           selected: myReaction == ReactionValue.dislike,
           icon: Icons.thumb_down_outlined,
           selectedIcon: Icons.thumb_down,
@@ -65,7 +68,8 @@ class ReactionBar extends StatelessWidget {
     );
   }
 
-  Widget _voteButton({
+  Widget _voteButton(
+    BuildContext context, {
     required bool selected,
     required IconData icon,
     required IconData selectedIcon,
@@ -73,27 +77,58 @@ class ReactionBar extends StatelessWidget {
     required String tooltip,
     required VoidCallback? onPressed,
   }) {
+    final reduced = ReducedMotion.isReduced(context);
     final foreground = selected ? Colors.white : const Color(0xFF0E5A66);
+    final disabled = onPressed == null;
     return Tooltip(
       message: tooltip,
-      child: OutlinedButton.icon(
-        onPressed: onPressed,
-        icon: Icon(selected ? selectedIcon : icon, size: 16, color: foreground),
-        label: Text(
-          label,
-          style: TextStyle(
-            color: foreground,
-            fontWeight: FontWeight.bold,
-            fontSize: 13,
-          ),
+      child: AnimatedContainer(
+        // P21: colour/scale transition on vote state (motion matrix
+        // "Reaction vote"). Instant under reduced motion.
+        duration: AppMotion.resolve(AppMotion.fast, reduced: reduced),
+        curve: AppMotion.enter,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFF0E5A66)),
+          color: selected ? const Color(0xFF0E5A66) : Colors.white,
         ),
-        style: OutlinedButton.styleFrom(
-          backgroundColor: selected ? const Color(0xFF0E5A66) : Colors.white,
-          side: const BorderSide(color: Color(0xFF0E5A66)),
-          shape: RoundedRectangleBorder(
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
             borderRadius: BorderRadius.circular(10),
+            onTap: onPressed,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    selected ? selectedIcon : icon,
+                    size: 16,
+                    color: disabled
+                        ? foreground.withValues(alpha: 0.5)
+                        : foreground,
+                  ),
+                  const SizedBox(width: 6),
+                  // Keyed by the authoritative count so an optimistic vote
+                  // change cross-fades the number.
+                  AnimatedSwap(
+                    child: Text(
+                      label,
+                      key: ValueKey<String>('${tooltip}_$label'),
+                      style: TextStyle(
+                        color: disabled
+                            ? foreground.withValues(alpha: 0.5)
+                            : foreground,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         ),
       ),
     );

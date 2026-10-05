@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../design/design.dart';
 import '../ratings/rating_state.dart';
 import '../ratings/star_row.dart';
 import '../reactions/reaction.dart';
@@ -149,14 +150,18 @@ class _PostEngagementState extends State<PostEngagement> {
         if (_reactions.rows.isEmpty &&
             _ratings.rows.isEmpty &&
             (_reactions.isLoading || _ratings.isLoading)) {
+          // P21: fixed-size shimmer bars, not a bare spinner, so the card
+          // height does not jump when the real bars arrive.
           return const SizedBox(
-            height: 32,
-            child: Center(
-              child: SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
+            height: 48,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SkeletonBlock(width: 140, height: 26),
+                SizedBox(height: 4),
+                SkeletonBlock(width: 180, height: 14),
+              ],
             ),
           );
         }
@@ -211,8 +216,9 @@ class _PostEngagementState extends State<PostEngagement> {
       children: [
         Text(message, style: const TextStyle(fontSize: 11, color: Colors.grey)),
         const SizedBox(width: 4),
-        InkWell(
+        PressScale(
           onTap: () => retry(),
+          semanticsLabel: 'Retry $message',
           child: const Text(
             'Retry',
             style: TextStyle(
