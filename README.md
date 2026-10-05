@@ -1,11 +1,48 @@
 # RailMate BD — source and CI repository
 
-V3 integration complete (2026-09-30): a working Flutter Android app against hosted Supabase, on `main` only — no PRs, no feature branches. Owner's `RailMate-BD-internal` repository holds planning, requirements, coordination, test evidence and handoffs. Read `AGENTS.md` before any task.
+V4 product-polish pass complete on `main` only — no PRs, no feature branches. Owner's `RailMate-BD-internal` repository holds planning, requirements, coordination, test evidence and handoffs. Read `AGENTS.md` before any task.
 
-What the app does: search 8 demo stations / 8 services over a live 21-day horizon (today..+20d, 168 demo trips) with GraphQL-first stations, TFLite on-device re-rank, and demo-hold-aware seat maps; atomic multi-seat booking (1–4) through deployed `book-trip` / `cancel-booking` Edge Functions after a simulated payment (no real money); demonstration QR+PDF tickets (NOT VALID FOR TRAVEL); booking history with live cancel; Journey Board with posts, realtime feed, cursor pagination, per-post reactions/ratings, comments, and photo upload to Supabase Storage; offline station guides plus a bundled interactive page (Leaflet map, YouTube embed, GSAP, SASS-compiled CSS); account-scoped OpenRouter BYOK "Improve Wording" (explicit tap only, key never logged). Bottom tabs: Home / Bookings / Board / Profile.
+## What the app does
 
-Stack: Flutter Android, hosted Supabase Postgres/Auth/Storage/Realtime/REST/pg_graphql/Edge Functions, OpenRouter BYOK, tiny TFLite search model. No Docker and no local application DB. All ticket/payment content is educational and simulated. This repository cannot sell real railway tickets.
+A Flutter Android app against hosted Supabase. **Splash → Onboarding → Welcome → Login/Register → Verify → Home** is a real startup state machine (`lib/app/app_gate.dart`), not an unconditional home route.
 
-Run/test: `flutter pub get`, `dart format --output=none --set-exit-if-changed lib test`, `flutter analyze`, `flutter test` (283 green at freeze). Live backend config passes only via `--dart-define` (`SUPABASE_URL`, `SUPABASE_ANON_KEY` / `SUPABASE_PUBLISHABLE_KEY`); CI reads the same names from repo variables. Booking/payment functions need no app-side secrets (service-role stays server-side).
+Search covers **24 demo stations and 32 services over a live 20-day horizon** (today..+20d, ~648 freshly generated demo trips, ~29k seats) with GraphQL-first stations, on-device TFLite re-rank, and demo-hold-aware seat maps. Booking is **atomic and multi-seat (1–4)** through deployed `book-trip` / `cancel-booking` Edge Functions after a simulated payment (**no real money**); tickets are demonstration QR+PDF artifacts marked **DEMONSTRATION ONLY / NOT VALID FOR TRAVEL**. Journey Board carries posts, realtime feed, cursor pagination, reactions/ratings and comments; station guides are offline with honest coverage gaps. Account-scoped OpenRouter BYOK "Improve Wording" sends the key only on an explicit tap. Bottom tabs: Home / Bookings / Board / Profile.
 
-Freeze evidence (F23): `flutter analyze` clean, 283/283 tests green, CI green on main with the 3 public Supabase repo variables set (`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_PUBLISHABLE_KEY`), so the `railmate-debug-apk` artifact boots straight into the live app. The per-run APK SHA256 is printed in the CI run's `Artifact SHA256` step — it is intentionally not hardcoded here (every rebuild re-hashes). Device walkthrough (F21) and SMS provider remain owner-side.
+Stack: Flutter Android, hosted Supabase (Postgres/Auth/Storage/Realtime/REST/pg_graphql/Edge Functions), OpenRouter BYOK, tiny TFLite search model. **No Docker, no local application DB.** This repository cannot sell real railway tickets.
+
+## Installable signed builds
+
+Releases are published to GitHub Releases, not just ephemeral CI artifacts, so they stay downloadable and update in place:
+
+```
+gh release view v1.0.0+3 --repo sa-mahi12/RailMate-BD
+```
+
+Each release carries a universal APK, per-ABI APKs (arm64-v8a, armeabi-v7a, x86_64), an AAB, `SHA256SUMS.txt`, `release-manifest.json` and `PROVENANCE.md`. Builds are signed with the dedicated release key held in GitHub Secrets; the keystore is removed from the runner afterwards. `versionCode` increases every release so Android accepts the update over an existing install.
+
+## Run and test
+
+```
+flutter pub get
+dart format --output=none --set-exit-if-changed lib test
+flutter analyze
+flutter test
+```
+
+Live backend config passes only via `--dart-define` (`SUPABASE_URL`, `SUPABASE_ANON_KEY` / `SUPABASE_PUBLISHABLE_KEY`); CI reads the same names from repository variables. Booking and payment need no app-side secrets — the service-role key stays server-side.
+
+## Honesty rules this app holds to
+
+* Every timetable, fare, occupancy figure and ticket says **DEMONSTRATION ONLY**; nothing claims official Bangladesh Railway accuracy.
+* The demo timetable is synthetic and generated by `refresh_demo_horizon()` (owner/admin only, idempotent, never writes `booking_id`). New-station coordinates are synthetic placeholders and are not used for navigation.
+* Loading, empty, error and offline states are real and distinguished: a timeout never renders as "no trains", a failed load never presents zeros as data, and a charted failure never fabricates rows.
+* On-device ranking states which ranking produced the visible list — including when it fell back to unranked order.
+* Social login and phone OTP remain explicitly unimplemented; the UI says so instead of pretending.
+
+## Verification status
+
+`flutter analyze` clean and **476 automated tests green** on `main`. All motion and state work is covered by hermetic widget tests (reduced motion, semantics, 1.5x text scale), plus a release-evidence parser pinned against the real published manifest.
+
+**Not verified:** on-device behaviour and release screenshots are **permanently deferred by owner directive** (see `RailMate-BD-internal/governance/OWNER_DIRECTIVE_DEVICE_TESTS.md`). No statement in this repository should be read as device-verified. Live SMS provider credentials are also owner-side.
+
+Per-run APK SHA256 values are printed in each release run's `Artifact SHA256` step and in `SHA256SUMS.txt`; they are intentionally not hardcoded here because every rebuild re-hashes.
