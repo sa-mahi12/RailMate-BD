@@ -281,9 +281,11 @@ class BoardFeedScreen extends StatelessWidget {
   /// the Load more action. Only built when [_showTrailer] is true.
   Widget _trailer() {
     if (feed.isLoadingMore) {
+      // P32: slim skeleton bar instead of a bare spinner; matches the card
+      // rhythm and does not shift the list.
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 16),
-        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+        child: SkeletonBlock(height: 24, borderRadius: 12),
       );
     }
     if (feed.pageError != null) {

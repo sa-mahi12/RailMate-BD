@@ -226,7 +226,9 @@ class _RewriteBarState extends State<RewriteBar> {
           ],
           if (_state.isLoading) ...[
             const SizedBox(height: 12),
-            const Center(child: CircularProgressIndicator()),
+            // P32: skeleton bar rather than a bare spinner, so the panel
+            // height does not jump when the suggestion arrives.
+            const SkeletonBlock(height: 64, borderRadius: 10),
           ],
           if (_state.status == RewriteStatus.error &&
               _state.errorMessage != null) ...[
