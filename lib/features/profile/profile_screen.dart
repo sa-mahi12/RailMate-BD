@@ -139,7 +139,9 @@ class ProfileScreen extends StatelessWidget {
                           _ProfileRow(label: 'Username', value: '@$username'),
                         if (user.phone != null && user.phone!.isNotEmpty)
                           _ProfileRow(label: 'Phone', value: user.phone!),
-                        _ProfileRow(label: 'Account ID', value: user.id),
+                        // Consumer gate: the raw Account ID (a database UUID) meant nothing to a
+                        // passenger, so the row was removed. Support flows use
+                        // the email/username above; nothing else needs the id.
                       ],
                     ),
                   ),
@@ -180,9 +182,16 @@ class ProfileScreen extends StatelessWidget {
                   height: 50,
                   child: OutlinedButton.icon(
                     onPressed: busy ? null : () => _openKeySetup(context),
-                    icon: const Icon(Icons.key_outlined, color: kAuthTeal),
+                    icon: const Icon(
+                      Icons.auto_awesome_outlined,
+                      color: kAuthTeal,
+                    ),
+                    // Consumer gate: "AI key setup" names the mechanism, not
+                    // the benefit. The feature is an optional writing helper
+                    // for board posts; the key mechanics live inside that
+                    // screen, explained there.
                     label: const Text(
-                      'AI key setup',
+                      'AI writing help',
                       style: TextStyle(color: kAuthTeal),
                     ),
                     style: OutlinedButton.styleFrom(
@@ -203,16 +212,18 @@ class ProfileScreen extends StatelessWidget {
                         applicationName: 'RailMate BD',
                         applicationVersion: '1.0.0',
                         applicationLegalese:
-                            'DEMONSTRATION ONLY academic project. Timetable, '
-                            'fares and bookings are synthetic; no real '
-                            'money moves and no ticket is valid for travel.',
+                            'DEMONSTRATION ONLY. Timetables, fares and '
+                            'bookings in this app are a class project '
+                            'simulation: no real money moves and no ticket '
+                            'shown here is valid for travel.',
                         children: const <Widget>[
                           SizedBox(height: 12),
                           Text(
-                            'Sources: Flutter + hosted Supabase. '
-                            'Sign-in is email + password; payment is '
-                            'simulated and books 1–4 seats atomically '
-                            'server-side.',
+                            'RailMate BD plans demo train journeys, keeps '
+                            'your bookings and tickets, hosts a traveller '
+                            'board, and can polish a board post draft with '
+                            'an optional AI helper that only ever uses a '
+                            'key you enter yourself.',
                           ),
                         ],
                       ),

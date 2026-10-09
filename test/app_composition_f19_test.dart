@@ -161,7 +161,7 @@ void main() {
       expect(find.text('qa@example.com'), findsOneWidget);
       expect(find.text('Email verified'), findsOneWidget);
       expect(find.text('Sign out'), findsOneWidget);
-      expect(find.text('AI key setup'), findsOneWidget);
+      expect(find.text('AI writing help'), findsOneWidget);
     });
   });
 
@@ -518,28 +518,32 @@ void main() {
   });
 
   group('routes table: wrong-args error screens', () {
-    testWidgets('each journey step names its missing args', (
+    testWidgets('every journey step shows the same consumer-safe page', (
       WidgetTester tester,
     ) async {
-      final Map<String, String> cases = <String, String>{
-        AppRoutes.searchResults: 'Search results need a search state.',
-        AppRoutes.seatSelection: 'Seat selection needs a trip.',
-        AppRoutes.passengerDetails: 'Passenger details need a form state.',
-        AppRoutes.review: 'Review needs a form state.',
-        AppRoutes.payment: 'Payment needs a form state.',
-        AppRoutes.ticket: 'Ticket needs a ticket snapshot.',
-        AppRoutes.guideDetail: 'Station guide needs a guide entry.',
-      };
-      for (final MapEntry<String, String> entry in cases.entries) {
+      // Consumer gate: programmer-error routes no longer leak which
+      // internal object was missing. Every one of these shows the same
+      // human page with a way back.
+      const List<String> routes = <String>[
+        AppRoutes.searchResults,
+        AppRoutes.seatSelection,
+        AppRoutes.passengerDetails,
+        AppRoutes.review,
+        AppRoutes.payment,
+        AppRoutes.ticket,
+        AppRoutes.guideDetail,
+      ];
+      for (final String name in routes) {
         await pumpAppRoute(
           tester,
-          AppRoutes.onGenerateRoute(RouteSettings(name: entry.key)),
+          AppRoutes.onGenerateRoute(RouteSettings(name: name)),
         );
         expect(
-          find.text(entry.value),
+          find.text("We couldn't open this page"),
           findsOneWidget,
-          reason: 'route ${entry.key}',
+          reason: 'route $name',
         );
+        expect(find.text('Go back'), findsOneWidget, reason: 'route $name');
       }
     });
   });
@@ -602,8 +606,10 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('My bookings'), findsOneWidget);
-      expect(find.text('Ref: b1'), findsOneWidget);
-      expect(find.text('CONFIRMED'), findsOneWidget);
+      // Consumer gate: short human ref, never the raw row id; plain
+      // sentence-case status, never a SHOUTED code.
+      expect(find.text('Booking b1'), findsOneWidget);
+      expect(find.text('Confirmed'), findsOneWidget);
     });
   });
 

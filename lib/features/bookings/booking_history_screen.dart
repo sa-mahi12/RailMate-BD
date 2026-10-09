@@ -63,8 +63,8 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Cancel booking?'),
         content: Text(
-          'This cancels the whole booking ${booking.id} and releases its '
-          'seats. This cannot be undone. DEMONSTRATION ONLY.',
+          'This cancels booking ${_shortRef(booking.id)} and releases its '
+          'seats. This cannot be undone.',
         ),
         actions: [
           TextButton(
@@ -120,28 +120,28 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
     }
   }
 
-  /// Maps internal errors to public UI codes without leaking internals.
+  /// Maps internal errors to plain-language messages without leaking codes.
   ///
-  /// Covers the genuine Edge failure shapes: NOT_FOUND (unknown id or
-  /// non-owner), UNAUTHORIZED (missing/expired JWT), and transport failures
-  /// (network/timeout) — each with an honest message plus the SnackBar
-  /// Retry above. Anything else maps to BOOKING_CANCEL_FAILED.
+  /// Covers the genuine Edge failure shapes: unknown/non-owned booking,
+  /// expired session, and transport failures — each with an honest message
+  /// plus the SnackBar Retry above. Internal codes (NOT_FOUND, UNAUTHORIZED,
+  /// BOOKING_CANCEL_FAILED) stay in the logs, never on screen.
   String _publicMessage(Object e) {
     final text = e.toString();
     if (text.contains('NOT_FOUND')) {
-      return 'NOT_FOUND — booking does not exist or is not yours.';
+      return "We couldn't find that booking, or it isn't on this account.";
     }
     if (text.contains('UNAUTHORIZED')) {
-      return 'UNAUTHORIZED — please sign in again.';
+      return 'Your session expired — please sign in again.';
     }
     if (text.contains('SocketException') ||
         text.contains('ClientException') ||
         text.contains('TimeoutException') ||
         text.contains('Network is unreachable') ||
         text.contains('Failed host lookup')) {
-      return 'Network error — check connection and retry.';
+      return 'Network error — check your connection and retry.';
     }
-    return 'BOOKING_CANCEL_FAILED';
+    return 'The cancellation did not go through. Nothing was changed — please retry.';
   }
 
   @override
@@ -270,6 +270,20 @@ class _HistoryLoadingSkeleton extends StatelessWidget {
   }
 }
 
+/// Short human-readable booking reference: first 8 hex chars uppercased
+/// (e.g. `A1B2C3D4`), mirroring the ticket reference derivation. Falls back
+/// to a truncated id when fewer than 8 hex chars are available — never blank.
+String _shortRef(String bookingId) {
+  final String hex = bookingId.replaceAll('-', '');
+  final StringBuffer out = StringBuffer();
+  for (var i = 0; i < hex.length && out.length < 8; i++) {
+    final String c = hex[i];
+    if (RegExp(r'[0-9a-fA-F]').hasMatch(c)) out.write(c.toUpperCase());
+  }
+  if (out.length >= 4) return out.toString();
+  return bookingId.length > 12 ? '${bookingId.substring(0, 12)}…' : bookingId;
+}
+
 class _BookingCard extends StatelessWidget {
   final BookingSummary booking;
   final bool busy;
@@ -284,9 +298,9 @@ class _BookingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final statusLabel = switch (booking.status) {
-      BookingStatus.confirmed => 'CONFIRMED',
-      BookingStatus.cancelled => 'CANCELLED',
-      BookingStatus.unknown => 'UNAVAILABLE',
+      BookingStatus.confirmed => 'Confirmed',
+      BookingStatus.cancelled => 'Cancelled',
+      BookingStatus.unknown => 'Unavailable',
     };
     final statusColor = switch (booking.status) {
       BookingStatus.confirmed => _primaryTeal,
@@ -304,8 +318,12 @@ class _BookingCard extends StatelessWidget {
             Row(
               children: [
                 Expanded(
+                  // Consumer gate: a full database UUID is not a booking
+                  // reference a person can use. Show a short,
+                  // human-readable ref; the full id stays in the row for
+                  // cancel/support flows but is never the headline.
                   child: Text(
-                    'Ref: ${booking.id}',
+                    'Booking ${_shortRef(booking.id)}',
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,

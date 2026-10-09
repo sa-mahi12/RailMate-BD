@@ -223,8 +223,8 @@ void main() {
       expect(find.byType(SkeletonBlock), findsWidgets);
       await tester.pumpAndSettle();
       expect(find.byType(SkeletonBlock), findsNothing);
-      expect(find.text('Ref: b1'), findsOneWidget);
-      expect(find.text('CONFIRMED'), findsOneWidget);
+      expect(find.text('Booking b1'), findsOneWidget);
+      expect(find.text('Confirmed'), findsOneWidget);
     });
 
     testWidgets('error keeps the retry copy', (WidgetTester tester) async {

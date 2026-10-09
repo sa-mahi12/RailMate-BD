@@ -20,6 +20,7 @@ import '../features/search/home/recent_searches_store.dart';
 import '../features/search/home/upcoming_booking.dart';
 import '../features/search/home_search_screen.dart';
 import '../features/search/models/trip.dart';
+import '../features/search/search_date_utils.dart';
 import '../features/search/search_state.dart';
 import '../features/ticket/ticket_data.dart';
 import 'dependencies.dart';
@@ -257,6 +258,10 @@ class _HomeShellState extends State<HomeShell> {
                           onSucceeded: () async {
                             final nav = _keys[tab].currentState;
                             if (nav == null) return;
+                            // Captured before any await: the failure path
+                            // below runs after awaits and must not touch a
+                            // context across the gap.
+                            final messenger = ScaffoldMessenger.of(nav.context);
                             try {
                               final String bookingId = await widget.dependencies
                                   .submitBooking(
@@ -277,27 +282,34 @@ class _HomeShellState extends State<HomeShell> {
                                     bookingReference:
                                         displayReferenceForBookingId(bookingId),
                                     trainLabel: trip.trainName,
-                                    fromLabel: trip.originStationId,
-                                    toLabel: trip.destinationStationId,
-                                    departLabel: trip.departureAt
-                                        .toIso8601String(),
+                                    // Consumer gate: the trip model only
+                                    // carries station UUIDs, so resolve them
+                                    // to code + name here (never print a raw
+                                    // id on a ticket) and format the
+                                    // departure for humans (never ISO-8601).
+                                    fromLabel:
+                                        '${_searchState.stationCode(trip.originStationId)} · ${_searchState.stationName(trip.originStationId)}',
+                                    toLabel:
+                                        '${_searchState.stationCode(trip.destinationStationId)} · ${_searchState.stationName(trip.destinationStationId)}',
+                                    departLabel:
+                                        '${formatJourneyDate(trip.departureAt)} · ${formatTime12(trip.departureAt)}',
                                   ),
                                 ),
                               );
                             } on BookingSubmitException catch (e) {
                               // Genuine failure: taken seats refresh from
-                              // live inventory; the user reselects. No
-                              // ticket is fabricated on any path.
+                              // live inventory, then the user is back on
+                              // the payment screen with a plain-language
+                              // reason (already humanized by
+                              // BookingSubmitException.message). No ticket
+                              // is fabricated on any path, and no
+                              // dead-end "setup" screen is shown.
                               if (e.code == 'SEAT_UNAVAILABLE') {
                                 await seats.revalidate();
                               }
-                              nav.push(
-                                MaterialPageRoute<void>(
-                                  builder: (_) => SetupRequiredScreen(
-                                    title: 'Booking failed',
-                                    missing: e.message,
-                                  ),
-                                ),
+                              nav.pop();
+                              messenger.showSnackBar(
+                                SnackBar(content: Text(e.message)),
                               );
                             }
                           },

@@ -108,7 +108,9 @@ void main() {
     expect(find.text('Test User'), findsOneWidget);
     expect(find.text('a@b.co'), findsOneWidget);
     expect(find.text('@tester'), findsOneWidget);
-    expect(find.text('u-profile'), findsOneWidget);
+    // Consumer gate: the raw account id is no longer shown anywhere.
+    expect(find.text('u-profile'), findsNothing);
+    expect(find.text('Account ID'), findsNothing);
     expect(find.text('Email verified'), findsOneWidget);
   });
 
@@ -159,7 +161,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('AI key setup'));
+    await tester.tap(find.text('AI writing help'));
     await tester.pumpAndSettle();
 
     expect(find.text('key-setup-marker'), findsOneWidget);

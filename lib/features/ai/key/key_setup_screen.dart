@@ -83,8 +83,13 @@ class _KeySetupScreenState extends State<KeySetupScreen> {
         e.message?.toString() ?? 'Key must not be empty.',
         isError: true,
       );
-    } catch (e) {
-      _setNotice('Save failed: $e', isError: true);
+    } catch (_) {
+      // Consumer gate: raw storage exceptions (platform codes, paths)
+      // mean nothing to a passenger — say what happened and what to do.
+      _setNotice(
+        "Couldn't save the key on this device. Please try again.",
+        isError: true,
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -96,8 +101,11 @@ class _KeySetupScreenState extends State<KeySetupScreen> {
       await widget.vault.removeKey();
       await _refreshStatus();
       _setNotice('Key removed from this device.');
-    } catch (e) {
-      _setNotice('Remove failed: $e', isError: true);
+    } catch (_) {
+      _setNotice(
+        "Couldn't remove the key on this device. Please try again.",
+        isError: true,
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }

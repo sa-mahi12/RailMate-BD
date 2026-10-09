@@ -125,9 +125,14 @@ void main() {
     final NavigatorState nav = tester.state(find.byType(Navigator).first);
     nav.pushNamed('/no-such-route-xyz');
     await tester.pumpAndSettle();
-    expect(find.textContaining('Unknown route'), findsOneWidget);
+    // Consumer gate: no route name leaks; the page names the problem in
+    // plain language and offers a way back.
+    expect(find.text("We couldn't open this page"), findsOneWidget);
     await tester.tap(find.byIcon(Icons.chevron_left).first);
     await tester.pumpAndSettle();
-    expect(find.textContaining('Unknown route'), findsNothing); // popped clean
+    expect(
+      find.text("We couldn't open this page"),
+      findsNothing,
+    ); // popped clean
   });
 }

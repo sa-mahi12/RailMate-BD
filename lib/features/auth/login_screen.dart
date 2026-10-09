@@ -1,9 +1,10 @@
 /// A02 — Login screen (RailMate BD).
 ///
-/// Ref-2 middle panel: email/phone + password fields, remember-me checkbox,
-/// forgot-password note, Log In button, Google/Facebook buttons rendered
-/// disabled with a 'coming soon' note (no fake auth), and a signup link that
-/// navigates to [RegisterScreen] for real.
+/// Email + password fields, a forgot-password link that opens the real reset
+/// flow, a Log In button, and a signup link that navigates to
+/// [RegisterScreen] for real. There is deliberately no "Remember me" (the
+/// session persists on device automatically — a checkbox would lie) and no
+/// social buttons (social login does not exist yet and is not advertised).
 library;
 
 import 'package:flutter/material.dart';
@@ -32,7 +33,6 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _email = TextEditingController();
   final TextEditingController _password = TextEditingController();
-  bool _rememberMe = true;
   bool _obscure = true;
   String? _formError;
 
@@ -137,19 +137,14 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                         const SizedBox(height: 12),
+                        // Consumer gate: the old "Remember me" checkbox did
+                        // nothing (Supabase persists the session on device
+                        // automatically), so it was removed rather than left
+                        // as a control that lies. Only the working action
+                        // stays, right-aligned.
                         Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
                           children: <Widget>[
-                            Checkbox(
-                              value: _rememberMe,
-                              activeColor: kAuthTeal,
-                              onChanged: busy
-                                  ? null
-                                  : (bool? value) => setState(
-                                      () => _rememberMe = value ?? false,
-                                    ),
-                            ),
-                            const Text('Remember me'),
-                            const Spacer(),
                             TextButton(
                               onPressed: busy ? null : _forgotPassword,
                               child: const Text(
@@ -179,67 +174,11 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        Row(
-                          children: <Widget>[
-                            const Expanded(child: Divider()),
-                            // P27: Flexible + wrapping label, so this row
-                            // survives large accessibility text scales
-                            // instead of overflowing horizontally.
-                            Flexible(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                ),
-                                child: Text(
-                                  'or continue with',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(color: Colors.grey.shade600),
-                                ),
-                              ),
-                            ),
-                            const Expanded(child: Divider()),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: <Widget>[
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                onPressed: null,
-                                icon: const Text(
-                                  'G',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 18,
-                                  ),
-                                ),
-                                label: const Text('Google'),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                onPressed: null,
-                                icon: const Text(
-                                  'f',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 18,
-                                  ),
-                                ),
-                                label: const Text('Facebook'),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        const Center(
-                          child: Text(
-                            'Social login coming soon — email login only.',
-                            style: TextStyle(color: kAuthHint, fontSize: 12),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
+                        // Consumer gate: the disabled Google/Facebook buttons
+                        // and their "coming soon" note advertised features
+                        // that do not exist. Social login stays out of the
+                        // product until it genuinely works, so all of it was
+                        // removed instead of left as dead controls.
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: <Widget>[

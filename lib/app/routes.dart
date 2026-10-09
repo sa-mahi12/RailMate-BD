@@ -63,7 +63,7 @@ abstract final class AppRoutes {
     switch (settings.name) {
       case welcome:
         if (dependencies == null) {
-          return _error(settings, 'App dependencies missing.');
+          return _error(settings);
         }
         return MaterialPageRoute<void>(
           settings: settings,
@@ -71,7 +71,7 @@ abstract final class AppRoutes {
         );
       case login:
         if (dependencies == null) {
-          return _error(settings, 'App dependencies missing.');
+          return _error(settings);
         }
         return MaterialPageRoute<void>(
           settings: settings,
@@ -79,7 +79,7 @@ abstract final class AppRoutes {
         );
       case register:
         if (dependencies == null) {
-          return _error(settings, 'App dependencies missing.');
+          return _error(settings);
         }
         // Live availability only when a backend client exists (production);
         // test compositions get the format-gated field (server unique
@@ -102,7 +102,7 @@ abstract final class AppRoutes {
         );
       case forgotPassword:
         if (dependencies == null) {
-          return _error(settings, 'App dependencies missing.');
+          return _error(settings);
         }
         return MaterialPageRoute<void>(
           settings: settings,
@@ -111,7 +111,7 @@ abstract final class AppRoutes {
       case searchResults:
         final args = settings.arguments;
         if (args is! SearchResultsArgs) {
-          return _error(settings, 'Search results need a search state.');
+          return _error(settings);
         }
         return MaterialPageRoute<void>(
           settings: settings,
@@ -123,7 +123,7 @@ abstract final class AppRoutes {
       case seatSelection:
         final args = settings.arguments;
         if (args is! SeatRouteArgs) {
-          return _error(settings, 'Seat selection needs a trip.');
+          return _error(settings);
         }
         return MaterialPageRoute<void>(
           settings: settings,
@@ -136,7 +136,7 @@ abstract final class AppRoutes {
       case passengerDetails:
         final args = settings.arguments;
         if (args is! PassengerRouteArgs) {
-          return _error(settings, 'Passenger details need a form state.');
+          return _error(settings);
         }
         return MaterialPageRoute<void>(
           settings: settings,
@@ -148,7 +148,7 @@ abstract final class AppRoutes {
       case review:
         final args = settings.arguments;
         if (args is! ReviewRouteArgs) {
-          return _error(settings, 'Review needs a form state.');
+          return _error(settings);
         }
         return MaterialPageRoute<void>(
           settings: settings,
@@ -162,7 +162,7 @@ abstract final class AppRoutes {
       case payment:
         final args = settings.arguments;
         if (args is! PaymentRouteArgs) {
-          return _error(settings, 'Payment needs a form state.');
+          return _error(settings);
         }
         return MaterialPageRoute<void>(
           settings: settings,
@@ -175,7 +175,7 @@ abstract final class AppRoutes {
       case ticket:
         final args = settings.arguments;
         if (args is! TicketRouteArgs) {
-          return _error(settings, 'Ticket needs a ticket snapshot.');
+          return _error(settings);
         }
         return MaterialPageRoute<void>(
           settings: settings,
@@ -183,7 +183,7 @@ abstract final class AppRoutes {
         );
       case history:
         if (dependencies == null) {
-          return _error(settings, 'App dependencies missing.');
+          return _error(settings);
         }
         final String? uid = dependencies.auth.user?.id;
         if (uid == null) {
@@ -216,7 +216,7 @@ abstract final class AppRoutes {
       case guideDetail:
         final args = settings.arguments;
         if (args is! GuideDetailRouteArgs) {
-          return _error(settings, 'Station guide needs a guide entry.');
+          return _error(settings);
         }
         return MaterialPageRoute<void>(
           settings: settings,
@@ -243,17 +243,14 @@ abstract final class AppRoutes {
           builder: (_) => const GuideListScreen(),
         );
       default:
-        return _error(settings, 'Unknown route: ${settings.name}.');
+        return _error(settings);
     }
   }
 
-  static MaterialPageRoute<void> _error(
-    RouteSettings settings,
-    String message,
-  ) {
+  static MaterialPageRoute<void> _error(RouteSettings settings) {
     return MaterialPageRoute<void>(
       settings: settings,
-      builder: (_) => RouteErrorScreen(message: message),
+      builder: (_) => const RouteErrorScreen(),
     );
   }
 }
@@ -338,17 +335,16 @@ class GuideDetailRouteArgs {
   const GuideDetailRouteArgs({required this.guide});
 }
 
-/// Graceful placeholder for routes whose runtime dependency (Supabase client,
-/// auth uid) is not wired at shell level yet. Never fakes data.
-class SetupRequiredScreen extends StatelessWidget {
-  final String title;
-  final String missing;
-
-  const SetupRequiredScreen({
-    super.key,
-    required this.title,
-    required this.missing,
-  });
+/// Consumer-safe error screen for unknown routes and invalid route
+/// arguments.
+///
+/// These paths only trigger on programmer error (a route pushed without its
+/// required arguments), so the copy says what happened in plain language
+/// and offers a way back — never a route name, a dependency name, or a
+/// "setup required" construction notice. Always has a pop path (back
+/// chevron + button) so no route cycle can strand the user.
+class RouteErrorScreen extends StatelessWidget {
+  const RouteErrorScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -361,7 +357,7 @@ class SetupRequiredScreen extends StatelessWidget {
           icon: const Icon(Icons.chevron_left),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
-        title: Text(title),
+        title: const Text("We couldn't open this page"),
       ),
       body: Center(
         child: Padding(
@@ -369,50 +365,18 @@ class SetupRequiredScreen extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(
-                Icons.construction_outlined,
-                size: 48,
-                color: Color(0xFF0E5A66),
-              ),
-              const SizedBox(height: 12),
               const Text(
-                'Setup required',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                'Something went wrong on our side. '
+                'Please go back and try again.',
+                textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 8),
-              Text(missing, textAlign: TextAlign.center),
+              const SizedBox(height: 16),
+              FilledButton(
+                onPressed: () => Navigator.of(context).maybePop(),
+                child: const Text('Go back'),
+              ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Error screen for unknown routes and invalid route arguments. Always has a
-/// pop path (back chevron) so no route cycle can strand the user.
-class RouteErrorScreen extends StatelessWidget {
-  final String message;
-
-  const RouteErrorScreen({super.key, required this.message});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF4F7F9),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF0E5A66),
-        foregroundColor: Colors.white,
-        leading: IconButton(
-          icon: const Icon(Icons.chevron_left),
-          onPressed: () => Navigator.of(context).maybePop(),
-        ),
-        title: const Text('Something went wrong'),
-      ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(message, textAlign: TextAlign.center),
         ),
       ),
     );
