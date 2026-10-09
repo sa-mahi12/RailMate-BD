@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:railmate_bd/features/board/comments/comment.dart';
 import 'package:railmate_bd/features/board/comments/comment_section.dart';
-import 'package:railmate_bd/features/board/comments/comment_thread.dart';
 
 /// Comment section wiring: the per-post thread UI over injected fakes.
 /// State-level rules live in `board_comments_b08_test.dart`; this file pins
