@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../design/design.dart';
 import '../../../design/state/state.dart';
+import '../comments/comment_section.dart';
+import '../comments/comment_thread.dart';
 import '../media/post_media.dart';
 import '../ratings/rating_state.dart';
 import '../reactions/reaction_state.dart';
@@ -86,6 +88,12 @@ class BoardFeedScreen extends StatelessWidget {
   final UpsertRatingRow? upsertRating;
   final DeleteRatingRow? deleteRating;
 
+  /// Comment seams for the per-post comments section. All three must be
+  /// non-null for the section to render (same rule as engagement).
+  final FetchComments? fetchComments;
+  final AddCommentRow? addComment;
+  final DeleteCommentRow? deleteComment;
+
   /// Current author uid for the engagement section. Null (default) renders
   /// aggregates read-only with a sign-in hint.
   final String? currentUserId;
@@ -101,6 +109,9 @@ class BoardFeedScreen extends StatelessWidget {
     this.fetchRatings,
     this.upsertRating,
     this.deleteRating,
+    this.fetchComments,
+    this.addComment,
+    this.deleteComment,
     this.currentUserId,
   });
 
@@ -113,6 +124,16 @@ class BoardFeedScreen extends StatelessWidget {
       fetchRatings != null &&
       upsertRating != null &&
       deleteRating != null &&
+      post.id != null &&
+      post.id!.isNotEmpty;
+
+  /// True when the per-post comments section can render for [post]: all
+  /// three seams wired and a concrete row id to load. Null seams (default)
+  /// hide the section so existing callers render exactly the old card.
+  bool _commentsWired(Post post) =>
+      fetchComments != null &&
+      addComment != null &&
+      deleteComment != null &&
       post.id != null &&
       post.id!.isNotEmpty;
 
@@ -252,6 +273,17 @@ class BoardFeedScreen extends StatelessWidget {
                       fetchRatings: fetchRatings!,
                       upsertRating: upsertRating!,
                       deleteRating: deleteRating!,
+                    ),
+                  ],
+                  if (_commentsWired(post)) ...[
+                    const SizedBox(height: 8),
+                    CommentSection(
+                      key: ValueKey('comments-${post.id}'),
+                      postId: post.id!,
+                      currentUserId: currentUserId,
+                      fetchComments: fetchComments!,
+                      addComment: addComment!,
+                      deleteComment: deleteComment!,
                     ),
                   ],
                   const SizedBox(height: 8),

@@ -430,6 +430,12 @@ class _HomeShellState extends State<HomeShell> {
                   fetchRatings: widget.dependencies.fetchBoardRatings,
                   upsertRating: widget.dependencies.upsertBoardRating,
                   deleteRating: widget.dependencies.deleteBoardRating,
+                  // Comments seams: per-post threads fed by the production
+                  // closures; signed-out readers (uid null) see rows
+                  // read-only.
+                  fetchComments: widget.dependencies.fetchComments,
+                  addComment: widget.dependencies.addCommentRow,
+                  deleteComment: widget.dependencies.deleteCommentRow,
                   onCompose: () {
                     _keys[2].currentState?.pushNamed(
                       AppRoutes.boardCompose,
