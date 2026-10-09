@@ -46,6 +46,7 @@ dependencies:
   printing: ^5.13.0 # ticket PDF share/print (F10)
   webview_flutter: ^4.8.0 # station guide WebView (F15)
   shared_preferences: ^2.3.3 # P03: first-run onboarding completion flag
+  app_links: ^7.2.2
 
 dev_dependencies:
   flutter_test:

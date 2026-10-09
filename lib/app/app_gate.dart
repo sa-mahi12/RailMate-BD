@@ -17,10 +17,13 @@ library;
 
 import 'dart:async';
 
+import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 
 import '../design/design.dart';
 import '../features/auth/auth_state.dart';
+import '../features/auth/forgot_password_screen.dart';
+import '../features/auth/password_recovery.dart';
 import '../features/auth/verify_screen.dart';
 import '../features/auth/welcome_screen.dart';
 import '../features/onboarding/onboarding_screen.dart';
@@ -68,17 +71,79 @@ class AppGateState extends State<AppGate> {
   bool _onboardingComplete = false;
   bool _resolved = false;
 
+  /// Password-recovery deep-link subscription. Started only when a real
+  /// backend client exists (production); test compositions have a null
+  /// client and never listen.
+  StreamSubscription<Uri>? _linkSub;
+  bool _handlingLink = false;
+
   @override
   void initState() {
     super.initState();
     widget.dependencies.auth.addListener(_onAuthChanged);
     unawaited(_loadOnboarding());
+    _listenForRecoveryLinks();
   }
 
   @override
   void dispose() {
     widget.dependencies.auth.removeListener(_onAuthChanged);
+    unawaited(_linkSub?.cancel());
     super.dispose();
+  }
+
+  /// Listens for `railmatebd://auth/reset-password` links — cold start
+  /// (the link that launched the app) and warm (a tap while running).
+  void _listenForRecoveryLinks() {
+    if (widget.dependencies.client == null) return;
+    final AppLinks links = AppLinks();
+    unawaited(links.getInitialLink().then((Uri? uri) => _handleLink(uri)));
+    _linkSub = links.uriLinkStream.listen(_handleLink, onError: (_) {});
+  }
+
+  /// Establishes the recovery session from the link and opens the
+  /// new-password pane. An invalid/expired link falls back to the manual
+  /// reset screen with a plain-language notice — never a dead end, never a
+  /// code.
+  Future<void> _handleLink(Uri? uri) async {
+    if (uri == null || _handlingLink) return;
+    final RecoveryCredentials? creds = parseRecoveryLink(uri);
+    if (creds == null) return;
+    final client = widget.dependencies.client;
+    if (client == null || !mounted) return;
+    _handlingLink = true;
+    try {
+      await client.auth.setSession(
+        creds.refreshToken,
+        accessToken: creds.accessToken,
+      );
+      if (!mounted) return;
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => ForgotPasswordScreen(
+            auth: widget.dependencies.auth,
+            startInRecovery: true,
+          ),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'This reset link is invalid or expired. '
+            'Request a new one below.',
+          ),
+        ),
+      );
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => ForgotPasswordScreen(auth: widget.dependencies.auth),
+        ),
+      );
+    } finally {
+      _handlingLink = false;
+    }
   }
 
   Future<void> _loadOnboarding() async {

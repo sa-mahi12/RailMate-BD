@@ -31,6 +31,21 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Password recovery (Supabase `resetPasswordForEmail` with
+                 redirectTo `railmatebd://auth/reset-password`): the email
+                 link bounces through Supabase verification and lands here
+                 with the recovery tokens in the fragment. singleTop +
+                 singleTask-style delivery means a tap while the app runs
+                 reuses this activity and Flutter receives the link. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data
+                    android:scheme="railmatebd"
+                    android:host="auth"
+                    android:pathPrefix="/reset-password"/>
+            </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

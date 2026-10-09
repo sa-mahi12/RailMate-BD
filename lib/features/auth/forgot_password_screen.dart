@@ -6,9 +6,11 @@
 /// 1. request a reset email for an address (neutral result, no enumeration);
 /// 2. set the new password from the recovery credential.
 ///
-/// The screen is honest about what it cannot verify: the reset link opens in
-/// the device browser, so the second step runs on the session Supabase
-/// established from the recovery link.
+/// Tapping the reset email opens the app itself
+/// (`railmatebd://auth/reset-password`, see the Android intent filter and
+/// `AppGate`'s recovery listener): the app establishes the recovery session
+/// from the link tokens and opens this screen directly on step 2
+/// ([ForgotPasswordScreen.startInRecovery]).
 library;
 
 import 'package:flutter/material.dart';
@@ -17,10 +19,22 @@ import '../../design/design.dart';
 import 'auth_state.dart';
 
 /// Request-a-reset-email plus set-new-password screen.
+///
+/// When [startInRecovery] is true, the screen opens directly on the
+/// new-password pane: the user arrived from a password-reset deep link whose
+/// session the app already established (see `password_recovery.dart` and the
+/// `railmatebd://auth/reset-password` intent filter). The email pane is
+/// skipped because there is nothing left to send.
 class ForgotPasswordScreen extends StatefulWidget {
   final AuthState auth;
 
-  const ForgotPasswordScreen({super.key, required this.auth});
+  final bool startInRecovery;
+
+  const ForgotPasswordScreen({
+    super.key,
+    required this.auth,
+    this.startInRecovery = false,
+  });
 
   static const String routeName = '/forgot-password';
 
@@ -33,7 +47,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final TextEditingController _password = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
-  bool _emailSent = false;
+  late bool _emailSent;
   bool _busy = false;
   bool _done = false;
   String? _error;
@@ -41,6 +55,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   @override
   void initState() {
     super.initState();
+    _emailSent = widget.startInRecovery;
     _email.text = widget.auth.user?.email ?? '';
   }
 
@@ -136,7 +151,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           ),
                         ),
                       ] else ...<Widget>[
-                        _EmailSentNotice(email: _email.text.trim()),
+                        if (widget.startInRecovery)
+                          const _RecoveryNotice()
+                        else
+                          _EmailSentNotice(email: _email.text.trim()),
                         const SizedBox(height: AppSpacing.s20),
                         TextFormField(
                           key: const Key('forgot-new-password'),
@@ -241,6 +259,38 @@ class _EmailSentNotice extends StatelessWidget {
               'If an account exists for $email, a reset link is on its way. '
               'Check spam too — the link can take a minute.',
               style: const TextStyle(fontSize: 13),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Banner for deep-link arrival: the reset email already did its job, so
+/// the only thing left is choosing the new password below.
+class _RecoveryNotice extends StatelessWidget {
+  const _RecoveryNotice();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.s16),
+      decoration: BoxDecoration(
+        color: AppColors.success.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(AppRadii.card),
+        border: Border.all(color: AppColors.success.withValues(alpha: 0.35)),
+      ),
+      child: const Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Icon(Icons.link_outlined, color: AppColors.success),
+          SizedBox(width: AppSpacing.s12),
+          Expanded(
+            child: Text(
+              'You arrived from your reset link — choose a new password '
+              'below and it takes effect immediately.',
+              style: TextStyle(fontSize: 13),
             ),
           ),
         ],
