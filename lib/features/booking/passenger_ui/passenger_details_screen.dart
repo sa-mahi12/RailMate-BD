@@ -45,12 +45,12 @@ class PassengerDetailsScreen extends StatefulWidget {
     super.key,
     required this.formState,
     required this.onContinue,
-    this.trainName = 'Jahanabad Express',
-    this.originCode = 'DHK',
-    this.originName = 'Dhaka',
-    this.destinationCode = 'KHL',
-    this.destinationName = 'Khulna',
-    this.dateLabel = 'Thu, 11 Sep 2025',
+    this.trainName = '--',
+    this.originCode = '--',
+    this.originName = '--',
+    this.destinationCode = '--',
+    this.destinationName = '--',
+    this.dateLabel = '--',
     this.classLabel = '5 Chair (D)',
   });
 

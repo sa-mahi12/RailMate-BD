@@ -101,10 +101,12 @@ double _indicatorX(WidgetTester tester) => tester
 
 /// The active tab body's entrance opacity.
 ///
-/// `IndexedStack` reports only the selected child as an on-stage child, so a
-/// default finder sees exactly the visible tab's subtree.
-double _bodyOpacity(WidgetTester tester) =>
-    tester.widget<Opacity>(find.byType(Opacity)).opacity;
+/// Scoped to the tab-entrance `Opacity` by key: tab content legitimately
+/// contains its own state entrances (board empty/error states fade in too),
+/// so a bare `find.byType(Opacity)` would mix them together.
+double _bodyOpacity(WidgetTester tester) => tester
+    .widget<Opacity>(find.byKey(const ValueKey<String>('tab-body-entrance')))
+    .opacity;
 
 void main() {
   group('animated bottom navigation', () {

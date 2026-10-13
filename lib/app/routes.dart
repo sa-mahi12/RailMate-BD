@@ -131,6 +131,10 @@ abstract final class AppRoutes {
             trip: args.trip,
             state: args.state,
             onContinue: args.onContinue,
+            originCode: args.originCode,
+            originName: args.originName,
+            destinationCode: args.destinationCode,
+            destinationName: args.destinationName,
           ),
         );
       case passengerDetails:
@@ -143,6 +147,12 @@ abstract final class AppRoutes {
           builder: (_) => PassengerDetailsScreen(
             formState: args.formState,
             onContinue: args.onContinue,
+            trainName: args.journey?.trainName ?? '--',
+            originCode: args.journey?.originCode ?? '--',
+            originName: args.journey?.originName ?? '--',
+            destinationCode: args.journey?.destinationCode ?? '--',
+            destinationName: args.journey?.destinationName ?? '--',
+            dateLabel: args.journey?.dateLabel ?? '--',
           ),
         );
       case review:
@@ -157,6 +167,15 @@ abstract final class AppRoutes {
             onEditJourney: args.onEditJourney,
             onEditPassengers: args.onEditPassengers,
             onConfirm: args.onConfirm,
+            trainName: args.journey?.trainName ?? '--',
+            originCode: args.journey?.originCode ?? '--',
+            originName: args.journey?.originName ?? '--',
+            destinationCode: args.journey?.destinationCode ?? '--',
+            destinationName: args.journey?.destinationName ?? '--',
+            dateLabel: args.journey?.dateLabel ?? '--',
+            departureLabel: args.journey?.departureLabel ?? '--',
+            arrivalLabel: args.journey?.arrivalLabel ?? '--',
+            durationLabel: args.journey?.durationLabel ?? '--',
           ),
         );
       case payment:
@@ -270,19 +289,65 @@ class SeatRouteArgs {
   final SeatSelectionState state;
   final ValueChanged<List<String>> onContinue;
 
+  /// Resolved station labels for the seat-screen header. The trip model
+  /// carries UUIDs only; the host resolves code + name (falling back to
+  /// '--') so the header never renders a raw id — or a '-- / --' gap.
+  final String originCode;
+  final String originName;
+  final String destinationCode;
+  final String destinationName;
+
   const SeatRouteArgs({
     required this.trip,
     required this.state,
     required this.onContinue,
+    this.originCode = '--',
+    this.originName = '--',
+    this.destinationCode = '--',
+    this.destinationName = '--',
   });
 }
 
 /// Arguments for [AppRoutes.passengerDetails].
+/// Shared journey labels resolved by the host from the selected trip.
+/// The trip model carries station UUIDs only; every screen below renders
+/// these instead of hardcoded demo defaults or '--' gaps.
+class JourneyLabels {
+  final String trainName;
+  final String originCode;
+  final String originName;
+  final String destinationCode;
+  final String destinationName;
+  final String dateLabel;
+  final String departureLabel;
+  final String arrivalLabel;
+  final String durationLabel;
+
+  const JourneyLabels({
+    required this.trainName,
+    required this.originCode,
+    required this.originName,
+    required this.destinationCode,
+    required this.destinationName,
+    required this.dateLabel,
+    required this.departureLabel,
+    required this.arrivalLabel,
+    required this.durationLabel,
+  });
+}
+
 class PassengerRouteArgs {
   final PassengerFormState formState;
   final ValueChanged<List<Passenger>> onContinue;
 
-  const PassengerRouteArgs({required this.formState, required this.onContinue});
+  /// Resolved journey labels; null keeps the screen defaults (tests).
+  final JourneyLabels? journey;
+
+  const PassengerRouteArgs({
+    required this.formState,
+    required this.onContinue,
+    this.journey,
+  });
 }
 
 /// Arguments for [AppRoutes.review].
@@ -292,11 +357,15 @@ class ReviewRouteArgs {
   final VoidCallback onEditPassengers;
   final VoidCallback onConfirm;
 
+  /// Resolved journey labels; null keeps the screen defaults (tests).
+  final JourneyLabels? journey;
+
   const ReviewRouteArgs({
     required this.formState,
     required this.onEditJourney,
     required this.onEditPassengers,
     required this.onConfirm,
+    this.journey,
   });
 }
 

@@ -78,6 +78,12 @@ class _HomeShellState extends State<HomeShell> {
   void initState() {
     super.initState();
     widget.dependencies.auth.addListener(_onAuthChanged);
+    // The board feed owns no loading trigger of its own: without this, the
+    // tab would sit in `idle` forever rendering a blank list (proven on the
+    // emulator — no skeleton, no empty state, just white). One lightweight
+    // window query at shell startup; the tab then shows loading → rows or
+    // the honest empty state.
+    unawaited(_boardFeed.load());
     _subscribeBoardRealtime();
   }
 
@@ -217,11 +223,26 @@ class _HomeShellState extends State<HomeShell> {
       tripId: trip.id,
       fetchSeats: widget.dependencies.seatFetcher,
     );
+    // Consumer gate (proven on the emulator): the header rendered "-- / --"
+    // because the trip model carries station UUIDs. Resolve to code + name
+    // here, exactly like the ticket labels below — never a raw id on screen.
+    final String originCode = _searchState.stationCode(trip.originStationId);
+    final String originName = _searchState.stationName(trip.originStationId);
+    final String destinationCode = _searchState.stationCode(
+      trip.destinationStationId,
+    );
+    final String destinationName = _searchState.stationName(
+      trip.destinationStationId,
+    );
     _keys[tab].currentState?.pushNamed(
       AppRoutes.seatSelection,
       arguments: SeatRouteArgs(
         trip: trip,
         state: seats,
+        originCode: originCode,
+        originName: originName,
+        destinationCode: destinationCode,
+        destinationName: destinationName,
         onContinue: (List<String> seatCodes) {
           final PassengerFormState form = PassengerFormState(
             seatCodes: seatCodes,
@@ -231,11 +252,36 @@ class _HomeShellState extends State<HomeShell> {
             AppRoutes.passengerDetails,
             arguments: PassengerRouteArgs(
               formState: form,
+              journey: JourneyLabels(
+                trainName: trip.trainName,
+                originCode: originCode,
+                originName: originName,
+                destinationCode: destinationCode,
+                destinationName: destinationName,
+                dateLabel: formatJourneyDate(trip.departureAt),
+                departureLabel: formatTime12(trip.departureAt),
+                arrivalLabel: formatTime12(trip.arrivalAt),
+                durationLabel: formatDuration(trip.departureAt, trip.arrivalAt),
+              ),
               onContinue: (List<Passenger> _) {
                 _keys[tab].currentState?.pushNamed(
                   AppRoutes.review,
                   arguments: ReviewRouteArgs(
                     formState: form,
+                    journey: JourneyLabels(
+                      trainName: trip.trainName,
+                      originCode: originCode,
+                      originName: originName,
+                      destinationCode: destinationCode,
+                      destinationName: destinationName,
+                      dateLabel: formatJourneyDate(trip.departureAt),
+                      departureLabel: formatTime12(trip.departureAt),
+                      arrivalLabel: formatTime12(trip.arrivalAt),
+                      durationLabel: formatDuration(
+                        trip.departureAt,
+                        trip.arrivalAt,
+                      ),
+                    ),
                     onEditJourney: () => _keys[tab].currentState?.popUntil(
                       (route) => route.isFirst,
                     ),
@@ -729,6 +775,10 @@ class _TabBodyEntranceState extends State<_TabBodyEntrance>
       child: widget.child,
       builder: (BuildContext context, Widget? child) {
         return Opacity(
+          // Keyed so tests can tell the tab entrance apart from state
+          // entrances deeper in the tree (same key in each tab is fine:
+          // keys only compete among siblings).
+          key: const ValueKey<String>('tab-body-entrance'),
           opacity: _controller.value.clamp(0.0, 1.0),
           child: child,
         );
