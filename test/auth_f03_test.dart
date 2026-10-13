@@ -84,7 +84,13 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(auth.status, AuthStatus.error);
-    expect(find.textContaining('Invalid login credentials'), findsOneWidget);
+    // Consumer gate: the raw backend text never reaches the screen; the
+    // mapped sentence does.
+    expect(
+      find.text('Incorrect email or password. Please try again.'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Invalid login credentials'), findsNothing);
   });
 
   test(

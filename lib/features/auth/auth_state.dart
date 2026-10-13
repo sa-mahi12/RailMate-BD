@@ -96,7 +96,7 @@ class AuthState extends ChangeNotifier {
       );
       _applyUser(created);
     } catch (e) {
-      _fail('Registration failed: $e');
+      _fail(_publicAuthError(e, fallback: 'Registration failed.'));
     }
   }
 
@@ -110,7 +110,7 @@ class AuthState extends ChangeNotifier {
       );
       _applyUser(signedIn);
     } catch (e) {
-      _fail('Login failed: $e');
+      _fail(_publicAuthError(e, fallback: 'Login failed.'));
     }
   }
 
@@ -218,6 +218,39 @@ class AuthState extends ChangeNotifier {
   void _fail(String message) {
     _errorMessage = message;
     _setStatus(AuthStatus.error);
+  }
+
+  /// Maps a raw auth failure to plain language for the UI.
+  ///
+  /// Consumer gate: backend exception text (class names, JSON bodies,
+  /// status codes) is never shown to passengers. Known shapes get a
+  /// specific, actionable sentence; everything else falls back to a
+  /// generic retry message — both without the raw `$e` text.
+  String _publicAuthError(Object e, {required String fallback}) {
+    final String text = e.toString();
+    if (text.contains('Invalid login credentials') ||
+        text.contains('invalid_credentials')) {
+      return 'Incorrect email or password. Please try again.';
+    }
+    if (text.contains('already been registered') ||
+        text.contains('already registered') ||
+        text.contains('User already registered')) {
+      return 'An account with this email already exists. '
+          'Try logging in instead.';
+    }
+    if (text.contains('SocketException') ||
+        text.contains('ClientException') ||
+        text.contains('TimeoutException') ||
+        text.contains('Network is unreachable') ||
+        text.contains('Failed host lookup')) {
+      return 'Network error — check your connection and retry.';
+    }
+    if (text.contains('unexpected_failure') ||
+        text.contains('Database error') ||
+        text.contains('statusCode: 500')) {
+      return 'Something went wrong on our side. Please try again in a moment.';
+    }
+    return '$fallback Please try again.';
   }
 
   void _setStatus(AuthStatus next) {
