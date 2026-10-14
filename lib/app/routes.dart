@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../features/ai/key/byok_vault.dart';
 import '../features/ai/key/key_setup_screen.dart';
+import '../features/auth/auth_callback_screen.dart';
 import '../features/auth/forgot_password_screen.dart';
 import '../features/auth/login_screen.dart';
 import '../features/auth/register_screen.dart';
@@ -34,6 +35,13 @@ import 'home_shell.dart' show SignInRequiredScreen;
 /// AppBar/close control calls `maybePop` (see each feature screen), so every
 /// push has a pop path back to its tab root. Unknown names fall through to
 /// [RouteErrorScreen] — they never crash and never strand the user.
+///
+/// Exception: the auth-callback paths below are NEVER programmer errors.
+/// With `flutter_deeplinking_enabled=false` they are consumed by [AppGate]
+/// via `app_links` and never reach this table; if one does anyway (e.g. a
+/// build missing the manifest flag), it routes to [AuthCallbackScreen],
+/// not [RouteErrorScreen]. Path (not exact-name) matching is deliberate:
+/// real callback links carry query parameters (`?code=…`).
 abstract final class AppRoutes {
   static const String home = '/';
   static const String welcome = '/welcome';
@@ -52,6 +60,10 @@ abstract final class AppRoutes {
   static const String guideDetail = '/guide/detail';
   static const String keySetup = '/ai/key-setup';
 
+  /// Auth-callback paths (deep links, never pushed by app code).
+  static const String authVerifyCallback = '/auth/verify';
+  static const String authResetCallback = '/auth/reset-password';
+
   /// Central [RouteFactory] used by the app and by every per-tab Navigator.
   ///
   /// [dependencies] supplies session state for account-gated routes; it is
@@ -60,6 +72,25 @@ abstract final class AppRoutes {
     RouteSettings settings, {
     AppDependencies? dependencies,
   }) {
+    // Auth callbacks arrive with query parameters (`/auth/verify?code=…`),
+    // so match on the URI path rather than the exact route name. Handled
+    // before the exact-name switch below.
+    final String callbackPath = Uri.tryParse(settings.name ?? '')?.path ?? '';
+    if (callbackPath == authVerifyCallback ||
+        callbackPath == authResetCallback) {
+      if (dependencies == null) {
+        return _error(settings);
+      }
+      return MaterialPageRoute<void>(
+        settings: settings,
+        builder: (_) => AuthCallbackScreen(
+          auth: dependencies.auth,
+          kind: callbackPath == authVerifyCallback
+              ? AuthCallbackKind.signupVerify
+              : AuthCallbackKind.passwordReset,
+        ),
+      );
+    }
     switch (settings.name) {
       case welcome:
         if (dependencies == null) {

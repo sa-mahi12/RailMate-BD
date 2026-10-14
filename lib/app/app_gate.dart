@@ -17,8 +17,8 @@ library;
 
 import 'dart:async';
 
-import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 
 import '../design/design.dart';
 import '../features/auth/auth_state.dart';
@@ -31,7 +31,24 @@ import '../features/onboarding/onboarding_screen.dart';
 import 'boot_splash.dart';
 import 'dependencies.dart';
 import 'home_shell.dart';
+import 'link_source.dart';
 import 'onboarding_store.dart';
+
+/// Exchanges one signup PKCE code for a session.
+///
+/// Production implementation is `client.auth.exchangeCodeForSession`.
+/// Injectable so tests can observe the exchange without network. There is
+/// exactly one caller ([AppGateState]) and one exchange per code (see the
+/// consumed-code guard), because PKCE codes are single-use.
+typedef ExchangeSignupCode = Future<void> Function(
+  SupabaseClient client,
+  String code,
+);
+
+/// Production [ExchangeSignupCode]: the single owner of the PKCE exchange.
+Future<void> exchangeSignupCodeForSession(SupabaseClient client, String code) {
+  return client.auth.exchangeCodeForSession(code);
+}
 
 /// Coarse startup phase, useful for tests and for the QA walkthrough.
 enum AppGatePhase {
@@ -60,7 +77,21 @@ class AppGate extends StatefulWidget {
   final AppDependencies dependencies;
   final OnboardingStore store;
 
-  const AppGate({super.key, required this.dependencies, required this.store});
+  /// Incoming-link source. Defaults to the `app_links` plugin; tests inject
+  /// a fake to drive cold-start and warm links without platform channels.
+  final LinkSource? linkSource;
+
+  /// PKCE exchange hook. Defaults to [exchangeSignupCodeForSession]; tests
+  /// inject an observer.
+  final ExchangeSignupCode? codeExchanger;
+
+  const AppGate({
+    super.key,
+    required this.dependencies,
+    required this.store,
+    this.linkSource,
+    this.codeExchanger,
+  });
 
   @override
   State<AppGate> createState() => AppGateState();
@@ -77,6 +108,17 @@ class AppGateState extends State<AppGate> {
   /// client and never listen.
   StreamSubscription<Uri>? _linkSub;
   bool _handlingLink = false;
+
+  /// PKCE codes already exchanged. The cold-start initial link and the warm
+  /// stream can BOTH deliver the same launch link; without this guard the
+  /// second delivery would re-exchange an already-consumed single-use code
+  /// and surface a confusing "invalid/expired" error after a successful
+  /// sign-in.
+  final Set<String> _consumedSignupCodes = <String>{};
+
+  LinkSource get _links => widget.linkSource ?? AppLinksSource();
+  ExchangeSignupCode get _exchanger =>
+      widget.codeExchanger ?? exchangeSignupCodeForSession;
 
   @override
   void initState() {
@@ -96,23 +138,29 @@ class AppGateState extends State<AppGate> {
   /// Listens for `railmatebd://auth/reset-password` and
   /// `railmatebd://auth/verify` links — cold start (the link that launched
   /// the app) and warm (a tap while running).
+  ///
+  /// Single-owner rule: this gate is the ONLY consumer of auth-callback
+  /// links. `Supabase.initialize` runs without `authCallbackUrlHostname`,
+  /// so the Supabase client performs no automatic URI detection/exchange of
+  /// its own — nothing races this handler for the single-use PKCE code.
+  /// (Flutter's own deep-link-to-Navigator routing is likewise disabled via
+  /// `flutter_deeplinking_enabled=false`; see `AndroidManifest.xml`.)
   void _listenForRecoveryLinks() {
     if (widget.dependencies.client == null) return;
-    final AppLinks links = AppLinks();
+    final LinkSource links = _links;
     unawaited(links.getInitialLink().then((Uri? uri) => _handleLink(uri)));
     _linkSub = links.uriLinkStream.listen(_handleLink, onError: (_) {});
   }
 
   /// Establishes the recovery session from the link and opens the
   /// new-password pane. An invalid/expired link falls back to the manual
-  /// reset screen with a plain-language notice — never a dead end, never a
-  /// code.
+  /// reset screen with a plain-language notice — never a dead end.
   ///
   /// A signup-verify link (`railmatebd://auth/verify?code=…`, from the
   /// confirmation email sent with `emailRedirectTo`) is exchanged for a
   /// session instead: success needs no navigation — the auth-state stream
   /// drives the gate home — while failure leaves the verify screen in place
-  /// with a plain-language notice so the user can type the 6-digit OTP.
+  /// with a plain-language notice so the user can resend the email.
   Future<void> _handleLink(Uri? uri) async {
     if (uri == null || _handlingLink) return;
     final RecoveryCredentials? creds = parseRecoveryLink(uri);
@@ -126,13 +174,15 @@ class AppGateState extends State<AppGate> {
     }
   }
 
-  /// Exchanges a signup-verify PKCE code for a session.
+  /// Exchanges a signup-verify PKCE code for a session, exactly once per
+  /// code (codes are single-use; cold + warm delivery can repeat one).
   Future<void> _handleSignupVerifyLink(SignupVerifyCode verify) async {
     final client = widget.dependencies.client;
     if (client == null || !mounted) return;
+    if (!_consumedSignupCodes.add(verify.code)) return;
     _handlingLink = true;
     try {
-      await client.auth.exchangeCodeForSession(verify.code);
+      await _exchanger(client, verify.code);
       // Success: `AuthState` observes the new session and the gate rebuilds
       // to home. Nothing to push.
     } catch (_) {
@@ -141,7 +191,7 @@ class AppGateState extends State<AppGate> {
         const SnackBar(
           content: Text(
             'This confirmation link is invalid or expired. '
-            'Enter the 6-digit code from your email, or resend it.',
+            'Resend the email and tap the newest link.',
           ),
         ),
       );
