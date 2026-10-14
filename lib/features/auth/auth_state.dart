@@ -151,6 +151,10 @@ class AuthState extends ChangeNotifier {
   /// Submits the 6-digit email confirmation code. On success the status
   /// becomes [AuthStatus.authenticated]; on failure [AuthStatus.error]
   /// carries the reason.
+  ///
+  /// Dormant seam: production signup mail is link-based (default mailer, no
+  /// custom SMTP), so no current UI collects a code. Kept for future
+  /// custom-SMTP/template support.
   Future<void> verifyCode({
     required String email,
     required String token,
