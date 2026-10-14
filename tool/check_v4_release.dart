@@ -7,7 +7,7 @@ import 'release_evidence.dart';
 /// files downloaded from the release).
 ///
 /// Usage:
-///   dart run tool/check_v4_release.dart <release-manifest.json> <SHA256SUMS.txt>
+///   `dart run tool/check_v4_release.dart <manifest.json> <SHA256SUMS.txt>`
 Future<void> main(List<String> args) async {
   if (args.length != 2) {
     stderr.writeln('usage: check_v4_release.dart <manifest> <sums>');
