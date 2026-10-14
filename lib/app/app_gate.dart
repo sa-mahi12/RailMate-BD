@@ -24,6 +24,7 @@ import '../design/design.dart';
 import '../features/auth/auth_state.dart';
 import '../features/auth/forgot_password_screen.dart';
 import '../features/auth/password_recovery.dart';
+import '../features/auth/signup_verify.dart';
 import '../features/auth/verify_screen.dart';
 import '../features/auth/welcome_screen.dart';
 import '../features/onboarding/onboarding_screen.dart';
@@ -92,8 +93,9 @@ class AppGateState extends State<AppGate> {
     super.dispose();
   }
 
-  /// Listens for `railmatebd://auth/reset-password` links — cold start
-  /// (the link that launched the app) and warm (a tap while running).
+  /// Listens for `railmatebd://auth/reset-password` and
+  /// `railmatebd://auth/verify` links — cold start (the link that launched
+  /// the app) and warm (a tap while running).
   void _listenForRecoveryLinks() {
     if (widget.dependencies.client == null) return;
     final AppLinks links = AppLinks();
@@ -105,10 +107,50 @@ class AppGateState extends State<AppGate> {
   /// new-password pane. An invalid/expired link falls back to the manual
   /// reset screen with a plain-language notice — never a dead end, never a
   /// code.
+  ///
+  /// A signup-verify link (`railmatebd://auth/verify?code=…`, from the
+  /// confirmation email sent with `emailRedirectTo`) is exchanged for a
+  /// session instead: success needs no navigation — the auth-state stream
+  /// drives the gate home — while failure leaves the verify screen in place
+  /// with a plain-language notice so the user can type the 6-digit OTP.
   Future<void> _handleLink(Uri? uri) async {
     if (uri == null || _handlingLink) return;
     final RecoveryCredentials? creds = parseRecoveryLink(uri);
-    if (creds == null) return;
+    if (creds != null) {
+      await _handleRecoveryLink(creds);
+      return;
+    }
+    final SignupVerifyCode? verify = parseSignupVerifyLink(uri);
+    if (verify != null) {
+      await _handleSignupVerifyLink(verify);
+    }
+  }
+
+  /// Exchanges a signup-verify PKCE code for a session.
+  Future<void> _handleSignupVerifyLink(SignupVerifyCode verify) async {
+    final client = widget.dependencies.client;
+    if (client == null || !mounted) return;
+    _handlingLink = true;
+    try {
+      await client.auth.exchangeCodeForSession(verify.code);
+      // Success: `AuthState` observes the new session and the gate rebuilds
+      // to home. Nothing to push.
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'This confirmation link is invalid or expired. '
+            'Enter the 6-digit code from your email, or resend it.',
+          ),
+        ),
+      );
+    } finally {
+      _handlingLink = false;
+    }
+  }
+
+  Future<void> _handleRecoveryLink(RecoveryCredentials creds) async {
     final client = widget.dependencies.client;
     if (client == null || !mounted) return;
     _handlingLink = true;

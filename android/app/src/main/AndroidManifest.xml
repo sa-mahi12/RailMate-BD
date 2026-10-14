@@ -46,6 +46,22 @@
                     android:host="auth"
                     android:pathPrefix="/reset-password"/>
             </intent-filter>
+            <!-- Sign-up confirmation (Supabase `signUp` with emailRedirectTo
+                 `railmatebd://auth/verify`): the email link bounces through
+                 Supabase verification and lands here with a PKCE `code`
+                 query parameter, which the app exchanges for a session.
+                 Without this filter (and the redirect), taps fall through
+                 to the browser against the project's default localhost
+                 Site URL. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data
+                    android:scheme="railmatebd"
+                    android:host="auth"
+                    android:pathPrefix="/verify"/>
+            </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

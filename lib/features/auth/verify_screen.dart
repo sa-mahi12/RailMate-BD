@@ -206,7 +206,9 @@ class _VerifyScreenState extends State<VerifyScreen> {
               child: AuthHeader(
                 title: 'Verify your account',
                 subtitle:
-                    "We've sent a 6-digit code to ${widget.email}. Enter it below.",
+                    "We've sent a confirmation email to ${widget.email}. "
+                    'Enter the 6-digit code below — or tap the confirmation '
+                    'link, which opens the app and signs you in.',
               ),
             ),
             FadeSlideIn(

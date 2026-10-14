@@ -46,9 +46,19 @@ class SupabaseAuthClient implements AuthClient {
     String? phone,
     String? username,
   }) async {
+    // `emailRedirectTo` is load-bearing: without it Supabase builds the
+    // confirmation link from the project's Site URL (localhost by
+    // default), so tapping "Confirm your mail" on a phone opens a dead
+    // localhost page instead of returning to the app. With it, the link
+    // bounces through Supabase verification and lands on
+    // `railmatebd://auth/verify`, which the app opens and exchanges for a
+    // session (see `signup_verify.dart` + `AppGate`). The 6-digit OTP path
+    // (`verifyEmailOtp`) is unchanged and still works when the project
+    // email template includes `{{ .Token }}`.
     final AuthResponse response = await supabase.auth.signUp(
       email: email,
       password: password,
+      emailRedirectTo: kSignupVerifyRedirect,
       data: <String, dynamic>{
         if (fullName case final String name) 'full_name': name,
         if (phone case final String number) 'phone': number,
@@ -96,7 +106,13 @@ class SupabaseAuthClient implements AuthClient {
 
   @override
   Future<void> resendConfirmation(String email) async {
-    await supabase.auth.resend(type: OtpType.signup, email: email);
+    // Same redirect as sign-up: a re-sent confirmation link must also land
+    // back in the app, never on the project's default localhost Site URL.
+    await supabase.auth.resend(
+      type: OtpType.signup,
+      email: email,
+      emailRedirectTo: kSignupVerifyRedirect,
+    );
   }
 
   @override
@@ -136,6 +152,16 @@ class SupabaseAuthClient implements AuthClient {
 /// [AuthClient.updatePassword]. Kept as a constant so the value stays
 /// consistent between the email template and the app.
 const String kPasswordResetRedirect = 'railmatebd://auth/reset-password';
+
+/// Redirect target baked into sign-up confirmation emails.
+///
+/// Supabase verifies the tap server-side and then redirects here carrying a
+/// PKCE `code` query parameter, which the app exchanges for a session (see
+/// `signup_verify.dart` + `AppGate`). The value must ALSO be allowlisted in
+/// the Supabase dashboard (Authentication → URL Configuration → Redirect
+/// URLs, e.g. `railmatebd://auth/**`); otherwise Supabase refuses to use it
+/// and falls back to the project Site URL.
+const String kSignupVerifyRedirect = 'railmatebd://auth/verify';
 
 /// [SupabaseConnect] hook for [SupabaseBootstrap.initialize]: performs the
 /// real `Supabase.initialize(url, anonKey)` call. Pass it at app startup:
