@@ -393,6 +393,19 @@ class _HomeShellState extends State<HomeShell> {
                               messenger.showSnackBar(
                                 SnackBar(content: Text(e.message)),
                               );
+                            } catch (_) {
+                              // Transport/timeout or unexpected Edge failure:
+                              // no ticket exists and the cause is not useful to
+                              // a passenger. Return to review with honest copy.
+                              nav.pop();
+                              messenger.showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    "The booking couldn't be completed. "
+                                    'Check your connection and try again.',
+                                  ),
+                                ),
+                              );
                             } finally {
                               _bookingSubmitInFlight = false;
                             }
