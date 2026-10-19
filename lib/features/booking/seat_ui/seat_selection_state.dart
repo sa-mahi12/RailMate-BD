@@ -136,9 +136,10 @@ class SeatSelectionState extends ChangeNotifier {
       });
       loadedAt = DateTime.now();
       status = SeatSelectionStatus.loaded;
-    } catch (e) {
+    } catch (_) {
       status = SeatSelectionStatus.error;
-      errorMessage = e.toString();
+      // Consumer gate: the raw backend error never reaches the UI.
+      errorMessage = 'Could not load seats. Check connection and retry.';
     }
     notifyListeners();
   }
@@ -169,9 +170,10 @@ class SeatSelectionState extends ChangeNotifier {
       status = SeatSelectionStatus.loaded;
       notifyListeners();
       return dropped;
-    } catch (e) {
+    } catch (_) {
       status = SeatSelectionStatus.error;
-      errorMessage = e.toString();
+      // Consumer gate: the raw backend error never reaches the UI.
+      errorMessage = 'Could not load seats. Check connection and retry.';
       notifyListeners();
       return <String>[];
     }

@@ -103,10 +103,11 @@ class _BoardComposeScreenState extends State<BoardComposeScreen> {
     } on BoardImageRejectedException catch (e) {
       if (mounted) _showPickError(e.message, retry: true);
       return;
-    } catch (e) {
+    } catch (_) {
+      // Consumer gate: the raw platform error never reaches the UI.
       if (mounted) {
         _showPickError(
-          'Could not pick the photo ($e). Retry or continue without a photo.',
+          "Couldn't open the photo picker. Retry or continue without a photo.",
           retry: true,
         );
       }

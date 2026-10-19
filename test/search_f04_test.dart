@@ -140,7 +140,9 @@ void main() {
 
     expect(state.status, SearchStatus.error);
     expect(state.errorKind, SearchErrorKind.network);
-    expect(state.errorMessage, contains('permission denied'));
+    // Consumer gate: server text stays out of the UI; the failure is
+    // still classified as a network-flavoured error, never "no stations".
+    expect(state.errorMessage, isNot(contains('permission denied')));
     expect(state.stations, isEmpty);
     // REST must NOT mask a schema/contract failure.
     expect(api.fetchStationsCalls, 0);

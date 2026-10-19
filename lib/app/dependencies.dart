@@ -17,6 +17,8 @@ import '../features/board/reactions/reaction.dart';
 import '../features/booking/seat_ui/seat_selection_state.dart' show SeatFetcher;
 import '../features/bookings/booking_history.dart';
 import '../features/graphql/graphql_client.dart';
+import '../features/search/models/station.dart';
+import '../features/search/models/trip.dart';
 import '../features/search/search_repository.dart';
 import '../features/search/seat_inventory.dart';
 
@@ -114,6 +116,49 @@ class AppDependencies {
   /// Live seat inventory for one trip (read-only).
   SeatFetcher get seatFetcher =>
       (String tripId) => fetchTripSeats(_backend, tripId);
+
+  /// Read-only trip lookup by id (public timetable row).
+  ///
+  /// Returns null when the trip does not exist; transport failures throw so
+  /// callers never mistake a failure for "no such trip".
+  Future<Trip?> fetchTripById(String tripId) async {
+    final row = await _backend
+        .from('trips')
+        .select()
+        .eq('id', tripId)
+        .maybeSingle()
+        .timeout(const Duration(seconds: 15));
+    if (row == null) return null;
+    return Trip.fromMap(Map<String, dynamic>.from(row));
+  }
+
+  /// Read-only station lookup by id (public station catalog row).
+  Future<Station?> fetchStationById(String stationId) async {
+    final row = await _backend
+        .from('stations')
+        .select()
+        .eq('id', stationId)
+        .maybeSingle()
+        .timeout(const Duration(seconds: 15));
+    if (row == null) return null;
+    return Station.fromMap(Map<String, dynamic>.from(row));
+  }
+
+  /// Seat labels held by one booking, in seat order (public `trip_seats`
+  /// read; the row carries `booking_id` only for that booking's seats).
+  Future<List<String>> fetchBookingSeatCodes(String bookingId) async {
+    final rows = await _backend
+        .from('trip_seats')
+        .select('seat_code')
+        .eq('booking_id', bookingId)
+        .timeout(const Duration(seconds: 15));
+    final codes = <String>[
+      for (final row in rows as List)
+        (Map<String, dynamic>.from(row as Map)['seat_code'] ?? '').toString(),
+    ].where((String code) => code.isNotEmpty).toList();
+    codes.sort();
+    return codes;
+  }
 
   // ------------------------------------------------------------------
   // Journey Board: feed / posts / storage (F02; reactions/ratings in F13).
@@ -343,6 +388,24 @@ class AppDependencies {
     ).check(raw);
   }
 
+  /// Register-screen availability checker for this composition.
+  ///
+  /// Null when there is no backend client (tests/offline): the field then
+  /// keeps its format-only gate and the server unique constraint remains the
+  /// final arbiter. Every signup entry point (gate, welcome, login, routes)
+  /// uses this same checker so live availability is never silently dropped.
+  UsernameAvailabilityChecker? get usernameChecker {
+    if (client == null) return null;
+    return UsernameAvailabilityChecker(
+      existsQuery: (String normalized) async {
+        final UsernameAvailability verdict = await checkUsername(normalized);
+        if (verdict == UsernameAvailability.available) return false;
+        if (verdict == UsernameAvailability.taken) return true;
+        throw StateError('Username check inconclusive ($verdict).');
+      },
+    );
+  }
+
   /// Newest-first comments for one post.
   Future<List<Comment>> fetchComments({required String postId}) async {
     final rows = await _backend
@@ -498,7 +561,11 @@ class BookingSubmitException implements Exception {
       case 'UNAUTHORIZED':
         return 'Please sign in again to complete the booking.';
       default:
-        return 'Booking failed ($code). No booking was created.';
+        // Consumer gate: unknown server codes never reach the UI as
+        // `Booking failed (SOME_CODE)`. The code stays on the exception
+        // ([toString]) for logs.
+        return 'The booking could not be completed. '
+            'No booking was created.';
     }
   }
 

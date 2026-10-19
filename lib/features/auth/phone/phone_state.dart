@@ -112,8 +112,8 @@ class PhoneState extends ChangeNotifier {
       _setStatus(PhoneStatus.codeSent);
     } on PhoneAuthException catch (e) {
       _fail(e.message, rateLimited: e.kind == PhoneAuthErrorKind.rateLimited);
-    } catch (e) {
-      _fail('Could not send the code: $e');
+    } catch (_) {
+      _fail('Could not send the code. Check your connection and try again.');
     } finally {
       _sending = false;
       notifyListeners();
@@ -164,8 +164,8 @@ class PhoneState extends ChangeNotifier {
       _setStatus(PhoneStatus.verified);
     } on PhoneAuthException catch (e) {
       _fail(e.message, rateLimited: e.kind == PhoneAuthErrorKind.rateLimited);
-    } catch (e) {
-      _fail('Verification failed: $e');
+    } catch (_) {
+      _fail("That code didn't work. Check it and try again.");
     } finally {
       notifyListeners();
     }

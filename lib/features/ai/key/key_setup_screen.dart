@@ -77,7 +77,7 @@ class _KeySetupScreenState extends State<KeySetupScreen> {
       await widget.vault.saveKey(_keyController.text);
       _keyController.clear();
       await _refreshStatus();
-      _setNotice('Connected successfully.');
+      _setNotice('Key saved on this device.');
     } on ArgumentError catch (e) {
       _setNotice(
         e.message?.toString() ?? 'Key must not be empty.',
@@ -134,7 +134,14 @@ class _KeySetupScreenState extends State<KeySetupScreen> {
           {'role': 'user', 'content': 'Connection test.'},
         ],
       );
-      _setNotice(reply);
+      // The model's wording is not a status line. Confirm the explicit test
+      // succeeded without echoing arbitrary provider output into the UI.
+      _setNotice(
+        reply.trim().isEmpty
+            ? 'Connection test returned no text. Try again.'
+            : 'Connection test succeeded.',
+        isError: reply.trim().isEmpty,
+      );
     } on ArgumentError catch (e) {
       _setNotice(e.message?.toString() ?? 'Test failed.', isError: true);
     } catch (e) {
@@ -242,7 +249,7 @@ class _KeySetupScreenState extends State<KeySetupScreen> {
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: const Text(
-                              'Connected successfully.',
+                              'Key saved on this device.',
                               style: TextStyle(
                                 color: _success,
                                 fontWeight: FontWeight.bold,

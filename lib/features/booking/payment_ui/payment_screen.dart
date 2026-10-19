@@ -242,7 +242,7 @@ class _StatusCard extends StatelessWidget {
         Icons.hourglass_empty,
       ),
       PaymentStatus.succeeded => (
-        'Payment simulated: SUCCESS. Booking intent created.',
+        'Payment simulated: SUCCESS. Confirming your demo booking.',
         _successGreen,
         Icons.check_circle,
       ),
@@ -252,7 +252,7 @@ class _StatusCard extends StatelessWidget {
         Icons.error_outline,
       ),
       PaymentStatus.unknown => (
-        'Unrecognized response. Reconcile by request ID before retrying.',
+        'The simulation result was unclear. No booking was created yet.',
         Colors.black54,
         Icons.help_outline,
       ),

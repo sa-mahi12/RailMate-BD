@@ -65,13 +65,20 @@ class AuthState extends ChangeNotifier {
 
   /// Restores the persisted session on startup and subscribes to
   /// auth-state changes. Safe to call once from app bootstrap.
+  ///
+  /// A failed restore (no stored session, expired token, offline boot)
+  /// lands on [AuthStatus.unauthenticated] WITHOUT an error message: the
+  /// gate routes signed-out users correctly, and raw backend text must
+  /// never pollute [errorMessage].
   Future<void> restore() async {
     _setStatus(AuthStatus.authenticating);
     try {
       final AuthUser? restored = await repository.restoreSession();
       _applyUser(restored);
-    } catch (e) {
-      _fail('Could not restore session: $e');
+    } catch (_) {
+      _user = null;
+      _errorMessage = '';
+      _setStatus(AuthStatus.unauthenticated);
     }
     _subscription ??= repository.authStateChanges().listen(_applyUser);
   }
@@ -123,7 +130,7 @@ class AuthState extends ChangeNotifier {
       _errorMessage = '';
       _setStatus(AuthStatus.unauthenticated);
     } catch (e) {
-      _fail('Logout failed: $e');
+      _fail(_publicAuthError(e, fallback: "Couldn't sign you out."));
     }
   }
 
@@ -167,10 +174,10 @@ class AuthState extends ChangeNotifier {
       );
       _applyUser(confirmed);
       if (confirmed == null) {
-        _fail('Verification returned no session. Try resending the code.');
+        _fail('Verification returned no session. Resend the email and retry.');
       }
     } catch (e) {
-      _fail('Verification failed: $e');
+      _fail(_publicAuthError(e, fallback: 'Email verification failed.'));
     }
   }
 
@@ -185,7 +192,8 @@ class AuthState extends ChangeNotifier {
       _setStatus(AuthStatus.unauthenticated);
       return true;
     } catch (e) {
-      _fail('Could not send the reset email: $e');
+      // Neutral wording: never reveal whether the address has an account.
+      _fail(_publicAuthError(e, fallback: 'Could not send the reset email.'));
       return false;
     }
   }
@@ -202,7 +210,14 @@ class AuthState extends ChangeNotifier {
       _applyUser(refreshed);
       return true;
     } catch (e) {
-      _fail('Could not update the password: $e');
+      _fail(
+        _publicAuthError(
+          e,
+          fallback:
+              "Couldn't update the password. The link may have expired — "
+              'request a new one.',
+        ),
+      );
       return false;
     }
   }
@@ -248,6 +263,10 @@ class AuthState extends ChangeNotifier {
         text.contains('Network is unreachable') ||
         text.contains('Failed host lookup')) {
       return 'Network error — check your connection and retry.';
+    }
+    if (text.contains('expired') || text.contains('invalid token')) {
+      return 'This link or code has expired. '
+          'Resend it and try the newest one.';
     }
     if (text.contains('unexpected_failure') ||
         text.contains('Database error') ||

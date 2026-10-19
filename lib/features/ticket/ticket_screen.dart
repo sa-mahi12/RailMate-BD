@@ -468,11 +468,12 @@ class _TicketDownloadButtonState extends State<_TicketDownloadButton> {
           ),
         ),
       );
-    } catch (e) {
+    } catch (_) {
+      // Consumer gate: raw errors (and stack traces) never reach the UI.
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Could not build the demo PDF: $e'),
+          content: const Text("Couldn't build the demo PDF. Try again."),
           action: SnackBarAction(label: 'Retry', onPressed: _download),
         ),
       );

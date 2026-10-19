@@ -141,9 +141,25 @@ class GuideDetailScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(AppSpacing.s12),
               ),
               alignment: Alignment.center,
-              child: const Text(
-                'Hero photo placeholder (local only)',
-                style: TextStyle(color: Colors.grey, fontSize: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  const Icon(
+                    Icons.train_outlined,
+                    size: 44,
+                    color: _primaryTeal,
+                  ),
+                  const SizedBox(width: AppSpacing.s12),
+                  Text(
+                    guide.stationCode,
+                    style: const TextStyle(
+                      color: _primaryTeal,
+                      fontSize: 36,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: AppSpacing.s12),

@@ -146,9 +146,10 @@ class PhoneAuthRepository {
           'Too many attempts. Please wait a little while before trying again.',
         );
       }
-      throw PhoneAuthException(
+      // Consumer gate: never interpolate the raw backend error.
+      throw const PhoneAuthException(
         PhoneAuthErrorKind.network,
-        'Could not send the code. Check your connection and try again. ($e)',
+        'Could not send the code. Check your connection and try again.',
       );
     }
   }
@@ -177,9 +178,10 @@ class PhoneAuthRepository {
           'Too many attempts. Please wait a little while before trying again.',
         );
       }
-      throw PhoneAuthException(
+      // Consumer gate: never interpolate the raw backend error.
+      throw const PhoneAuthException(
         PhoneAuthErrorKind.network,
-        'Verification failed. Check your connection and try again. ($e)',
+        "That code didn't work. Check it and try again.",
       );
     }
   }

@@ -107,18 +107,19 @@ Future<Map<String, dynamic>> ioGraphqlSender(
       final dynamic decoded = jsonDecode(text);
       if (decoded is Map<String, dynamic>) return decoded;
       throw GraphqlMalformedError('GraphQL response body is not a JSON object');
-    } on FormatException catch (e) {
-      throw GraphqlMalformedError('GraphQL response is not valid JSON: $e');
+    } on FormatException {
+      // Consumer gate: never interpolate the raw backend error.
+      throw GraphqlMalformedError('GraphQL response is not valid JSON.');
     }
   } on TimeoutException {
     throw const GraphqlNetworkError(
       'GraphQL request timed out',
       isTimeout: true,
     );
-  } on SocketException catch (e) {
-    throw GraphqlNetworkError('GraphQL request failed: $e');
-  } on HttpException catch (e) {
-    throw GraphqlNetworkError('GraphQL request failed: $e');
+  } on SocketException {
+    throw GraphqlNetworkError('GraphQL request failed.');
+  } on HttpException {
+    throw GraphqlNetworkError('GraphQL request failed.');
   } finally {
     httpClient.close();
   }
@@ -184,10 +185,11 @@ class StationGraphqlClient {
         'GraphQL request timed out',
         isTimeout: true,
       );
-    } catch (e) {
+    } catch (_) {
       // A fake sender surfacing a raw transport failure still counts as a
-      // network error, never as malformed or empty.
-      throw GraphqlNetworkError('GraphQL request failed: $e');
+      // network error, never as malformed or empty. The raw text is never
+      // interpolated (consumer gate).
+      throw GraphqlNetworkError('GraphQL request failed.');
     }
 
     final dynamic errors = decoded['errors'];
@@ -199,10 +201,9 @@ class StationGraphqlClient {
           else
             entry.toString(),
       ];
-      throw GraphqlResponseError(
-        'GraphQL query returned errors: ${messages.join('; ')}',
-        messages,
-      );
+      // The server messages stay in [GraphqlResponseError.errors] for logs;
+      // the user-facing message is static (consumer gate).
+      throw GraphqlResponseError('GraphQL query returned errors.', messages);
     }
 
     final dynamic data = decoded['data'];

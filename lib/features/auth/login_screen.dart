@@ -14,6 +14,7 @@ import 'auth_state.dart';
 import 'auth_theme.dart';
 import 'forgot_password_screen.dart';
 import 'register_screen.dart';
+import 'username/username_availability.dart';
 import 'verify_screen.dart';
 
 /// Email login screen.
@@ -21,10 +22,14 @@ class LoginScreen extends StatefulWidget {
   /// Shared session state driving login and post-login routing.
   final AuthState auth;
 
+  /// Live username availability checker forwarded to [RegisterScreen] so
+  /// the signup link keeps the real availability field.
+  final UsernameAvailabilityChecker? usernameChecker;
+
   /// Route name for guard-friendly navigation.
   static const String routeName = '/login';
 
-  const LoginScreen({super.key, required this.auth});
+  const LoginScreen({super.key, required this.auth, this.usernameChecker});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -81,7 +86,10 @@ class _LoginScreenState extends State<LoginScreen> {
   void _goRegister() {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(
-        builder: (_) => RegisterScreen(auth: widget.auth),
+        builder: (_) => RegisterScreen(
+          auth: widget.auth,
+          usernameChecker: widget.usernameChecker,
+        ),
       ),
     );
   }

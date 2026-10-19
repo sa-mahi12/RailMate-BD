@@ -26,6 +26,13 @@ Trip demoTrip(String id, String name) => Trip.fromMap({
   'active': true,
 });
 
+/// Tomorrow's calendar date: search validation rejects past dates, and these
+/// cases are about repository outcomes, not a fixed fixture day.
+DateTime tomorrow() {
+  final now = DateTime.now();
+  return DateTime(now.year, now.month, now.day).add(const Duration(days: 1));
+}
+
 class FakeSearchApi implements SearchApi {
   FakeSearchApi({this.trips = const [], this.error, this.searchCalls = 0});
 
@@ -58,7 +65,7 @@ void main() {
     await state.loadStations();
     state.selectOrigin(dhaka);
     state.selectDestination(khulna);
-    state.selectDate(DateTime(2026, 10, 15));
+    state.selectDate(tomorrow());
     await state.search();
     expect(state.status, SearchStatus.loaded);
     expect(state.results.length, 2);
@@ -72,7 +79,7 @@ void main() {
     await state.loadStations();
     state.selectOrigin(dhaka);
     state.selectDestination(khulna);
-    state.selectDate(DateTime(2026, 10, 15));
+    state.selectDate(tomorrow());
     await state.search();
     expect(state.status, SearchStatus.loaded);
     expect(state.isEmpty, isTrue);
@@ -88,7 +95,7 @@ void main() {
     await state.loadStations();
     state.selectOrigin(dhaka);
     state.selectDestination(khulna);
-    state.selectDate(DateTime(2026, 10, 15));
+    state.selectDate(tomorrow());
     await state.search();
     expect(state.status, SearchStatus.error);
     expect(state.errorKind, SearchErrorKind.timeout);

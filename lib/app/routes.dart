@@ -6,7 +6,6 @@ import '../features/auth/auth_callback_screen.dart';
 import '../features/auth/forgot_password_screen.dart';
 import '../features/auth/login_screen.dart';
 import '../features/auth/register_screen.dart';
-import '../features/auth/username/username_availability.dart';
 import '../features/auth/welcome_screen.dart';
 import '../features/booking/passenger_ui/booking_review_screen.dart';
 import '../features/booking/passenger_ui/passenger.dart';
@@ -98,7 +97,10 @@ abstract final class AppRoutes {
         }
         return MaterialPageRoute<void>(
           settings: settings,
-          builder: (_) => WelcomeScreen(auth: dependencies.auth),
+          builder: (_) => WelcomeScreen(
+            auth: dependencies.auth,
+            usernameChecker: dependencies.usernameChecker,
+          ),
         );
       case login:
         if (dependencies == null) {
@@ -106,7 +108,10 @@ abstract final class AppRoutes {
         }
         return MaterialPageRoute<void>(
           settings: settings,
-          builder: (_) => LoginScreen(auth: dependencies.auth),
+          builder: (_) => LoginScreen(
+            auth: dependencies.auth,
+            usernameChecker: dependencies.usernameChecker,
+          ),
         );
       case register:
         if (dependencies == null) {
@@ -115,21 +120,12 @@ abstract final class AppRoutes {
         // Live availability only when a backend client exists (production);
         // test compositions get the format-gated field (server unique
         // constraint still arbiterates at signup).
-        final UsernameAvailabilityChecker? checker = dependencies.client == null
-            ? null
-            : UsernameAvailabilityChecker(
-                existsQuery: (String normalized) async {
-                  final UsernameAvailability verdict = await dependencies
-                      .checkUsername(normalized);
-                  if (verdict == UsernameAvailability.taken) return true;
-                  if (verdict == UsernameAvailability.available) return false;
-                  throw StateError('Username check inconclusive ($verdict).');
-                },
-              );
         return MaterialPageRoute<void>(
           settings: settings,
-          builder: (_) =>
-              RegisterScreen(auth: dependencies.auth, usernameChecker: checker),
+          builder: (_) => RegisterScreen(
+            auth: dependencies.auth,
+            usernameChecker: dependencies.usernameChecker,
+          ),
         );
       case forgotPassword:
         if (dependencies == null) {

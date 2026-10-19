@@ -30,7 +30,6 @@ class GuideWebViewScreen extends StatefulWidget {
 class _GuideWebViewScreenState extends State<GuideWebViewScreen> {
   late final WebViewController _controller;
   bool _loadFailed = false;
-  String _failureDetail = '';
 
   /// True once the page reports it finished loading; drives the 220 ms fade
   /// (motion matrix: "WebView | loaded | opacity | 220 ms | reduced: instant").
@@ -60,10 +59,9 @@ class _GuideWebViewScreenState extends State<GuideWebViewScreen> {
             // offline message. Sub-resource CDN failures are handled by
             // the page itself; only surface main-frame errors here.
             if (error.isForMainFrame ?? false) {
-              setState(() {
-                _loadFailed = true;
-                _failureDetail = error.description;
-              });
+              // Consumer gate: the platform error description never reaches
+              // the UI — the offline message below is the whole story.
+              setState(() => _loadFailed = true);
             }
           },
         ),
@@ -74,13 +72,11 @@ class _GuideWebViewScreenState extends State<GuideWebViewScreen> {
   Future<void> _loadGuide() async {
     try {
       await _controller.loadFlutterAsset(guideAssetPath);
-    } catch (e) {
+    } catch (_) {
       // e.g. web-guide/ assets not yet registered in pubspec.yaml.
+      // Consumer gate: the raw error never reaches the UI.
       if (mounted) {
-        setState(() {
-          _loadFailed = true;
-          _failureDetail = e.toString();
-        });
+        setState(() => _loadFailed = true);
       }
     }
   }
@@ -88,7 +84,6 @@ class _GuideWebViewScreenState extends State<GuideWebViewScreen> {
   void _retry() {
     setState(() {
       _loadFailed = false;
-      _failureDetail = '';
       _pageLoaded = false;
     });
     _loadGuide();
@@ -142,14 +137,6 @@ class _GuideWebViewScreenState extends State<GuideWebViewScreen> {
               'previous screen. DEMONSTRATION ONLY.',
               textAlign: TextAlign.center,
             ),
-            if (_failureDetail.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(
-                _failureDetail,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-            ],
             const SizedBox(height: 16),
             FilledButton(onPressed: _retry, child: const Text('Retry')),
           ],

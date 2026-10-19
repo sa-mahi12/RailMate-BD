@@ -280,6 +280,7 @@ class AppGateState extends State<AppGate> {
       AppGatePhase.welcome => WelcomeScreen(
         key: const ValueKey<String>('gate-welcome'),
         auth: widget.dependencies.auth,
+        usernameChecker: widget.dependencies.usernameChecker,
       ),
       AppGatePhase.needsVerification => VerifyScreen(
         auth: widget.dependencies.auth,

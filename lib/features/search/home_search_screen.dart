@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../app/routes.dart';
 import '../../design/design.dart';
 import '../auth/auth_repository.dart' show AuthUser;
 import '../auth/auth_state.dart';
@@ -118,13 +119,10 @@ class _HomeSearchScreenState extends State<HomeSearchScreen> {
       widget.onStationGuideTap!();
       return;
     }
-    try {
-      Navigator.pushNamed(context, 'station-guide');
-    } catch (_) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Station Guide is coming in I01.')),
-      );
-    }
+    // Standalone/test fallback: route to the real guide (no milestone
+    // codes, no dead end). The name is covered by the route table, so no
+    // error screen and no snackbar fallback are needed.
+    Navigator.pushNamed(context, AppRoutes.guide);
   }
 
   Future<void> _submit(BuildContext context) async {

@@ -239,7 +239,7 @@ void main() {
       expect(find.text('DAC$arrow KHL'), findsOneWidget);
       expect(find.text('A1B2C3D4'), findsOneWidget);
       expect(find.textContaining('Sundarban Express'), findsOneWidget);
-      expect(find.text('View ticket / details'), findsOneWidget);
+      expect(find.text('View my bookings'), findsOneWidget);
       expect(find.textContaining('not valid for travel'), findsOneWidget);
     });
 

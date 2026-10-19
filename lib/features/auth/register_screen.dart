@@ -115,7 +115,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   void _goLogin() {
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(builder: (_) => LoginScreen(auth: widget.auth)),
+      MaterialPageRoute<void>(
+        builder: (_) => LoginScreen(
+          auth: widget.auth,
+          usernameChecker: widget.usernameChecker,
+        ),
+      ),
     );
   }
 

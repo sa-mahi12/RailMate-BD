@@ -300,7 +300,7 @@ class _BookingCard extends StatelessWidget {
     final statusLabel = switch (booking.status) {
       BookingStatus.confirmed => 'Confirmed',
       BookingStatus.cancelled => 'Cancelled',
-      BookingStatus.unknown => 'Unavailable',
+      BookingStatus.unknown => 'Status unknown',
     };
     final statusColor = switch (booking.status) {
       BookingStatus.confirmed => _primaryTeal,

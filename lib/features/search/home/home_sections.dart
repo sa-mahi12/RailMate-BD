@@ -746,7 +746,7 @@ class _UpcomingBookingSectionState extends State<UpcomingBookingSection> {
                         borderRadius: AppRadii.buttonRadius,
                       ),
                     ),
-                    child: const Text('View ticket / details'),
+                    child: const Text('View my bookings'),
                   ),
                 ],
               ],

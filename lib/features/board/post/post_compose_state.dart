@@ -168,8 +168,9 @@ class PostComposeState extends ChangeNotifier {
         return true;
       }
       return await linkUploadedImage(updateRow: link);
-    } catch (e) {
-      errorMessage = e.toString();
+    } catch (_) {
+      // Consumer gate: the raw backend error never reaches the UI.
+      errorMessage = "Couldn't publish. Check your connection and retry.";
       return false;
     } finally {
       submitting = false;
@@ -244,8 +245,9 @@ class PostComposeState extends ChangeNotifier {
       errorMessage = null;
       notifyListeners();
       return true;
-    } catch (e) {
-      errorMessage = e.toString();
+    } catch (_) {
+      // Consumer gate: the raw backend error never reaches the UI.
+      errorMessage = "Couldn't delete the post. Please try again.";
       notifyListeners();
       return false;
     }

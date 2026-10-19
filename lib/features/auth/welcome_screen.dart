@@ -12,6 +12,7 @@ import 'auth_state.dart';
 import 'auth_theme.dart';
 import 'login_screen.dart';
 import 'register_screen.dart';
+import 'username/username_availability.dart';
 
 /// Entry screen of the auth slice.
 ///
@@ -21,20 +22,31 @@ class WelcomeScreen extends StatelessWidget {
   /// Shared session state passed to login/register screens.
   final AuthState auth;
 
+  /// Live username availability checker forwarded to [RegisterScreen] so the
+  /// signup route from Welcome keeps the real availability field.
+  final UsernameAvailabilityChecker? usernameChecker;
+
   /// Route name for guard-friendly navigation.
   static const String routeName = '/welcome';
 
-  const WelcomeScreen({super.key, required this.auth});
+  const WelcomeScreen({super.key, required this.auth, this.usernameChecker});
 
   void _goLogin(BuildContext context) {
-    Navigator.of(context)
-        .push(MaterialPageRoute<void>(builder: (_) => LoginScreen(auth: auth)));
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) =>
+            LoginScreen(auth: auth, usernameChecker: usernameChecker),
+      ),
+    );
   }
 
   void _goRegister(BuildContext context) {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute<void>(builder: (_) => RegisterScreen(auth: auth)));
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) =>
+            RegisterScreen(auth: auth, usernameChecker: usernameChecker),
+      ),
+    );
   }
 
   @override

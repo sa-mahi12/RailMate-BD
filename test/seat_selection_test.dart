@@ -82,6 +82,8 @@ void main() {
     );
     await e.load();
     expect(e.status, SeatSelectionStatus.error);
-    expect(e.errorMessage, contains('offline'));
+    // Consumer gate: the raw failure never reaches errorMessage.
+    expect(e.errorMessage, isNot(contains('offline')));
+    expect(e.errorMessage, contains('Could not load seats'));
   });
 }

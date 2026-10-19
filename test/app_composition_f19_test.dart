@@ -441,7 +441,7 @@ void main() {
       expect(succeededCalls, 1);
       expect(payment.status, PaymentStatus.succeeded);
       expect(
-        find.text('Payment simulated: SUCCESS. Booking intent created.'),
+        find.text('Payment simulated: SUCCESS. Confirming your demo booking.'),
         findsOneWidget,
       );
     });

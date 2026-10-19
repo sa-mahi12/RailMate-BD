@@ -19,6 +19,7 @@ import '../features/profile/profile_screen.dart';
 import '../features/search/home/recent_searches_store.dart';
 import '../features/search/home/upcoming_booking.dart';
 import '../features/search/home_search_screen.dart';
+import '../features/search/models/station.dart';
 import '../features/search/models/trip.dart';
 import '../features/search/search_date_utils.dart';
 import '../features/search/search_state.dart';
@@ -52,6 +53,10 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   int _index = 0;
+
+  /// Guards the one-shot booking submit: a second `onSucceeded` (for example
+  /// from a duplicated payment event) can never issue a second booking call.
+  bool _bookingSubmitInFlight = false;
 
   final List<GlobalKey<NavigatorState>> _keys =
       List<GlobalKey<NavigatorState>>.generate(
@@ -192,30 +197,56 @@ class _HomeShellState extends State<HomeShell> {
   /// on an explicit error screen — a ticket is never fabricated.
   /// P10 seam: the next upcoming booking for the Home card.
   ///
-  /// Returns `null` (which the card renders as its honest "no upcoming
-  /// booking" empty state) until a trip-lookup seam exists. `BookingSummary`
-  /// carries only `id`/`userId`/`tripId`/`status`/`totalFareBdt` — no origin,
-  /// destination or departure time — and the search repository has no
-  /// get-trip-by-id. Building a route card would mean inventing journey
-  /// details, which this app never does.
-  ///
-  /// Next action (P13 follow-up): add `fetchTripById` to the search
-  /// repository (plain REST read of an already-RLS-covered table) and map the
-  /// resolved trip here.
+  /// Reads the signed-in user's own booking rows, resolves the earliest
+  /// still-upcoming trip (departure after now) plus its station labels and
+  /// seat codes, and maps them onto [UpcomingBooking]. Returns null only when
+  /// there is genuinely no upcoming booking; transport/query failures
+  /// propagate so the card renders its honest load-failure state instead of
+  /// claiming "no bookings".
   Future<UpcomingBooking?> _loadNextUpcomingBooking(String uid) async {
-    try {
-      final rows = await widget.dependencies.historyFor(uid).listOwned(uid);
-      if (rows.any((BookingSummary b) => b.isActive)) {
-        debugPrint(
-          'P10: active booking found for $uid, but no trip lookup is wired yet; '
-          'rendering the honest empty state.',
-        );
-      }
-      return null;
-    } catch (e) {
-      debugPrint('P10: upcoming booking lookup failed: $e');
-      return null;
+    final rows = await widget.dependencies.historyFor(uid).listOwned(uid);
+    final active = rows.where((BookingSummary b) => b.isActive).toList();
+    if (active.isEmpty) return null;
+
+    final DateTime now = DateTime.now();
+    final candidates = <({BookingSummary booking, Trip trip})>[];
+    for (final BookingSummary booking in active) {
+      final Trip? trip = await widget.dependencies.fetchTripById(
+        booking.tripId,
+      );
+      if (trip == null || !trip.active) continue;
+      if (!trip.departureAt.isAfter(now)) continue;
+      candidates.add((booking: booking, trip: trip));
     }
+    if (candidates.isEmpty) return null;
+    candidates.sort((a, b) => a.trip.departureAt.compareTo(b.trip.departureAt));
+
+    final next = candidates.first;
+    final Station? origin = await widget.dependencies.fetchStationById(
+      next.trip.originStationId,
+    );
+    final Station? destination = await widget.dependencies.fetchStationById(
+      next.trip.destinationStationId,
+    );
+    final List<String> seatCodes = await widget.dependencies
+        .fetchBookingSeatCodes(next.booking.id);
+
+    return UpcomingBooking(
+      reference: displayReferenceForBookingId(next.booking.id),
+      originLabel: _stationLabel(origin),
+      destinationLabel: _stationLabel(destination),
+      serviceLabel: next.trip.trainName,
+      departureAt: next.trip.departureAt,
+      arrivalAt: next.trip.arrivalAt,
+      seatCodes: seatCodes,
+    );
+  }
+
+  /// Station name for a journey label; falls back to its code, then `--`.
+  static String _stationLabel(Station? station) {
+    if (station == null) return '--';
+    if (station.name.trim().isNotEmpty) return station.name.trim();
+    return station.code;
   }
 
   void _openSeatSelection({required int tab, required Trip trip}) {
@@ -302,8 +333,13 @@ class _HomeShellState extends State<HomeShell> {
                           formState: form,
                           paymentState: paymentState,
                           onSucceeded: () async {
+                            if (_bookingSubmitInFlight) return;
+                            _bookingSubmitInFlight = true;
                             final nav = _keys[tab].currentState;
-                            if (nav == null) return;
+                            if (nav == null) {
+                              _bookingSubmitInFlight = false;
+                              return;
+                            }
                             // Captured before any await: the failure path
                             // below runs after awaits and must not touch a
                             // context across the gap.
@@ -334,11 +370,11 @@ class _HomeShellState extends State<HomeShell> {
                                     // id on a ticket) and format the
                                     // departure for humans (never ISO-8601).
                                     fromLabel:
-                                        '${_searchState.stationCode(trip.originStationId)} · ${_searchState.stationName(trip.originStationId)}',
+                                        '${_searchState.stationCode(trip.originStationId)} — ${_searchState.stationName(trip.originStationId)}',
                                     toLabel:
-                                        '${_searchState.stationCode(trip.destinationStationId)} · ${_searchState.stationName(trip.destinationStationId)}',
+                                        '${_searchState.stationCode(trip.destinationStationId)} — ${_searchState.stationName(trip.destinationStationId)}',
                                     departLabel:
-                                        '${formatJourneyDate(trip.departureAt)} · ${formatTime12(trip.departureAt)}',
+                                        '${formatJourneyDate(trip.departureAt)} — ${formatTime12(trip.departureAt)}',
                                   ),
                                 ),
                               );
@@ -357,6 +393,8 @@ class _HomeShellState extends State<HomeShell> {
                               messenger.showSnackBar(
                                 SnackBar(content: Text(e.message)),
                               );
+                            } finally {
+                              _bookingSubmitInFlight = false;
                             }
                           },
                         ),

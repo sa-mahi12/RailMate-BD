@@ -84,7 +84,8 @@ class SupabaseSearchApi implements SearchApi {
       throw const NetworkError('Station request timed out', isTimeout: true);
     } catch (e) {
       if (e is NetworkError) rethrow;
-      throw NetworkError('Station request failed: $e');
+      // Consumer gate: the raw backend error never reaches the UI.
+      throw const NetworkError('Station list unavailable. Check connection.');
     }
   }
 
@@ -121,7 +122,8 @@ class SupabaseSearchApi implements SearchApi {
       throw const NetworkError('Trip search timed out', isTimeout: true);
     } catch (e) {
       if (e is NetworkError || e is EmptyResult) rethrow;
-      throw NetworkError('Trip search failed: $e');
+      // Consumer gate: the raw backend error never reaches the UI.
+      throw const NetworkError('Trip search failed. Check connection.');
     }
   }
 }
