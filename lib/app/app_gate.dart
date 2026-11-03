@@ -285,6 +285,7 @@ class AppGateState extends State<AppGate> {
       AppGatePhase.needsVerification => VerifyScreen(
         auth: widget.dependencies.auth,
         email: widget.dependencies.auth.user?.email ?? '',
+        phoneState: widget.dependencies.phoneState,
       ),
       AppGatePhase.home => HomeShell(dependencies: widget.dependencies),
     };

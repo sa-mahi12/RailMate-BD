@@ -12,8 +12,11 @@
 /// dormant for future custom-SMTP/template support; no production UI calls
 /// it today.
 ///
-/// Phone OTP is the A03 lane and is email-verification state only here: the
-/// phone fallback button explains that and does not start any phone flow.
+/// Phone OTP is the A03 lane. Production passes a real [PhoneState] (backed by
+/// the Supabase adapter), so the fallback button opens the actual
+/// [PhoneVerifyScreen]: a real code request, a real 6-digit verify and honest
+/// provider errors. When no state is injected (hermetic widget tests) the
+/// button explains that the phone lane is unavailable in that build.
 ///
 /// V4 P08 polish (behavior unchanged): one-shot [FadeSlideIn] entrances and
 /// [AnimatedSwap] on the error/info messages and the re-check button's busy
@@ -28,6 +31,8 @@ import 'package:flutter/material.dart';
 import '../../design/design.dart';
 import 'auth_state.dart';
 import 'auth_theme.dart';
+import 'phone/phone_state.dart';
+import 'phone/phone_verify_screen.dart';
 
 /// Email confirmation screen shown after registration (or on login with an
 /// unconfirmed email).
@@ -38,10 +43,19 @@ class VerifyScreen extends StatefulWidget {
   /// Address the confirmation email was sent to.
   final String email;
 
+  /// Optional phone lane state. Production injects the composed real state;
+  /// null (tests only) keeps the button honest about the lane being absent.
+  final PhoneState? phoneState;
+
   /// Route name for guard-friendly navigation.
   static const String routeName = '/verify';
 
-  const VerifyScreen({super.key, required this.auth, required this.email});
+  const VerifyScreen({
+    super.key,
+    required this.auth,
+    required this.email,
+    this.phoneState,
+  });
 
   @override
   State<VerifyScreen> createState() => _VerifyScreenState();
@@ -123,14 +137,32 @@ class _VerifyScreenState extends State<VerifyScreen> {
     }
   }
 
-  void _phoneFallback() {
-    showDialog<void>(
+  Future<void> _phoneFallback() async {
+    final PhoneState? phones = widget.phoneState;
+    if (phones != null) {
+      await Navigator.of(context).push<bool>(
+        MaterialPageRoute<bool>(
+          builder: (BuildContext context) => PhoneVerifyScreen(phones: phones),
+        ),
+      );
+      if (!mounted) return;
+      if (phones.isPhoneVerified) {
+        setState(
+          () => _infoMessage =
+              'Phone number verified. You can keep using this account.',
+        );
+      }
+      return;
+    }
+    // No phone lane in this composition (hermetic tests / unwired host).
+    // Never pretend a code was sent.
+    await showDialog<void>(
       context: context,
       builder: (BuildContext context) => AlertDialog(
         title: const Text('Verify with Phone Number'),
         content: const Text(
-          'Phone OTP verification arrives in a later release '
-          '(A03 lane). Please verify your email address for now.',
+          'Phone verification is not available in this build. '
+          'Please verify your email address.',
         ),
         actions: <Widget>[
           TextButton(
@@ -275,8 +307,7 @@ class _VerifyScreenState extends State<VerifyScreen> {
                         ),
                         const SizedBox(height: 8),
                         const Text(
-                          "We'll send a 6-digit code to your mobile number "
-                          'in a later release.',
+                          "We'll send a 6-digit code to your mobile number.",
                           style: TextStyle(color: kAuthHint, fontSize: 12),
                           textAlign: TextAlign.center,
                         ),

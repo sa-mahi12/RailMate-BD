@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../design/design.dart';
 import '../../../design/state/state.dart';
 import '../post/relative_time.dart';
 import 'comment.dart';
+import 'comment_subscription.dart';
 import 'comment_thread.dart';
 
 /// Per-post comments section for one Journey Board feed card.
@@ -27,6 +30,13 @@ import 'comment_thread.dart';
 /// * Backend failures surface as one plain sentence with Retry. Raw
 ///   exception text (`mutationError`) is never printed.
 /// * Deleting your own comment asks for confirmation first.
+/// * With [realtime] wired (production: one shared `public.post_comments`
+///   channel mapped by the composition root), another traveller's insert or
+///   delete is merged into an ALREADY LOADED thread without a manual
+///   refresh. Events for other posts are ignored; the section's own insert
+///   dedupes by row id, so a realtime echo never appears twice. Before the
+///   first load nothing is merged (the count is never guessed); [load]
+///   remains the only initial reader.
 class CommentSection extends StatefulWidget {
   /// Parent post id. All rows belong to this post.
   final String postId;
@@ -39,6 +49,10 @@ class CommentSection extends StatefulWidget {
   final AddCommentRow addComment;
   final DeleteCommentRow deleteComment;
 
+  /// Optional cross-client change stream for `public.post_comments`.
+  /// Null keeps the previous non-live behaviour (load/refresh only).
+  final Stream<CommentRealtimeEvent>? realtime;
+
   const CommentSection({
     super.key,
     required this.postId,
@@ -46,6 +60,7 @@ class CommentSection extends StatefulWidget {
     required this.fetchComments,
     required this.addComment,
     required this.deleteComment,
+    this.realtime,
   });
 
   @override
@@ -58,13 +73,57 @@ class _CommentSectionState extends State<CommentSection> {
     fetchComments: widget.fetchComments,
   );
   final TextEditingController _composer = TextEditingController();
+  StreamSubscription<CommentRealtimeEvent>? _realtimeSub;
   bool _expanded = false;
 
   bool get _signedIn =>
       widget.currentUserId != null && widget.currentUserId!.isNotEmpty;
 
   @override
+  void initState() {
+    super.initState();
+    _listenRealtime();
+  }
+
+  @override
+  void didUpdateWidget(CommentSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.realtime != widget.realtime) {
+      unawaited(_realtimeSub?.cancel());
+      _realtimeSub = null;
+      _listenRealtime();
+    }
+  }
+
+  /// Attaches to the injected cross-client change stream (if any). Every
+  /// event is filtered to this post: inserts carry `post_id`; deletes carry
+  /// only the row id (Postgres replica identity keeps the primary key), so a
+  /// delete applies only when this thread currently shows that id.
+  void _listenRealtime() {
+    final stream = widget.realtime;
+    if (stream == null) return;
+    _realtimeSub = stream.listen((CommentRealtimeEvent event) {
+      if (!mounted) return;
+      // Never merge into a thread that was never loaded: the first read is
+      // always the real query, so the count is never guessed from events.
+      if (_thread.status == CommentThreadStatus.idle) return;
+      switch (event.kind) {
+        case CommentEventKind.insert:
+          final Comment? row = event.comment;
+          if (row == null || row.postId != widget.postId) return;
+          _thread.applyRealtimeInsert(row);
+        case CommentEventKind.delete:
+          final String? id = event.commentId;
+          if (id == null || id.isEmpty) return;
+          _thread.applyRealtimeDelete(id);
+      }
+    });
+  }
+
+  @override
   void dispose() {
+    unawaited(_realtimeSub?.cancel());
+    _realtimeSub = null;
     _thread.dispose();
     _composer.dispose();
     super.dispose();

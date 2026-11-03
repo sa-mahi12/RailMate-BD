@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import '../../../design/design.dart';
 import '../../../design/state/state.dart';
 import '../comments/comment_section.dart';
+import '../comments/comment_subscription.dart';
 import '../comments/comment_thread.dart';
 import '../media/post_media.dart';
 import '../ratings/rating_state.dart';
+import '../reactions/reaction_realtime.dart';
 import '../reactions/reaction_state.dart';
 import 'post.dart';
 import 'post_engagement.dart';
@@ -98,6 +100,11 @@ class BoardFeedScreen extends StatelessWidget {
   /// aggregates read-only with a sign-in hint.
   final String? currentUserId;
 
+  /// Optional cross-client streams (one shared channel each, mapped by the
+  /// composition root). Null keeps every card non-live, exactly as before.
+  final Stream<CommentRealtimeEvent>? commentEvents;
+  final Stream<ReactionRealtimeEvent>? reactionEvents;
+
   const BoardFeedScreen({
     super.key,
     required this.feed,
@@ -113,6 +120,8 @@ class BoardFeedScreen extends StatelessWidget {
     this.addComment,
     this.deleteComment,
     this.currentUserId,
+    this.commentEvents,
+    this.reactionEvents,
   });
 
   /// True when the per-post engagement section can render for [post]: all
@@ -273,6 +282,7 @@ class BoardFeedScreen extends StatelessWidget {
                       fetchRatings: fetchRatings!,
                       upsertRating: upsertRating!,
                       deleteRating: deleteRating!,
+                      realtime: reactionEvents,
                     ),
                   ],
                   if (_commentsWired(post)) ...[
@@ -284,6 +294,7 @@ class BoardFeedScreen extends StatelessWidget {
                       fetchComments: fetchComments!,
                       addComment: addComment!,
                       deleteComment: deleteComment!,
+                      realtime: commentEvents,
                     ),
                   ],
                   const SizedBox(height: 8),

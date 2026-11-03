@@ -4,11 +4,14 @@
 /// enforces 6-digit codes and maps server rate-limit failures to
 /// [PhoneAuthErrorKind.rateLimited] so the UI can message them distinctly.
 ///
-/// SMS provider status: BLOCKED (predecessor S04 is not met — no SMS
-/// provider or budget approved). [SupabasePhoneOtpClient] holds the real
-/// `signInWithOtp`/`verifyOTP` wiring for use only after owner approval;
-/// until then callers inject [FakePhoneOtpClient], which sends nothing and
-/// must be labelled demo-only wherever it is surfaced.
+/// Production wiring (teacher final gate, 2026-11-03): the app composes
+/// [SupabasePhoneOtpClient] from the initialized client, so the Verify screen's
+/// phone action reaches a real server-backed OTP flow. Whether a live SMS is
+/// actually delivered still depends on the hosted Supabase project having an
+/// SMS provider configured (owner-side, Handoff 02); when it is not, the
+/// request fails with honest copy and never falls back to a fake token.
+/// [FakePhoneOtpClient] remains test/demo-only and is never composed in
+/// production.
 library;
 
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthUser;
@@ -76,6 +79,11 @@ class PhoneAuthRepository {
     required this.client,
     this.resendCooldown = kPhoneOtpResendCooldown,
   });
+
+  /// True when this repository is backed by the test/demo fake. Production
+  /// composition always uses [SupabasePhoneOtpClient], so UI surfaces use
+  /// this to decide whether a demo-only notice is honest.
+  bool get isDemo => client is FakePhoneOtpClient;
 
   /// Bangladeshi mobile in E.164: `+880 1X` + 8 digits, X in 3–9.
   static final RegExp _bdE164 = RegExp(r'^\+8801[3-9]\d{8}$');
@@ -189,26 +197,40 @@ class PhoneAuthRepository {
 
 /// Production [PhoneOtpClient] backed by `Supabase.instance.client.auth`.
 ///
-/// Uses `signInWithOtp(phone:)` and `verifyOTP(type: OtpType.sms, ...)`
-/// from `supabase_flutter` (^2.17.2, existing dependency) with the
-/// publishable (anon) key only — never a service-role key.
+/// Two supported Supabase flows, chosen by whether a session already exists:
 ///
-/// DO NOT USE until the S04 SMS provider/budget gate is lifted: calling
-/// [requestOtp] before then sends (or bills) a live SMS. Exact method
-/// signatures are per the pinned `supabase_flutter` API and have NOT been
-/// verified by a build (worker builds are forbidden); the coordinator must
-/// re-verify them before first live use.
+/// * Signed in (the normal Verify-screen case) — the number is *attached to
+///   the existing account*: `updateUser(UserAttributes(phone:))` sends the
+///   code and `verifyOTP(type: OtpType.phoneChange, phone:, token:)` confirms
+///   it. This never swaps the signed-in identity for a phone-only user.
+/// * No session — a genuine phone sign-in lane: `signInWithOtp(phone:)` sends
+///   the code and `verifyOTP(type: OtpType.sms, phone:, token:)` returns the
+///   session/user for that number.
+///
+/// Publishable (anon) key only — never a service-role key. No fake token, no
+/// fallback: if the hosted project has no SMS provider, the call fails and the
+/// screen shows honest copy. Live delivery is owner-side configuration.
 class SupabasePhoneOtpClient implements PhoneOtpClient {
   /// Supabase client. Defaults to the global instance initialized at app
   /// startup; injectable for tests that need a shaped client.
   final SupabaseClient supabase;
 
+  /// True when the pending code belongs to the `phone_change` flow (an OTP
+  /// for the currently signed-in account), false for the `sms` sign-in lane.
+  bool _changeFlow = false;
+
   SupabasePhoneOtpClient({SupabaseClient? supabase})
     : supabase = supabase ?? Supabase.instance.client;
 
   @override
-  Future<void> requestOtp(String phone) {
-    return supabase.auth.signInWithOtp(phone: phone);
+  Future<void> requestOtp(String phone) async {
+    if (supabase.auth.currentSession != null) {
+      await supabase.auth.updateUser(UserAttributes(phone: phone));
+      _changeFlow = true;
+    } else {
+      await supabase.auth.signInWithOtp(phone: phone);
+      _changeFlow = false;
+    }
   }
 
   @override
@@ -217,7 +239,7 @@ class SupabasePhoneOtpClient implements PhoneOtpClient {
     required String token,
   }) async {
     final AuthResponse response = await supabase.auth.verifyOTP(
-      type: OtpType.sms,
+      type: _changeFlow ? OtpType.phoneChange : OtpType.sms,
       token: token,
       phone: phone,
     );
@@ -237,11 +259,13 @@ class SupabasePhoneOtpClient implements PhoneOtpClient {
   }
 }
 
-/// In-memory [PhoneOtpClient] double for widget/unit tests and the demo UI.
+/// In-memory [PhoneOtpClient] double for widget/unit tests ONLY.
 ///
 /// Sends no SMS. [requestOtp] only counts requests (and can simulate a
 /// server 429 via [failRateLimitAfter]); [verifyOtp] accepts [demoCode].
-/// Always label surfaces using this fake as demo-only — never as live SMS.
+/// Never composed in production (`AppDependencies.create` uses
+/// [SupabasePhoneOtpClient]); surfaces that use this fake show a demo-only
+/// notice instead of claiming live SMS.
 class FakePhoneOtpClient implements PhoneOtpClient {
   /// Code accepted by [verifyOtp]. Defaults to a fixed demo value so tests
   /// and reviewers can drive the flow deterministically.

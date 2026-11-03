@@ -6,6 +6,8 @@ import '../core/supabase/supabase_client.dart';
 import '../features/ai/key/byok_vault.dart';
 import '../features/auth/auth_repository.dart';
 import '../features/auth/auth_state.dart';
+import '../features/auth/phone/phone_auth_repository.dart';
+import '../features/auth/phone/phone_state.dart';
 import '../features/auth/supabase_auth_client.dart';
 import '../features/auth/username/username_availability.dart';
 import '../features/board/comments/comment.dart';
@@ -53,11 +55,16 @@ class AppDependencies {
   /// Read-only pg_graphql station client.
   final StationGraphqlClient graphql;
 
+  /// Phone-OTP lane state (teacher final gate). Production composes the real
+  /// [SupabasePhoneOtpClient] adapter; only tests inject the fake.
+  final PhoneState phoneState;
+
   AppDependencies({
     this.client,
     required this.auth,
     required this.searchApi,
     required this.graphql,
+    required this.phoneState,
   });
 
   /// Production composition. Call only after
@@ -74,17 +81,26 @@ class AppDependencies {
         supabaseUrl: parts.url,
         anonKey: parts.anonKey,
       ),
+      // Real adapter: `updateUser(phone:)` + `verifyOTP(phoneChange)` when a
+      // session exists, `signInWithOtp` + SMS OTP otherwise. Never the fake.
+      phoneState: PhoneState(
+        repository: PhoneAuthRepository(
+          client: SupabasePhoneOtpClient(supabase: client),
+        ),
+      ),
     );
   }
 
   /// Test composition: no `Supabase.initialize` needed. [client] defaults
   /// to an unconnected instance (queries fail fast — tests assert error
-  /// paths or inject slice-level fakes, never real rows).
+  /// paths or inject slice-level fakes, never real rows). [phoneState]
+  /// defaults to the in-memory fake so widget tests never touch SMS.
   factory AppDependencies.test({
     required AuthState auth,
     required SearchApi searchApi,
     SupabaseClient? client,
     StationGraphqlClient? graphql,
+    PhoneState? phoneState,
   }) {
     return AppDependencies(
       client: client,
@@ -95,6 +111,11 @@ class AppDependencies {
           const StationGraphqlClient(
             supabaseUrl: 'http://localhost:54321',
             anonKey: 'test-anon-key',
+          ),
+      phoneState:
+          phoneState ??
+          PhoneState(
+            repository: PhoneAuthRepository(client: FakePhoneOtpClient()),
           ),
     );
   }

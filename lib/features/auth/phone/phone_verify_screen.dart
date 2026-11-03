@@ -7,10 +7,14 @@
 /// radius-10 inputs) and mirrors `verify_screen.dart` interaction patterns
 /// (paste-spread OTP boxes, digit-only input, focus traversal).
 ///
-/// Live SMS status: BLOCKED (S04 not met — no provider/budget). The screen
-/// drives only the injected [PhoneState] and shows a demo-only notice, so
-/// no tap here can send or claim a live SMS. On success it pops `true` via
-/// [Navigator] like the email verify screen.
+/// Live SMS status: the screen drives the injected [PhoneState]. In
+/// production that state is backed by [SupabasePhoneOtpClient], so Send Code
+/// makes a real `signInWithOtp` / `updateUser(phone:)` call and Verify submits
+/// the real 6-digit token. The demo notice is rendered ONLY when the injected
+/// state is the test fake ([PhoneState.isDemo]); a production build never
+/// advertises or accepts a fixed token. Live delivery needs an SMS provider on
+/// the hosted project (owner-side) — without it the request fails honestly.
+/// On success it pops `true` via [Navigator] like the email verify screen.
 ///
 /// Phone validation: Bangladeshi E.164 (`+880...`) enforced by
 /// [PhoneAuthRepository]; server rate limits surface distinctly from wrong
@@ -148,8 +152,8 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen> {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: <Widget>[
-                      const _DemoSmsNotice(),
-                      const SizedBox(height: 16),
+                      if (phones.isDemo) const _DemoSmsNotice(),
+                      if (phones.isDemo) const SizedBox(height: 16),
                       if (!phones.hasPendingCode) ...<Widget>[
                         _requestState(phones, busy),
                       ] else ...<Widget>[_verifyState(phones, busy)],
@@ -225,10 +229,13 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen> {
           ),
         ),
         const SizedBox(height: 8),
-        const Text(
-          'Bangladeshi numbers only (+880). Standard SMS rates would '
-          'apply once a provider is approved.',
-          style: TextStyle(color: kAuthHint, fontSize: 12),
+        Text(
+          phones.isDemo
+              ? 'Bangladeshi numbers only (+880). Demo build: no real SMS is '
+                    'sent.'
+              : 'Bangladeshi numbers only (+880). Standard SMS rates may '
+                    'apply.',
+          style: const TextStyle(color: kAuthHint, fontSize: 12),
           textAlign: TextAlign.center,
         ),
       ],

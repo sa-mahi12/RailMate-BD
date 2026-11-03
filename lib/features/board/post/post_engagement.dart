@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../design/design.dart';
@@ -5,6 +7,7 @@ import '../ratings/rating_state.dart';
 import '../ratings/star_row.dart';
 import '../reactions/reaction.dart';
 import '../reactions/reaction_bar.dart';
+import '../reactions/reaction_realtime.dart';
 import '../reactions/reaction_state.dart';
 import 'post.dart';
 
@@ -28,6 +31,12 @@ import 'post.dart';
 /// read) but render read-only — vote buttons disabled with the honest hint
 /// "Sign in to react or rate." Posts without an id render nothing (votes
 /// need a row id; a draft id never appears in the feed).
+///
+/// Cross-client live counts ([realtime] non-null): the composition root maps
+/// ONE `public.post_reactions` channel into [ReactionRealtimeEvent]s; this
+/// widget ignores other posts and, for its own post, re-runs the
+/// authoritative [ReactionState.refresh]. Counts are recomputed from rows, so
+/// an echoed own vote can cause one extra fetch but never a double count.
 class PostEngagement extends StatefulWidget {
   /// Post this section votes on ([post.id] selects the row set).
   final Post post;
@@ -45,6 +54,10 @@ class PostEngagement extends StatefulWidget {
   final UpsertRatingRow upsertRating;
   final DeleteRatingRow deleteRating;
 
+  /// Optional cross-client change stream for `public.post_reactions`.
+  /// Null keeps the previous behaviour (optimistic + own reconcile only).
+  final Stream<ReactionRealtimeEvent>? realtime;
+
   const PostEngagement({
     super.key,
     required this.post,
@@ -55,6 +68,7 @@ class PostEngagement extends StatefulWidget {
     required this.fetchRatings,
     required this.upsertRating,
     required this.deleteRating,
+    this.realtime,
   });
 
   @override
@@ -76,10 +90,13 @@ class _PostEngagementState extends State<PostEngagement> {
   bool get _signedIn =>
       widget.currentUserId != null && widget.currentUserId!.isNotEmpty;
 
+  StreamSubscription<ReactionRealtimeEvent>? _realtimeSub;
+
   @override
   void initState() {
     super.initState();
     _loadFor(widget.post.id);
+    _listenRealtime();
   }
 
   @override
@@ -88,6 +105,25 @@ class _PostEngagementState extends State<PostEngagement> {
     if (oldWidget.post.id != widget.post.id) {
       _loadFor(widget.post.id);
     }
+    if (oldWidget.realtime != widget.realtime) {
+      unawaited(_realtimeSub?.cancel());
+      _realtimeSub = null;
+      _listenRealtime();
+    }
+  }
+
+  /// Reconciles against the authoritative rows whenever ANOTHER client
+  /// changes a reaction on this post. Never increments a count directly.
+  void _listenRealtime() {
+    final stream = widget.realtime;
+    if (stream == null) return;
+    _realtimeSub = stream.listen((ReactionRealtimeEvent event) {
+      if (!mounted) return;
+      final postId = widget.post.id;
+      if (postId == null || postId.isEmpty) return;
+      if (!event.appliesTo(postId)) return;
+      unawaited(_reactions.refresh());
+    });
   }
 
   void _loadFor(String? postId) {
@@ -98,6 +134,8 @@ class _PostEngagementState extends State<PostEngagement> {
 
   @override
   void dispose() {
+    unawaited(_realtimeSub?.cancel());
+    _realtimeSub = null;
     _reactions.dispose();
     _ratings.dispose();
     super.dispose();

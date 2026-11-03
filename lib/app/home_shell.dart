@@ -5,10 +5,13 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 import '../design/design.dart';
+import '../features/board/comments/comment.dart';
+import '../features/board/comments/comment_subscription.dart';
 import '../features/board/post/post.dart';
 import '../features/board/post/post_feed_realtime.dart';
 import '../features/board/post/post_feed_state.dart';
 import '../features/board/post/feed_screen.dart';
+import '../features/board/reactions/reaction_realtime.dart';
 import '../features/booking/passenger_ui/passenger.dart';
 import '../features/booking/passenger_ui/passenger_form_state.dart';
 import '../features/booking/payment_ui/payment_state.dart';
@@ -79,6 +82,15 @@ class _HomeShellState extends State<HomeShell> {
   StreamController<BoardPostEvent>? _boardEvents;
   RealtimeChannel? _boardChannel;
 
+  /// Teacher final gate: one shared channel each for `post_comments` and
+  /// `post_reactions`, mapped into typed events and fanned out to the cards
+  /// that own the affected post. One channel per table (not per card) keeps
+  /// the subscription count constant and two-client behaviour deterministic.
+  StreamController<CommentRealtimeEvent>? _commentEvents;
+  RealtimeChannel? _commentChannel;
+  StreamController<ReactionRealtimeEvent>? _reactionEvents;
+  RealtimeChannel? _reactionChannel;
+
   @override
   void initState() {
     super.initState();
@@ -90,6 +102,8 @@ class _HomeShellState extends State<HomeShell> {
     // the honest empty state.
     unawaited(_boardFeed.load());
     _subscribeBoardRealtime();
+    _subscribeCommentRealtime();
+    _subscribeReactionRealtime();
   }
 
   /// Subscribes to `postgres_changes` on `public.posts` so inserts, updates
@@ -165,6 +179,117 @@ class _HomeShellState extends State<HomeShell> {
 
   void _onAuthChanged() {
     if (mounted) setState(() {});
+  }
+
+  /// Subscribes to `postgres_changes` on `public.post_comments` and fans the
+  /// mapped events out to every card. Null client (widget tests, unwired
+  /// hosts) means no channel and no synthetic rows.
+  void _subscribeCommentRealtime() {
+    final SupabaseClient? client = widget.dependencies.client;
+    if (client == null) return;
+    final StreamController<CommentRealtimeEvent> events =
+        StreamController<CommentRealtimeEvent>.broadcast();
+    _commentEvents = events;
+    final RealtimeChannel channel = client.channel('public:board-comments');
+    _commentChannel = channel;
+    channel
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'post_comments',
+          callback: (PostgresChangePayload payload) {
+            if (_commentChannel == null) return;
+            final CommentRealtimeEvent? event = _mapCommentPayload(payload);
+            if (event != null) events.add(event);
+          },
+        )
+        .subscribe();
+  }
+
+  /// Subscribes to `postgres_changes` on `public.post_reactions`; cards
+  /// reconcile their authoritative counts when their own post changes.
+  void _subscribeReactionRealtime() {
+    final SupabaseClient? client = widget.dependencies.client;
+    if (client == null) return;
+    final StreamController<ReactionRealtimeEvent> events =
+        StreamController<ReactionRealtimeEvent>.broadcast();
+    _reactionEvents = events;
+    final RealtimeChannel channel = client.channel('public:board-reactions');
+    _reactionChannel = channel;
+    channel
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'post_reactions',
+          callback: (PostgresChangePayload payload) {
+            if (_reactionChannel == null) return;
+            final ReactionRealtimeEvent? event = _mapReactionPayload(payload);
+            if (event != null) events.add(event);
+          },
+        )
+        .subscribe();
+  }
+
+  /// Maps one `post_comments` payload onto a typed event. Inserts carry the
+  /// full row; deletes carry only the primary key (`id`) because the table
+  /// keeps the default replica identity — the owning thread matches it
+  /// against the ids it already shows.
+  CommentRealtimeEvent? _mapCommentPayload(PostgresChangePayload payload) {
+    final String eventId = payload.commitTimestamp.toIso8601String();
+    switch (payload.eventType) {
+      case PostgresChangeEvent.insert:
+      case PostgresChangeEvent.update:
+        if (payload.newRecord.isEmpty) return null;
+        try {
+          final Comment row = Comment.fromMap(
+            Map<String, dynamic>.from(payload.newRecord),
+          );
+          if (row.id == null || row.id!.isEmpty || row.postId.isEmpty) {
+            return null;
+          }
+          return CommentRealtimeEvent(
+            eventId: '$eventId:${row.id}',
+            kind: CommentEventKind.insert,
+            comment: row,
+          );
+        } catch (_) {
+          return null;
+        }
+      case PostgresChangeEvent.delete:
+        final Object? id = payload.oldRecord['id'];
+        if (id == null) return null;
+        return CommentRealtimeEvent(
+          eventId: '$eventId:$id',
+          kind: CommentEventKind.delete,
+          commentId: id.toString(),
+        );
+      default:
+        return null;
+    }
+  }
+
+  /// Maps one `post_reactions` payload onto a typed event. The primary key is
+  /// (`post_id`, `user_id`), so both insert/update rows and delete old rows
+  /// always carry the affected post.
+  ReactionRealtimeEvent? _mapReactionPayload(PostgresChangePayload payload) {
+    final String eventId = payload.commitTimestamp.toIso8601String();
+    final Object? postId =
+        payload.newRecord['post_id'] ?? payload.oldRecord['post_id'];
+    if (postId == null || postId.toString().isEmpty) return null;
+    final Object? userId =
+        payload.newRecord['user_id'] ?? payload.oldRecord['user_id'] ?? '';
+    final ReactionRealtimeKind? kind = switch (payload.eventType) {
+      PostgresChangeEvent.insert => ReactionRealtimeKind.insert,
+      PostgresChangeEvent.update => ReactionRealtimeKind.update,
+      PostgresChangeEvent.delete => ReactionRealtimeKind.delete,
+      _ => null,
+    };
+    if (kind == null) return null;
+    return ReactionRealtimeEvent(
+      eventId: '$eventId:$postId:$userId',
+      kind: kind,
+      postId: postId.toString(),
+    );
   }
 
   void _selectTab(int index) {
@@ -426,15 +551,29 @@ class _HomeShellState extends State<HomeShell> {
   @override
   void dispose() {
     // Tear down realtime first so no late event touches the feed: stop the
-    // channel, close the event bridge, then dispose the dedupe seam.
+    // channels, close the event bridges, then dispose the dedupe seam.
+    final SupabaseClient? client = widget.dependencies.client;
     final RealtimeChannel? channel = _boardChannel;
     _boardChannel = null;
-    final SupabaseClient? client = widget.dependencies.client;
     if (channel != null && client != null) {
       unawaited(client.removeChannel(channel));
     }
+    final RealtimeChannel? comments = _commentChannel;
+    _commentChannel = null;
+    if (comments != null && client != null) {
+      unawaited(client.removeChannel(comments));
+    }
+    final RealtimeChannel? reactions = _reactionChannel;
+    _reactionChannel = null;
+    if (reactions != null && client != null) {
+      unawaited(client.removeChannel(reactions));
+    }
     unawaited(_boardEvents?.close());
     _boardEvents = null;
+    unawaited(_commentEvents?.close());
+    _commentEvents = null;
+    unawaited(_reactionEvents?.close());
+    _reactionEvents = null;
     unawaited(_boardRealtime.dispose());
     widget.dependencies.auth.removeListener(_onAuthChanged);
     _searchState.dispose();
@@ -533,6 +672,10 @@ class _HomeShellState extends State<HomeShell> {
                   fetchComments: widget.dependencies.fetchComments,
                   addComment: widget.dependencies.addCommentRow,
                   deleteComment: widget.dependencies.deleteCommentRow,
+                  // Cross-client live board: same-table channels mapped in
+                  // initState; null when no client (tests/unwired hosts).
+                  commentEvents: _commentEvents?.stream,
+                  reactionEvents: _reactionEvents?.stream,
                   onCompose: () {
                     _keys[2].currentState?.pushNamed(
                       AppRoutes.boardCompose,

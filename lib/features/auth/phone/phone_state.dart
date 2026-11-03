@@ -75,6 +75,10 @@ class PhoneState extends ChangeNotifier {
   /// Verification status flag: true only after a successful phone verify.
   bool get isPhoneVerified => _status == PhoneStatus.verified && _user != null;
 
+  /// True when this state is backed by the test fake (no SMS can be sent).
+  /// Production composition is always the real Supabase adapter.
+  bool get isDemo => repository.isDemo;
+
   /// True while a request/verify call is in flight.
   bool get isBusy => _sending || _status == PhoneStatus.verifying;
 
