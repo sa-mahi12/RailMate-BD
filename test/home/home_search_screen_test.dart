@@ -6,13 +6,19 @@ import 'package:railmate_bd/features/search/home/home_sections.dart';
 import 'package:railmate_bd/features/search/home/recent_searches_store.dart';
 import 'package:railmate_bd/features/search/home/upcoming_booking.dart';
 import 'package:railmate_bd/features/search/home_search_screen.dart';
+import 'package:railmate_bd/features/search/search_date_utils.dart';
 import 'package:railmate_bd/features/search/search_repository.dart';
 import 'package:railmate_bd/features/search/search_state.dart';
 
 import 'home_test_fakes.dart';
 
-/// Fixed clock so every greeting/date assertion is deterministic.
-DateTime fixedNow() => DateTime(2026, 10, 2, 15, 30); // Friday afternoon
+/// Fixed wall-clock time so every greeting/date assertion is deterministic,
+/// pinned to the REAL calendar day: [SearchState] seeds `selectedDate` from
+/// `DateTime.now()`, so a permanently hardcoded day would drift past this
+/// injected clock's today..+20 horizon and be rejected as an out-of-horizon
+/// (or past) date once the fixture aged.
+DateTime fixedNow() =>
+    dayStartOf(DateTime.now()).add(const Duration(hours: 15, minutes: 30));
 
 const String arrow = ' \u2192';
 
@@ -314,11 +320,16 @@ void main() {
       );
       await tester.pumpAndSettle();
       // Picker is bounded to today+20 days (hosted demo horizon).
-      expect(find.text('Up to 22 Oct, 2026'), findsOneWidget);
+      expect(
+        find.text('Up to ${formatShortDate(demoHorizonLastDate(fixedNow()))}'),
+        findsOneWidget,
+      );
 
       state.selectOrigin(dhaka);
       state.selectDestination(chattogram);
-      state.selectDate(DateTime(2026, 11, 30));
+      state.selectDate(
+        demoHorizonLastDate(fixedNow()).add(const Duration(days: 30)),
+      );
       await tapVisible(tester, find.text('Search Trains'));
       await tester.pumpAndSettle();
 
