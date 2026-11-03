@@ -6,7 +6,7 @@ V4 product-polish pass complete on `main` only — no PRs, no feature branches. 
 
 A Flutter Android app against hosted Supabase. **Splash → Onboarding → Welcome → Login/Register → Verify → Home** is a real startup state machine (`lib/app/app_gate.dart`), not an unconditional home route.
 
-Search covers **24 demo stations and 32 services over a live 20-day horizon** (today..+20d, ~648 freshly generated demo trips, ~29k seats) with GraphQL-first stations, on-device TFLite re-rank, and demo-hold-aware seat maps. Booking is **atomic and multi-seat (1–4)** through deployed `book-trip` / `cancel-booking` Edge Functions after a simulated payment (**no real money**); tickets are demonstration QR+PDF artifacts marked **DEMONSTRATION ONLY / NOT VALID FOR TRAVEL**. Journey Board carries posts, realtime feed, cursor pagination, reactions/ratings and comments; station guides are offline with honest coverage gaps. Account-scoped OpenRouter BYOK "Improve Wording" sends the key only on an explicit tap. Bottom tabs: Home / Bookings / Board / Profile.
+Search covers **24 demo stations and 32 services over a live 20-day horizon** (today..+20d, ~1,186 demo trips and ~47,000 seats after the 2026-10-19 demo-horizon refresh) with GraphQL-first stations, on-device TFLite re-rank, and demo-hold-aware seat maps. Booking is **atomic and multi-seat (1–4)** through deployed `book-trip` / `cancel-booking` Edge Functions after a simulated payment (**no real money**); tickets are demonstration QR+PDF artifacts marked **DEMONSTRATION ONLY / NOT VALID FOR TRAVEL**. Journey Board carries posts, realtime feed, cursor pagination, reactions/ratings and comments; station guides are offline with honest coverage gaps. Account-scoped OpenRouter BYOK "Improve Wording" sends the key only on an explicit tap. Bottom tabs: Home / Bookings / Board / Profile.
 
 Stack: Flutter Android, hosted Supabase (Postgres/Auth/Storage/Realtime/REST/pg_graphql/Edge Functions), OpenRouter BYOK, tiny TFLite search model. **No Docker, no local application DB.** This repository cannot sell real railway tickets.
 
@@ -15,7 +15,7 @@ Stack: Flutter Android, hosted Supabase (Postgres/Auth/Storage/Realtime/REST/pg_
 Releases are published to GitHub Releases, not just ephemeral CI artifacts, so they stay downloadable and update in place:
 
 ```
-gh release view v1.0.0+3 --repo sa-mahi12/RailMate-BD
+gh release view v1.0.0+9 --repo sa-mahi12/RailMate-BD
 ```
 
 Each release carries a universal APK, per-ABI APKs (arm64-v8a, armeabi-v7a, x86_64), an AAB, `SHA256SUMS.txt`, `release-manifest.json` and `PROVENANCE.md`. Builds are signed with the dedicated release key held in GitHub Secrets; the keystore is removed from the runner afterwards. `versionCode` increases every release so Android accepts the update over an existing install.
@@ -41,8 +41,8 @@ Live backend config passes only via `--dart-define` (`SUPABASE_URL`, `SUPABASE_A
 
 ## Verification status
 
-`flutter analyze` clean and **476 automated tests green** on `main`. All motion and state work is covered by hermetic widget tests (reduced motion, semantics, 1.5x text scale), plus a release-evidence parser pinned against the real published manifest.
+`flutter analyze` clean and **523 automated tests green** on `main`. All motion and state work is covered by hermetic widget tests (reduced motion, semantics, 1.5x text scale), plus a release-evidence parser pinned against the real published manifest.
 
-**Not verified:** on-device behaviour and release screenshots are **permanently deferred by owner directive** (see `RailMate-BD-internal/governance/OWNER_DIRECTIVE_DEVICE_TESTS.md`). No statement in this repository should be read as device-verified. Live SMS provider credentials are also owner-side.
+**Not verified:** on-device and emulator behaviour and release screenshots are **not verified and not required** — device and emulator verification were dropped by the owner on 2026-10-14 (P34/P35 SUPERSEDED in `RailMate-BD-internal/tasking/V4_TASK_LEDGER.json`). No statement in this repository should be read as device-verified. Live SMS provider credentials are also owner-side.
 
 Per-run APK SHA256 values are printed in each release run's `Artifact SHA256` step and in `SHA256SUMS.txt`; they are intentionally not hardcoded here because every rebuild re-hashes.
