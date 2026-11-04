@@ -308,6 +308,15 @@ class AuthState extends ChangeNotifier {
   /// generic retry message — both without the raw `$e` text.
   String _publicAuthError(Object e, {required String fallback}) {
     final String text = e.toString();
+    // Client-side validation copy is safe to show verbatim (it is our own
+    // sentence). The allow-list keeps an SDK ArgumentError - which can carry
+    // backend detail - behind the same gate as everything else.
+    if (e is ArgumentError) {
+      final Object? message = e.message;
+      if (message is String && kClientValidationMessages.contains(message)) {
+        return message;
+      }
+    }
     if (text.contains('Invalid login credentials') ||
         text.contains('invalid_credentials')) {
       return 'Incorrect email or password. Please try again.';

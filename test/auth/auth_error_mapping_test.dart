@@ -128,5 +128,30 @@ void main() {
       expect(auth.status, AuthStatus.unauthenticated);
       expect(auth.errorMessage, isEmpty);
     });
+
+    test(
+      'local password rule is shown verbatim, not the generic retry',
+      () async {
+        final _RawThrowingClient client = _RawThrowingClient();
+        final AuthState auth = _state(client);
+        await auth.signUp(email: 'a@b.co', password: 'qwerty');
+        expect(auth.status, AuthStatus.error);
+        expect(auth.errorMessage, 'Password must be at least 8 characters.');
+        expect(auth.errorMessage, isNot(contains('Registration failed')));
+      },
+    );
+
+    test(
+      'unrecognised ArgumentError text still stays behind the gate',
+      () async {
+        final _RawThrowingClient client = _RawThrowingClient()
+          ..signOutError = ArgumentError('PostgrestException 500 (raw detail)');
+        final AuthState auth = _state(client);
+        await auth.signOut();
+        expect(auth.status, AuthStatus.error);
+        expect(auth.errorMessage, "Couldn't sign you out. Please try again.");
+        expect(auth.errorMessage, isNot(contains('PostgrestException')));
+      },
+    );
   });
 }

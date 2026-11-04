@@ -11,6 +11,35 @@ library;
 
 import 'dart:async';
 
+/// Client-side validation messages thrown as [ArgumentError] by
+/// [AuthRepository]. The auth UI may show these **verbatim** (they are our own
+/// copy, never backend text), so a broken rule reads as the rule that was
+/// broken instead of a generic "Registration failed".
+const String kEmailEmptyMessage = 'Email must not be empty.';
+
+/// Thrown when the address has no `@`.
+const String kEmailMissingAtMessage = 'Email must contain "@".';
+
+/// Thrown when a sign-in is attempted with a blank password.
+const String kPasswordEmptyMessage = 'Password must not be empty.';
+
+/// Thrown when a new password is shorter than the 8-character floor.
+const String kPasswordTooShortMessage =
+    'Password must be at least 8 characters.';
+
+/// Thrown when the emailed verification code is not six digits.
+const String kVerificationCodeLengthMessage =
+    'Verification code must be 6 digits.';
+
+/// Every message above, for the UI's verbatim-display allow-list.
+const Set<String> kClientValidationMessages = <String>{
+  kEmailEmptyMessage,
+  kEmailMissingAtMessage,
+  kPasswordEmptyMessage,
+  kPasswordTooShortMessage,
+  kVerificationCodeLengthMessage,
+};
+
 /// Minimal signed-in user snapshot. Carries no tokens or passwords.
 class AuthUser {
   /// Supabase user id (`auth.users.id`).
@@ -132,7 +161,7 @@ class AuthRepository {
   Future<AuthUser?> signIn({required String email, required String password}) {
     _requireEmail(email);
     if (password.isEmpty) {
-      throw ArgumentError('Password must not be empty.');
+      throw ArgumentError(kPasswordEmptyMessage);
     }
     return client.signIn(email: email.trim(), password: password);
   }
@@ -166,7 +195,7 @@ class AuthRepository {
   }) {
     _requireEmail(email);
     if (!RegExp(r'^[0-9]{6}$').hasMatch(token.trim())) {
-      throw ArgumentError('Verification code must be 6 digits.');
+      throw ArgumentError(kVerificationCodeLengthMessage);
     }
     return client.verifyEmailOtp(email: email.trim(), token: token.trim());
   }
@@ -185,16 +214,16 @@ class AuthRepository {
 
   static void _requireEmail(String email) {
     if (email.trim().isEmpty) {
-      throw ArgumentError('Email must not be empty.');
+      throw ArgumentError(kEmailEmptyMessage);
     }
     if (!email.trim().contains('@')) {
-      throw ArgumentError('Email must contain "@".');
+      throw ArgumentError(kEmailMissingAtMessage);
     }
   }
 
   static void _requirePassword(String password) {
     if (password.length < 8) {
-      throw ArgumentError('Password must be at least 8 characters.');
+      throw ArgumentError(kPasswordTooShortMessage);
     }
   }
 
