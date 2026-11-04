@@ -165,7 +165,7 @@ class AuthRepository {
     required String token,
   }) {
     _requireEmail(email);
-    if (token.trim().length != 6) {
+    if (!RegExp(r'^[0-9]{6}$').hasMatch(token.trim())) {
       throw ArgumentError('Verification code must be 6 digits.');
     }
     return client.verifyEmailOtp(email: email.trim(), token: token.trim());

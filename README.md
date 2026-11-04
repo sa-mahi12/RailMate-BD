@@ -15,7 +15,7 @@ Stack: Flutter Android, hosted Supabase (Postgres/Auth/Storage/Realtime/REST/pg_
 Releases are published to GitHub Releases, not just ephemeral CI artifacts, so they stay downloadable and update in place:
 
 ```
-gh release view v1.0.0+9 --repo sa-mahi12/RailMate-BD
+gh release view --repo sa-mahi12/RailMate-BD
 ```
 
 Each release carries a universal APK, per-ABI APKs (arm64-v8a, armeabi-v7a, x86_64), an AAB, `SHA256SUMS.txt`, `release-manifest.json` and `PROVENANCE.md`. Builds are signed with the dedicated release key held in GitHub Secrets; the keystore is removed from the runner afterwards. `versionCode` increases every release so Android accepts the update over an existing install.
@@ -38,6 +38,7 @@ Live backend config passes only via `--dart-define` (`SUPABASE_URL`, `SUPABASE_A
 * Loading, empty, error and offline states are real and distinguished: a timeout never renders as "no trains", a failed load never presents zeros as data, and a charted failure never fabricates rows.
 * On-device ranking states which ranking produced the visible list — including when it fell back to unranked order.
 * Social login remains explicitly unimplemented and the UI says so. Phone verification is wired to the real Supabase OTP flow: on a signed-in session it attaches and verifies the number on that account (`updateUser` + `phoneChange`), and with no session it uses the real phone sign-in lane (`signInWithOtp` + SMS); no fixed demo code is ever shown or accepted in production. Whether an SMS actually arrives depends on the hosted project's SMS provider, which is owner-side — a failure is reported honestly, never faked.
+* Signup keeps email/password and username registration. Email confirmation uses a real six-digit Supabase token through configured Mailjet SMTP; paste, invalid-code retry and resend cooldown are supported. Verification requires a session, and a late response cannot undo a newer logout. Password recovery remains link-based. Real inbox delivery has not been demonstrated by the agent; the owner chose to perform signup personally.
 
 ## Verification status
 

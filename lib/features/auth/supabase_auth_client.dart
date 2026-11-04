@@ -121,11 +121,12 @@ class SupabaseAuthClient implements AuthClient {
     required String token,
   }) async {
     final AuthResponse response = await supabase.auth.verifyOTP(
-      type: OtpType.signup,
+      type: OtpType.email,
       token: token,
       email: email,
     );
-    final User? user = response.session?.user ?? response.user;
+    // A user snapshot alone is not an authenticated session.
+    final User? user = response.session?.user;
     return user == null ? null : _toAuthUser(user);
   }
 

@@ -1,16 +1,9 @@
 /// A02 — Email verification screen (RailMate BD).
 ///
-/// Link-first confirmation. The production signup mail (default Supabase
-/// mailer, no custom SMTP) carries a confirmation *link*, not a 6-digit
-/// code, so this screen offers no code entry. The primary path is tapping
-/// the link in the email — it returns to the app through
-/// `railmatebd://auth/verify` and signs the user in (see
-/// `signup_verify.dart` + `AppGate`) — then "I've confirmed — re-check".
-/// "Resend confirmation email" (60 s throttle) stays.
-///
-/// The typed-code seam ([AuthState.verifyCode] → real `verifyOTP`) is kept
-/// dormant for future custom-SMTP/template support; no production UI calls
-/// it today.
+/// Supabase signup emails carry a real six-digit token through Mailjet.
+/// Code verification uses the existing [AuthState.verifyCode] path; the
+/// root gate advances on a confirmed session. Old auth callbacks remain
+/// supported separately, and password recovery stays link-based.
 ///
 /// Phone OTP is the A03 lane. Production passes a real [PhoneState] (backed by
 /// the Supabase adapter), so the fallback button opens the actual
@@ -19,7 +12,7 @@
 /// button explains that the phone lane is unavailable in that build.
 ///
 /// V4 P08 polish (behavior unchanged): one-shot [FadeSlideIn] entrances and
-/// [AnimatedSwap] on the error/info messages and the re-check button's busy
+/// [AnimatedSwap] on the error/info messages and the verify button's busy
 /// state. The per-second resend countdown is deliberately NOT swapped — a
 /// cross-fade every second is visual noise, not signal.
 library;
@@ -27,6 +20,7 @@ library;
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../design/design.dart';
 import 'auth_state.dart';
@@ -68,6 +62,8 @@ class _VerifyScreenState extends State<VerifyScreen> {
   int _secondsLeft = _resendSeconds;
   String? _formError;
   String? _infoMessage;
+  final TextEditingController _code = TextEditingController();
+  bool _submitting = false;
 
   @override
   void initState() {
@@ -78,6 +74,7 @@ class _VerifyScreenState extends State<VerifyScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _code.dispose();
     super.dispose();
   }
 
@@ -101,37 +98,48 @@ class _VerifyScreenState extends State<VerifyScreen> {
     return '$m:$s';
   }
 
-  Future<void> _recheck() async {
+  Future<void> _verify() async {
+    if (_submitting || widget.auth.isBusy) return;
+    if (!RegExp(r'^[0-9]{6}$').hasMatch(_code.text)) {
+      setState(() => _formError = 'Enter the 6-digit code from your email.');
+      return;
+    }
     setState(() {
+      _submitting = true;
       _formError = null;
       _infoMessage = null;
     });
-    await widget.auth.refreshVerification();
+    await widget.auth.verifyCode(email: widget.email, token: _code.text);
     if (!mounted) return;
+    setState(() => _submitting = false);
     if (widget.auth.status == AuthStatus.authenticated) {
       setState(() => _infoMessage = 'Email verified. Welcome aboard!');
-      Navigator.of(context).pop(true);
+      // Root verification belongs to AppGate; only close a pushed auth pane.
+      final route = ModalRoute.of(context);
+      if (route != null && !route.isFirst && route.isCurrent) {
+        Navigator.of(context).pop(true);
+      }
     } else {
-      setState(
-        () => _infoMessage =
-            'Still not confirmed. Open the confirmation link in your email, '
-            'then re-check.',
-      );
+      setState(() => _formError = widget.auth.errorMessage);
     }
   }
 
   Future<void> _resend() async {
+    if (_secondsLeft > 0 || _submitting || widget.auth.isBusy) return;
     setState(() {
+      _submitting = true;
       _formError = null;
       _infoMessage = null;
     });
     await widget.auth.resendConfirmation(widget.email);
     if (!mounted) return;
-    if (widget.auth.status == AuthStatus.error) {
+    setState(() => _submitting = false);
+    if (widget.auth.errorMessage.isNotEmpty) {
       setState(() => _formError = widget.auth.errorMessage);
     } else {
       setState(
-        () => _infoMessage = 'Confirmation email re-sent to ${widget.email}.',
+        () => _infoMessage =
+            'A new code was requested. Check your Inbox or Spam.',
       );
       _startTimer();
     }
@@ -185,9 +193,8 @@ class _VerifyScreenState extends State<VerifyScreen> {
               child: AuthHeader(
                 title: 'Verify your account',
                 subtitle:
-                    "We've sent a confirmation email to ${widget.email}. "
-                    'Tap the confirmation link inside — it opens RailMate BD '
-                    'and signs you in.',
+                    'Enter the 6-digit code sent to ${widget.email}. '
+                    'Check your Inbox or Spam folder.',
               ),
             ),
             FadeSlideIn(
@@ -196,34 +203,34 @@ class _VerifyScreenState extends State<VerifyScreen> {
                 child: ListenableBuilder(
                   listenable: widget.auth,
                   builder: (BuildContext context, _) {
-                    final bool busy = widget.auth.isBusy;
+                    final bool busy = _submitting || widget.auth.isBusy;
                     return Column(
                       children: <Widget>[
-                        const _VerifyStep(
-                          icon: Icons.mark_email_read_outlined,
-                          text: 'Open the confirmation email we sent you.',
-                        ),
-                        const SizedBox(height: 10),
-                        const _VerifyStep(
-                          icon: Icons.open_in_new,
-                          text:
-                              'Tap the confirmation link — it returns you to '
-                              'the app, already signed in.',
-                        ),
-                        const SizedBox(height: 10),
-                        const _VerifyStep(
-                          icon: Icons.check_circle_outline,
-                          text:
-                              'If you confirmed in your browser instead, tap '
-                              '"I\'ve confirmed — re-check" below.',
+                        TextField(
+                          controller: _code,
+                          enabled: !busy,
+                          keyboardType: TextInputType.number,
+                          textInputAction: TextInputAction.done,
+                          autofillHints: const <String>[
+                            AutofillHints.oneTimeCode,
+                          ],
+                          inputFormatters: <TextInputFormatter>[
+                            FilteringTextInputFormatter.digitsOnly,
+                            LengthLimitingTextInputFormatter(6),
+                          ],
+                          decoration: const InputDecoration(
+                            labelText: 'Email verification code',
+                            hintText: '6 digits',
+                          ),
+                          onSubmitted: (_) => _verify(),
                         ),
                         const SizedBox(height: 20),
                         AnimatedSwap(
                           child: AuthPrimaryButton(
                             key: ValueKey<bool>(busy),
-                            label: "I've confirmed — re-check",
+                            label: 'Verify code',
                             loading: busy,
-                            onPressed: busy ? null : _recheck,
+                            onPressed: busy ? null : _verify,
                           ),
                         ),
                         const SizedBox(height: 12),
@@ -241,7 +248,7 @@ class _VerifyScreenState extends State<VerifyScreen> {
                           TextButton(
                             onPressed: busy ? null : _resend,
                             child: const Text(
-                              'Resend confirmation email',
+                              'Resend code',
                               style: TextStyle(color: kAuthTeal),
                             ),
                           ),
@@ -320,28 +327,6 @@ class _VerifyScreenState extends State<VerifyScreen> {
           ],
         ),
       ),
-    );
-  }
-}
-
-/// One numbered-style instruction row in the link-first verify flow.
-class _VerifyStep extends StatelessWidget {
-  final IconData icon;
-  final String text;
-
-  const _VerifyStep({required this.icon, required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Icon(icon, color: kAuthTeal, size: 22),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(text, style: const TextStyle(fontSize: 14, height: 1.4)),
-        ),
-      ],
     );
   }
 }

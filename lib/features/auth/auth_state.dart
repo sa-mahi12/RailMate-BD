@@ -45,6 +45,8 @@ class AuthState extends ChangeNotifier {
   AuthStatus _status = AuthStatus.unauthenticated;
   AuthUser? _user;
   String _errorMessage = '';
+  bool _verificationBusy = false;
+  int _authGeneration = 0;
   StreamSubscription<AuthUser?>? _subscription;
 
   /// Current lifecycle status.
@@ -61,7 +63,7 @@ class AuthState extends ChangeNotifier {
       _status == AuthStatus.authenticated && _user != null;
 
   /// True while an async auth operation is running.
-  bool get isBusy => _status == AuthStatus.authenticating;
+  bool get isBusy => _status == AuthStatus.authenticating || _verificationBusy;
 
   /// Restores the persisted session on startup and subscribes to
   /// auth-state changes. Safe to call once from app bootstrap.
@@ -71,6 +73,7 @@ class AuthState extends ChangeNotifier {
   /// gate routes signed-out users correctly, and raw backend text must
   /// never pollute [errorMessage].
   Future<void> restore() async {
+    _supersedeVerification();
     _setStatus(AuthStatus.authenticating);
     try {
       final AuthUser? restored = await repository.restoreSession();
@@ -92,6 +95,7 @@ class AuthState extends ChangeNotifier {
     String? phone,
     String? username,
   }) async {
+    _supersedeVerification();
     _setStatus(AuthStatus.authenticating);
     try {
       final AuthUser? created = await repository.signUp(
@@ -109,6 +113,7 @@ class AuthState extends ChangeNotifier {
 
   /// Signs in with email + password.
   Future<void> signIn({required String email, required String password}) async {
+    _supersedeVerification();
     _setStatus(AuthStatus.authenticating);
     try {
       final AuthUser? signedIn = await repository.signIn(
@@ -123,6 +128,7 @@ class AuthState extends ChangeNotifier {
 
   /// Signs out and clears local session state.
   Future<void> signOut() async {
+    _supersedeVerification();
     _setStatus(AuthStatus.authenticating);
     try {
       await repository.signOut();
@@ -141,50 +147,97 @@ class AuthState extends ChangeNotifier {
       final AuthUser? refreshed = await repository.refreshSession();
       _applyUser(refreshed);
     } catch (e) {
-      _fail('Verification check failed: $e');
+      _verificationFailed(
+        _publicAuthError(e, fallback: 'Verification check failed.'),
+        pending: _status == AuthStatus.needsVerification,
+      );
     }
   }
 
-  /// Re-sends the confirmation email. Keeps the current status; surfaces
-  /// failures via [AuthStatus.error].
+  /// Re-sends the signup code without dislodging a pending verification route.
   Future<void> resendConfirmation(String email) async {
+    if (isBusy) return;
+    final int generation = _authGeneration;
+    final bool pending = _status == AuthStatus.needsVerification;
+    _verificationBusy = true;
+    _errorMessage = '';
+    notifyListeners();
     try {
       await repository.resendConfirmation(email);
     } catch (e) {
-      _fail('Could not resend confirmation email: $e');
+      if (generation != _authGeneration) return;
+      _verificationFailed(
+        _publicAuthError(e, fallback: 'Could not resend the code.'),
+        pending: pending,
+      );
+    } finally {
+      if (generation == _authGeneration) {
+        _verificationBusy = false;
+        notifyListeners();
+      }
     }
   }
 
   /// Submits the 6-digit email confirmation code. On success the status
-  /// becomes [AuthStatus.authenticated]; on failure [AuthStatus.error]
-  /// carries the reason.
-  ///
-  /// Dormant seam: production signup mail is link-based (default mailer, no
-  /// custom SMTP), so no current UI collects a code. Kept for future
-  /// custom-SMTP/template support.
+  /// becomes [AuthStatus.authenticated]. A pending registration remains on
+  /// [AuthStatus.needsVerification] during requests and after safe errors.
   Future<void> verifyCode({
     required String email,
     required String token,
   }) async {
-    _setStatus(AuthStatus.authenticating);
+    if (isBusy) return;
+    final int generation = _authGeneration;
+    final bool pending = _status == AuthStatus.needsVerification;
+    _verificationBusy = true;
+    _errorMessage = '';
+    if (pending) {
+      notifyListeners();
+    } else {
+      _setStatus(AuthStatus.authenticating);
+    }
     try {
       final AuthUser? confirmed = await repository.verifyEmailOtp(
         email: email,
         token: token,
       );
-      _applyUser(confirmed);
-      if (confirmed == null) {
-        _fail('Verification returned no session. Resend the email and retry.');
+      if (generation != _authGeneration) return;
+      if (confirmed == null || !confirmed.emailConfirmed) {
+        _verificationFailed(
+          'Email is not verified yet. Resend the code and try again.',
+          pending: pending,
+        );
+      } else {
+        _applyUser(confirmed);
       }
     } catch (e) {
-      _fail(_publicAuthError(e, fallback: 'Email verification failed.'));
+      if (generation != _authGeneration) return;
+      _verificationFailed(
+        _publicAuthError(
+          e,
+          fallback: 'Could not verify the code. Check it or request a new one.',
+        ),
+        pending: pending,
+      );
+    } finally {
+      if (generation == _authGeneration) {
+        _verificationBusy = false;
+        notifyListeners();
+      }
     }
+  }
+
+  void _verificationFailed(String message, {required bool pending}) {
+    // A concurrent confirmed session must not be downgraded by a late failure.
+    if (isAuthenticated) return;
+    _errorMessage = message;
+    _setStatus(pending ? AuthStatus.needsVerification : AuthStatus.error);
   }
 
   /// Requests a password-reset email. Always reports neutral success so the
   /// UI cannot be used to discover which addresses have accounts; only a
   /// genuine transport/project failure sets [AuthStatus.error].
   Future<bool> requestPasswordReset(String email) async {
+    _supersedeVerification();
     _setStatus(AuthStatus.authenticating);
     try {
       await repository.requestPasswordReset(email);
@@ -203,6 +256,7 @@ class AuthState extends ChangeNotifier {
   /// Returns true on success. On success the user is signed in (Supabase
   /// establishes a recovery session), so the gate advances to Home.
   Future<bool> completePasswordReset({required String newPassword}) async {
+    _supersedeVerification();
     _setStatus(AuthStatus.authenticating);
     try {
       await repository.updatePassword(newPassword: newPassword);
@@ -223,6 +277,7 @@ class AuthState extends ChangeNotifier {
   }
 
   void _applyUser(AuthUser? next) {
+    _supersedeVerification();
     _user = next;
     _errorMessage = '';
     if (next == null) {
@@ -237,6 +292,12 @@ class AuthState extends ChangeNotifier {
   void _fail(String message) {
     _errorMessage = message;
     _setStatus(AuthStatus.error);
+  }
+
+  /// New auth events/actions own the state; old OTP completions cannot undo them.
+  void _supersedeVerification() {
+    _authGeneration++;
+    _verificationBusy = false;
   }
 
   /// Maps a raw auth failure to plain language for the UI.

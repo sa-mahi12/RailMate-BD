@@ -22,13 +22,54 @@ import 'package:railmate_bd/app/app_gate.dart';
 import 'package:railmate_bd/app/home_shell.dart';
 import 'package:railmate_bd/app/onboarding_store.dart';
 import 'package:railmate_bd/features/auth/auth_state.dart';
+import 'package:railmate_bd/features/auth/auth_repository.dart';
 import 'package:railmate_bd/features/auth/verify_screen.dart';
 import 'package:railmate_bd/features/auth/welcome_screen.dart';
 import 'package:railmate_bd/features/onboarding/onboarding_screen.dart';
 
 import 'f19_fakes.dart';
+import 'auth/email_otp_fakes.dart';
 
 void main() {
+  testWidgets(
+    'root OTP request and failure retain input, then success advances Home',
+    (tester) async {
+      final client = EmailOtpFakeClient()
+        ..verification = Completer<AuthUser?>();
+      final auth = AuthState(repository: AuthRepository(client: client));
+      addTearDown(auth.dispose);
+      await auth.signUp(email: 'otp@example.com', password: 'password123');
+      await tester.pumpWidget(
+        RailMateApp(
+          dependencies: f19TestDeps(auth: auth),
+          onboardingStore: InMemoryOnboardingStore(initiallyCompleted: true),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), '123456');
+      await tester.tap(find.text('Verify code'));
+      await tester.pump();
+      expect(find.byType(VerifyScreen), findsOneWidget);
+      expect(find.byType(WelcomeScreen), findsNothing);
+      client.verification!.completeError(
+        Exception('otp_expired private payload'),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(VerifyScreen), findsOneWidget);
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).controller!.text,
+        '123456',
+      );
+      client.verification = null;
+      await tester.enterText(find.byType(TextField), '654321');
+      await tester.tap(find.text('Verify code'));
+      await tester.pumpAndSettle();
+      expect(find.byType(HomeShell), findsOneWidget);
+      expect(find.byType(VerifyScreen), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('first run: no session + onboarding incomplete -> onboarding', (
     WidgetTester tester,
   ) async {
