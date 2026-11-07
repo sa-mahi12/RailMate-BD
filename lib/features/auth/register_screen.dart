@@ -82,6 +82,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
         setState(() => _formError = 'That username is already taken.');
         return;
       }
+      // Never submit while the verdict is still in flight: the user would
+      // get a server-side duplicate error for a name they were told nothing
+      // about yet.
+      if (_usernameStatus == UsernameAvailability.checking) {
+        setState(
+          () => _formError = 'Still checking that username - one moment.',
+        );
+        return;
+      }
     }
     if (_password.text != _confirmPassword.text) {
       setState(() => _formError = 'Passwords do not match.');

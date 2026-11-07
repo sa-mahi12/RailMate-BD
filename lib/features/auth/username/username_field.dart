@@ -2,31 +2,19 @@
 ///
 /// Register-screen field per UI_VISUAL_SPEC ref-2: teal-styled text input,
 /// green `Available` pill, red taken message, spinner while checking.
-/// Styling is self-contained (spec tokens) so this packet integrates
-/// independently of Worker A lane files; it may later wrap `AuthField`.
+///
+/// Styling reuses the shared auth tokens (`auth_theme.dart`) so this field
+/// matches `AuthField` exactly — same label, hint, border radius, fill and
+/// focus colour - instead of carrying a private copy of the palette.
 library;
 
 import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../auth_theme.dart';
 import 'username.dart';
 import 'username_availability.dart';
-
-/// Deep teal for focused border (UI_VISUAL_SPEC primary `#0E5A66`).
-const Color _kTeal = Color(0xFF0E5A66);
-
-/// Success green for the `Available` pill (`#1E9E6A`).
-const Color _kGreen = Color(0xFF1E9E6A);
-
-/// Danger red for taken/error text (`#E5484D`).
-const Color _kDanger = Color(0xFFE5484D);
-
-/// Light input border (`#E1E8EC`).
-const Color _kBorder = Color(0xFFE1E8EC);
-
-/// Muted hint text (`#8A9BA3`).
-const Color _kHint = Color(0xFF8A9BA3);
 
 /// Debounced username input wired to a [UsernameAvailabilityChecker].
 ///
@@ -111,10 +99,38 @@ class _UsernameFieldState extends State<UsernameField> {
 
   Future<void> _query(String normalized) async {
     final int token = ++_request;
-    setState(() => _status = UsernameAvailability.checking);
+    _setStatus(UsernameAvailability.checking);
     final UsernameAvailability result = await widget.checker.check(normalized);
     if (!mounted || token != _request) return;
     _setStatus(result);
+  }
+
+  Widget _availablePill() {
+    return Padding(
+      padding: const EdgeInsets.only(right: 12),
+      // `widthFactor`/`heightFactor` keep the pill shrink-wrapped. A plain
+      // `Center` expands to the field's full width, which squeezed the text
+      // area to zero and hid what the user typed.
+      child: Center(
+        widthFactor: 1,
+        heightFactor: 1,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: kAuthGreen,
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: const Text(
+            'Available',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -134,34 +150,19 @@ class _UsernameFieldState extends State<UsernameField> {
     Widget? suffix;
     if (checking) {
       suffix = const Padding(
-        padding: EdgeInsets.all(12),
-        child: SizedBox(
-          width: 18,
-          height: 18,
-          child: CircularProgressIndicator(color: _kTeal, strokeWidth: 2),
-        ),
-      );
-    } else if (available) {
-      suffix = Padding(
-        padding: const EdgeInsets.only(right: 12),
+        padding: EdgeInsets.only(right: 12),
         child: Center(
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: _kGreen,
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: const Text(
-              'Available',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+          widthFactor: 1,
+          heightFactor: 1,
+          child: SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(color: kAuthTeal, strokeWidth: 2),
           ),
         ),
       );
+    } else if (available) {
+      suffix = _availablePill();
     }
 
     return Column(
@@ -185,11 +186,14 @@ class _UsernameFieldState extends State<UsernameField> {
           keyboardType: TextInputType.text,
           decoration: InputDecoration(
             hintText: 'Choose a username',
-            hintStyle: const TextStyle(color: _kHint, fontSize: 14),
-            prefixIcon: const Icon(Icons.person_outline, color: Colors.black54),
+            hintStyle: const TextStyle(color: kAuthHint, fontSize: 14),
+            prefixIcon: const Icon(
+              Icons.alternate_email,
+              color: Colors.black54,
+            ),
             suffixIcon: suffix,
             errorText: errorText,
-            errorStyle: const TextStyle(color: _kDanger),
+            errorStyle: const TextStyle(color: kAuthDanger),
             filled: true,
             fillColor: Colors.white,
             contentPadding: const EdgeInsets.symmetric(
@@ -198,15 +202,15 @@ class _UsernameFieldState extends State<UsernameField> {
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: _kBorder),
+              borderSide: const BorderSide(color: kAuthBorder),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: _kBorder),
+              borderSide: const BorderSide(color: kAuthBorder),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: _kTeal, width: 1.5),
+              borderSide: const BorderSide(color: kAuthTeal, width: 1.5),
             ),
           ),
         ),
