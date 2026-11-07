@@ -232,9 +232,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                         ),
                         const SizedBox(height: 6),
+                        // Copy matches the rule the app actually enforces
+                        // (AuthRepository: 8 characters, no character-class
+                        // requirement), so nobody chases a "symbol" rule that
+                        // does not exist.
                         const Text(
-                          'Use at least 8 characters with a mix of letters, '
-                          'numbers and symbols.',
+                          'Use at least 8 characters.',
                           style: TextStyle(color: kAuthHint, fontSize: 12),
                         ),
                         if (_formError != null) ...<Widget>[
