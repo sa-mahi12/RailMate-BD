@@ -97,10 +97,17 @@ class _UsernameFieldState extends State<UsernameField> {
     _debounce = Timer(widget.debounce, () => _query(normalized));
   }
 
+  /// How long a single availability query may take before the field reports
+  /// [UsernameAvailability.error]. Without this a half-open connection would
+  /// leave the form stuck on "still checking" and block submit forever.
+  static const Duration _queryTimeout = Duration(seconds: 8);
+
   Future<void> _query(String normalized) async {
     final int token = ++_request;
     _setStatus(UsernameAvailability.checking);
-    final UsernameAvailability result = await widget.checker.check(normalized);
+    final UsernameAvailability result = await widget.checker
+        .check(normalized)
+        .timeout(_queryTimeout, onTimeout: () => UsernameAvailability.error);
     if (!mounted || token != _request) return;
     _setStatus(result);
   }

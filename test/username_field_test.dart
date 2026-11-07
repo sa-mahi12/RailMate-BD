@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:railmate_bd/features/auth/username/username.dart';
@@ -110,6 +112,33 @@ void main() {
 
       expect(seen, contains(UsernameAvailability.checking));
       expect(seen.last, UsernameAvailability.available);
+    });
+
+    testWidgets('a query that never answers times out into a retry hint', (
+      WidgetTester tester,
+    ) async {
+      // A half-open connection must not leave the form "checking" forever,
+      // because the register screen blocks submit while a check is in flight.
+      final UsernameAvailabilityChecker hanging = UsernameAvailabilityChecker(
+        existsQuery: (_) => Completer<bool>().future,
+      );
+      await tester.pumpWidget(
+        _host(UsernameField(checker: hanging, debounce: Duration.zero)),
+      );
+
+      await tester.enterText(find.byType(TextField), 'sanjida_mahu');
+      await tester.pump();
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+      await tester.pump(const Duration(seconds: 9));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(
+        find.text('Could not check availability — retry.'),
+        findsOneWidget,
+      );
+      expect(find.text('sanjida_mahu'), findsOneWidget);
     });
   });
 }
