@@ -105,6 +105,24 @@ class AuthState extends ChangeNotifier {
         phone: phone,
         username: username,
       );
+      if (created != null && created.alreadyRegistered) {
+        // Supabase answers a repeated sign-up with an obfuscated user
+        // (empty identities) and sends no email at all. Without an explicit
+        // resend a returning user who never finished verification waits for
+        // a code that will never arrive.
+        try {
+          await repository.resendConfirmation(email.trim());
+          _applyUser(created);
+        } catch (e) {
+          final String raw = e.toString().toLowerCase();
+          _fail(
+            raw.contains('confirm') || raw.contains('already')
+                ? 'That email is already registered. Try logging in instead.'
+                : _publicAuthError(e, fallback: "Couldn't send another code."),
+          );
+        }
+        return;
+      }
       _applyUser(created);
     } catch (e) {
       _fail(_publicAuthError(e, fallback: 'Registration failed.'));
@@ -333,6 +351,11 @@ class AuthState extends ChangeNotifier {
         text.contains('Network is unreachable') ||
         text.contains('Failed host lookup')) {
       return 'Network error — check your connection and retry.';
+    }
+    if (text.contains('rate limit') ||
+        text.contains('over_email_send_rate_limit') ||
+        text.contains('statusCode: 429')) {
+      return 'Too many emails were requested. Wait a minute and try again.';
     }
     if (text.contains('expired') || text.contains('invalid token')) {
       return 'This link or code has expired. '

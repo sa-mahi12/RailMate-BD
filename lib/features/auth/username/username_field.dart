@@ -112,29 +112,19 @@ class _UsernameFieldState extends State<UsernameField> {
     _setStatus(result);
   }
 
-  Widget _availablePill() {
-    return Padding(
-      padding: const EdgeInsets.only(right: 12),
-      // `widthFactor`/`heightFactor` keep the pill shrink-wrapped. A plain
-      // `Center` expands to the field's full width, which squeezed the text
-      // area to zero and hid what the user typed.
+  /// Small trailing spinner while a check is in flight. It is shrink-wrapped
+  /// so it can never take width away from the text being typed.
+  Widget? _suffix() {
+    if (_status != UsernameAvailability.checking) return null;
+    return const Padding(
+      padding: EdgeInsets.only(right: 12),
       child: Center(
         widthFactor: 1,
         heightFactor: 1,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-          decoration: BoxDecoration(
-            color: kAuthGreen,
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: const Text(
-            'Available',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+        child: SizedBox(
+          width: 18,
+          height: 18,
+          child: CircularProgressIndicator(color: kAuthTeal, strokeWidth: 2),
         ),
       ),
     );
@@ -145,6 +135,8 @@ class _UsernameFieldState extends State<UsernameField> {
     final bool checking = _status == UsernameAvailability.checking;
     final bool available = _status == UsernameAvailability.available;
 
+    // Errors (taken / bad format / check failed) use the decoration's error
+    // slot, so the border and the sentence both turn red.
     String? errorText;
     if (_status == UsernameAvailability.taken) {
       errorText = 'That username is taken — try another.';
@@ -154,22 +146,19 @@ class _UsernameFieldState extends State<UsernameField> {
       errorText = 'Could not check availability — retry.';
     }
 
-    Widget? suffix;
-    if (checking) {
-      suffix = const Padding(
-        padding: EdgeInsets.only(right: 12),
-        child: Center(
-          widthFactor: 1,
-          heightFactor: 1,
-          child: SizedBox(
-            width: 18,
-            height: 18,
-            child: CircularProgressIndicator(color: kAuthTeal, strokeWidth: 2),
-          ),
-        ),
-      );
-    } else if (available) {
-      suffix = _availablePill();
+    // Everything else is a small note under the field, occupying the same slot
+    // the error would use, so the form does not jump when a state changes.
+    final String helperText;
+    final Color helperColor;
+    if (available) {
+      helperText = 'Username is available.';
+      helperColor = kAuthGreen;
+    } else if (checking) {
+      helperText = 'Checking availability...';
+      helperColor = kAuthHint;
+    } else {
+      helperText = '3-20 characters: lowercase letters, numbers or _.';
+      helperColor = kAuthHint;
     }
 
     return Column(
@@ -198,9 +187,21 @@ class _UsernameFieldState extends State<UsernameField> {
               Icons.alternate_email,
               color: Colors.black54,
             ),
-            suffixIcon: suffix,
+            suffixIcon: _suffix(),
+            helperText: errorText == null ? helperText : null,
+            helperStyle: TextStyle(
+              color: helperColor,
+              fontSize: 12,
+              height: 1.4,
+            ),
+            helperMaxLines: 2,
             errorText: errorText,
-            errorStyle: const TextStyle(color: kAuthDanger),
+            errorStyle: const TextStyle(
+              color: kAuthDanger,
+              fontSize: 12,
+              height: 1.4,
+            ),
+            errorMaxLines: 2,
             filled: true,
             fillColor: Colors.white,
             contentPadding: const EdgeInsets.symmetric(

@@ -17,7 +17,7 @@ import '../../core/supabase/supabase_client.dart' show SupabaseConnect;
 import 'auth_repository.dart';
 
 /// Maps a Supabase [User] to the slice-local [AuthUser] snapshot.
-AuthUser _toAuthUser(User user) {
+AuthUser _toAuthUser(User user, {bool alreadyRegistered = false}) {
   final Map<String, dynamic> meta = user.userMetadata ?? <String, dynamic>{};
   return AuthUser(
     id: user.id,
@@ -26,6 +26,7 @@ AuthUser _toAuthUser(User user) {
     fullName: meta['full_name'] as String?,
     phone: (meta['phone'] as String?) ?? user.phone,
     username: meta['username'] as String?,
+    alreadyRegistered: alreadyRegistered,
   );
 }
 
@@ -66,7 +67,12 @@ class SupabaseAuthClient implements AuthClient {
       },
     );
     final User? user = response.session?.user ?? response.user;
-    return user == null ? null : _toAuthUser(user);
+    if (user == null) return null;
+    // A repeated sign-up for an existing address returns an obfuscated user
+    // (`identities` empty) and GoTrue sends no email. Surfacing that lets
+    // AuthState request a fresh code instead of leaving the user waiting.
+    final bool alreadyRegistered = response.user?.identities?.isEmpty ?? false;
+    return _toAuthUser(user, alreadyRegistered: alreadyRegistered);
   }
 
   @override

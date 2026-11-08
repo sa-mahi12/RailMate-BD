@@ -60,6 +60,12 @@ class AuthUser {
   /// Optional profile metadata captured at sign-up (never a secret).
   final String? username;
 
+  /// True when Supabase answered a sign-up with an obfuscated user whose
+  /// identity list is empty, which means the address is already registered.
+  /// No confirmation email is sent in that case, so the caller has to ask
+  /// for a resend explicitly.
+  final bool alreadyRegistered;
+
   const AuthUser({
     required this.id,
     required this.email,
@@ -67,6 +73,7 @@ class AuthUser {
     this.fullName,
     this.phone,
     this.username,
+    this.alreadyRegistered = false,
   });
 }
 
