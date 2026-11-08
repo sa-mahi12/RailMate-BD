@@ -1,7 +1,8 @@
 /// B02 — username input with live availability feedback (RailMate BD).
 ///
 /// Register-screen field per UI_VISUAL_SPEC ref-2: teal-styled text input,
-/// green `Available` pill, red taken message, spinner while checking.
+/// small green "available" note pinned to the right edge of the field, red
+/// taken message under it, spinner while checking.
 ///
 /// Styling reuses the shared auth tokens (`auth_theme.dart`) so this field
 /// matches `AuthField` exactly — same label, hint, border radius, fill and
@@ -112,19 +113,45 @@ class _UsernameFieldState extends State<UsernameField> {
     _setStatus(result);
   }
 
-  /// Small trailing spinner while a check is in flight. It is shrink-wrapped
-  /// so it can never take width away from the text being typed.
-  Widget? _suffix() {
-    if (_status != UsernameAvailability.checking) return null;
+  /// Compact trailing status. The available note lives here, in 11 px type on
+  /// the right edge, so it never covers the username being typed. Both states
+  /// are shrink-wrapped to take as little width as possible from the text.
+  Widget? _statusBadge() {
+    if (_status == UsernameAvailability.checking) {
+      return const Padding(
+        padding: EdgeInsets.only(right: 12),
+        child: Center(
+          widthFactor: 1,
+          heightFactor: 1,
+          child: SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(color: kAuthTeal, strokeWidth: 2),
+          ),
+        ),
+      );
+    }
+    if (_status != UsernameAvailability.available) return null;
     return const Padding(
       padding: EdgeInsets.only(right: 12),
       child: Center(
         widthFactor: 1,
         heightFactor: 1,
-        child: SizedBox(
-          width: 18,
-          height: 18,
-          child: CircularProgressIndicator(color: kAuthTeal, strokeWidth: 2),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Icon(Icons.check_circle, size: 13, color: kAuthGreen),
+            SizedBox(width: 4),
+            Text(
+              'available',
+              style: TextStyle(
+                color: kAuthGreen,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                height: 1.2,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -132,9 +159,6 @@ class _UsernameFieldState extends State<UsernameField> {
 
   @override
   Widget build(BuildContext context) {
-    final bool checking = _status == UsernameAvailability.checking;
-    final bool available = _status == UsernameAvailability.available;
-
     // Errors (taken / bad format / check failed) use the decoration's error
     // slot, so the border and the sentence both turn red.
     String? errorText;
@@ -146,21 +170,8 @@ class _UsernameFieldState extends State<UsernameField> {
       errorText = 'Could not check availability — retry.';
     }
 
-    // Everything else is a small note under the field, occupying the same slot
-    // the error would use, so the form does not jump when a state changes.
-    final String helperText;
-    final Color helperColor;
-    if (available) {
-      helperText = 'Username is available.';
-      helperColor = kAuthGreen;
-    } else if (checking) {
-      helperText = 'Checking availability...';
-      helperColor = kAuthHint;
-    } else {
-      helperText = '3-20 characters: lowercase letters, numbers or _.';
-      helperColor = kAuthHint;
-    }
-
+    // The idle format rule keeps the helper slot populated, so the form does
+    // not jump when a state changes.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -187,10 +198,18 @@ class _UsernameFieldState extends State<UsernameField> {
               Icons.alternate_email,
               color: Colors.black54,
             ),
-            suffixIcon: _suffix(),
-            helperText: errorText == null ? helperText : null,
-            helperStyle: TextStyle(
-              color: helperColor,
+            suffixIcon: _statusBadge(),
+            // Zero minimum so the 11 px note cannot reserve icon width and
+            // push the typed username out of view.
+            suffixIconConstraints: const BoxConstraints(
+              minWidth: 0,
+              minHeight: 0,
+            ),
+            helperText: errorText == null
+                ? '3-20 characters: lowercase letters, numbers or _.'
+                : null,
+            helperStyle: const TextStyle(
+              color: kAuthHint,
               fontSize: 12,
               height: 1.4,
             ),

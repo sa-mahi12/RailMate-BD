@@ -104,6 +104,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
       username: rawUsername.isEmpty ? null : normalizeUsername(rawUsername),
     );
     if (!mounted) return;
+    if (widget.auth.emailAlreadyConfirmed) {
+      // No code can be sent for a verified address, so go straight to login
+      // with the address filled in rather than stranding the user on an error.
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute<void>(
+          builder: (_) => LoginScreen(
+            auth: widget.auth,
+            usernameChecker: widget.usernameChecker,
+            initialEmail: _email.text.trim(),
+            notice:
+                'That email already has a verified RailMate account, so no new '
+                'code was sent. Enter your password to sign in, or tap '
+                '"Forgot password?" if you do not remember it.',
+          ),
+        ),
+      );
+      return;
+    }
     switch (widget.auth.status) {
       case AuthStatus.needsVerification:
         Navigator.of(context).pushReplacement(

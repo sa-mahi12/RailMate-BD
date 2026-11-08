@@ -31,7 +31,7 @@ Widget _host(Widget child) => MaterialApp(
 void main() {
   group('UsernameField', () {
     testWidgets(
-      'available note sits under the field and keeps the text visible',
+      'available note sits on the right, small, and keeps the text visible',
       (WidgetTester tester) async {
         final _RecordingChecker fake = _RecordingChecker(taken: false);
         await tester.pumpWidget(
@@ -50,19 +50,24 @@ void main() {
           greaterThan(80),
         );
 
-        // Availability is reported below the input, in small type - not inside
-        // the box on top of what the user typed.
-        expect(find.text('Username is available.'), findsOneWidget);
-        expect(find.text('Available'), findsNothing);
+        // The status is a small note on the right edge of the field, so it can
+        // never sit on top of the username the owner is typing.
+        expect(find.text('available'), findsOneWidget);
+        expect(find.text('Username is available.'), findsNothing);
         expect(
-          tester.getTopLeft(find.text('Username is available.')).dy,
-          greaterThan(tester.getBottomLeft(find.byType(EditableText)).dy),
+          tester.getCenter(find.text('available')).dx,
+          greaterThan(tester.getCenter(find.byType(TextField)).dx),
         );
-        final Text helper = tester.widget<Text>(
-          find.text('Username is available.'),
+        expect(
+          tester.getTopLeft(find.text('available')).dy,
+          inInclusiveRange(
+            tester.getTopLeft(find.byType(TextField)).dy,
+            tester.getBottomLeft(find.byType(TextField)).dy,
+          ),
         );
-        expect(helper.style?.fontSize, 12);
-        expect(helper.style?.color, kAuthGreen);
+        final Text badge = tester.widget<Text>(find.text('available'));
+        expect(badge.style?.fontSize, 11);
+        expect(badge.style?.color, kAuthGreen);
       },
     );
 
@@ -96,7 +101,7 @@ void main() {
         find.text('That username is taken — try another.'),
         findsOneWidget,
       );
-      expect(find.text('Username is available.'), findsNothing);
+      expect(find.text('available'), findsNothing);
       expect(find.text('uiprobe2026'), findsOneWidget);
     });
 
@@ -113,7 +118,7 @@ void main() {
 
       expect(fake.calls, 0);
       expect(find.text(validateUsername('Bad Name!')!), findsOneWidget);
-      expect(find.text('Username is available.'), findsNothing);
+      expect(find.text('available'), findsNothing);
     });
 
     testWidgets('status changes are reported to the parent form', (

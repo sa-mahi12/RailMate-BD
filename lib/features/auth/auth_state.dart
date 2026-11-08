@@ -45,6 +45,7 @@ class AuthState extends ChangeNotifier {
   AuthStatus _status = AuthStatus.unauthenticated;
   AuthUser? _user;
   String _errorMessage = '';
+  bool _emailAlreadyConfirmed = false;
   bool _verificationBusy = false;
   int _authGeneration = 0;
   StreamSubscription<AuthUser?>? _subscription;
@@ -57,6 +58,12 @@ class AuthState extends ChangeNotifier {
 
   /// Last failure reason, or empty. Never contains secrets.
   String get errorMessage => _errorMessage;
+
+  /// True when the last sign-up targeted an address that already has a
+  /// *confirmed* account. No OTP can be sent for such an address, so the
+  /// register screen hands the user to login (email prefilled) instead of
+  /// leaving them on a red error with a code that will never arrive.
+  bool get emailAlreadyConfirmed => _emailAlreadyConfirmed;
 
   /// Route-guard helper: true only when a confirmed session exists.
   bool get isAuthenticated =>
@@ -96,6 +103,7 @@ class AuthState extends ChangeNotifier {
     String? username,
   }) async {
     _supersedeVerification();
+    _emailAlreadyConfirmed = false;
     _setStatus(AuthStatus.authenticating);
     try {
       final AuthUser? created = await repository.signUp(
@@ -115,11 +123,15 @@ class AuthState extends ChangeNotifier {
           _applyUser(created);
         } catch (e) {
           final String raw = e.toString().toLowerCase();
-          _fail(
-            raw.contains('confirm') || raw.contains('already')
-                ? 'That email is already registered. Try logging in instead.'
-                : _publicAuthError(e, fallback: "Couldn't send another code."),
-          );
+          if (raw.contains('confirm') || raw.contains('already')) {
+            // A verified address can never receive a signup code. Flag it so
+            // the register screen can prefill login instead of showing a
+            // dead-end error.
+            _emailAlreadyConfirmed = true;
+            _fail('That email is already registered. Try logging in instead.');
+          } else {
+            _fail(_publicAuthError(e, fallback: "Couldn't send another code."));
+          }
         }
         return;
       }
@@ -132,6 +144,7 @@ class AuthState extends ChangeNotifier {
   /// Signs in with email + password.
   Future<void> signIn({required String email, required String password}) async {
     _supersedeVerification();
+    _emailAlreadyConfirmed = false;
     _setStatus(AuthStatus.authenticating);
     try {
       final AuthUser? signedIn = await repository.signIn(
@@ -147,6 +160,7 @@ class AuthState extends ChangeNotifier {
   /// Signs out and clears local session state.
   Future<void> signOut() async {
     _supersedeVerification();
+    _emailAlreadyConfirmed = false;
     _setStatus(AuthStatus.authenticating);
     try {
       await repository.signOut();

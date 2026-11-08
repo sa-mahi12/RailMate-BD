@@ -26,10 +26,24 @@ class LoginScreen extends StatefulWidget {
   /// the signup link keeps the real availability field.
   final UsernameAvailabilityChecker? usernameChecker;
 
+  /// Address to prefill (e.g. when a sign-up lands here for a verified
+  /// account). Empty by default.
+  final String initialEmail;
+
+  /// Optional informational note shown above the form, in teal rather than
+  /// error red.
+  final String? notice;
+
   /// Route name for guard-friendly navigation.
   static const String routeName = '/login';
 
-  const LoginScreen({super.key, required this.auth, this.usernameChecker});
+  const LoginScreen({
+    super.key,
+    required this.auth,
+    this.usernameChecker,
+    this.initialEmail = '',
+    this.notice,
+  });
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -40,6 +54,12 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _password = TextEditingController();
   bool _obscure = true;
   String? _formError;
+
+  @override
+  void initState() {
+    super.initState();
+    _email.text = widget.initialEmail;
+  }
 
   @override
   void dispose() {
@@ -117,6 +137,41 @@ class _LoginScreenState extends State<LoginScreen> {
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
+                        if (widget.notice != null) ...<Widget>[
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: kAuthTeal.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: kAuthTeal.withValues(alpha: 0.25),
+                              ),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: <Widget>[
+                                const Icon(
+                                  Icons.info_outline,
+                                  size: 18,
+                                  color: kAuthTeal,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    widget.notice!,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      height: 1.4,
+                                      color: kAuthTealDark,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
                         // Email only: sign-in authenticates via Supabase email +
                         // password. Phone OTP lives in the phone/ slice (live
                         // SMS BLOCKED) and is not accepted here.
