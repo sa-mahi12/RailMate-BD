@@ -23,6 +23,11 @@ jobs:
       - uses: subosito/flutter-action@v2
         if: steps.scaffold.outputs.present == 'true'
         with:
+          # Pinned: CI drift to a newer stable turned every
+          # `package:flutter/material.dart` import into a deprecation info and
+          # failed the analyze gate. 3.47.5 is the locally validated SDK, so a
+          # green local analyze/test run and CI run the same toolchain.
+          flutter-version: '3.47.5'
           channel: stable
           cache: true
       - uses: actions/setup-java@v4
@@ -57,3 +62,4 @@ jobs:
           name: railmate-debug-apk
           path: build/app/outputs/flutter-apk/app-debug.apk
           if-no-files-found: error
+

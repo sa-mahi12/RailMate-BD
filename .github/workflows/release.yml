@@ -76,6 +76,9 @@ jobs:
 
       - uses: subosito/flutter-action@v2
         with:
+          # Same pin as CI: the release must be built by the SDK that passed
+          # the local/CI analyze and test gates (see flutter-ci.yml).
+          flutter-version: '3.47.5'
           channel: stable
           cache: true
 
@@ -313,3 +316,4 @@ jobs:
         run: |
           rm -f "$RAILMATE_KEYSTORE_PATH" || true
           echo "Keystore removed from the runner workspace."
+
