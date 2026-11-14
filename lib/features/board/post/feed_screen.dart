@@ -7,6 +7,7 @@ import '../comments/comment_subscription.dart';
 import '../comments/comment_thread.dart';
 import '../media/post_media.dart';
 import '../ratings/rating_state.dart';
+import '../ratings/rating_realtime.dart';
 import '../reactions/reaction_realtime.dart';
 import '../reactions/reaction_state.dart';
 import 'post.dart';
@@ -105,6 +106,10 @@ class BoardFeedScreen extends StatelessWidget {
   final Stream<CommentRealtimeEvent>? commentEvents;
   final Stream<ReactionRealtimeEvent>? reactionEvents;
 
+  /// Cross-client stream for `public.post_ratings` (1-5 star ratings), the
+  /// same shared-channel pattern as comments/reactions.
+  final Stream<RatingRealtimeEvent>? ratingEvents;
+
   const BoardFeedScreen({
     super.key,
     required this.feed,
@@ -122,6 +127,7 @@ class BoardFeedScreen extends StatelessWidget {
     this.currentUserId,
     this.commentEvents,
     this.reactionEvents,
+    this.ratingEvents,
   });
 
   /// True when the per-post engagement section can render for [post]: all
@@ -283,6 +289,7 @@ class BoardFeedScreen extends StatelessWidget {
                       upsertRating: upsertRating!,
                       deleteRating: deleteRating!,
                       realtime: reactionEvents,
+                      ratingRealtime: ratingEvents,
                     ),
                   ],
                   if (_commentsWired(post)) ...[

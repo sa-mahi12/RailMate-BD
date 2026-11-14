@@ -50,21 +50,27 @@
 
     <section class="card" id="video-card">
       <h2>Video</h2>
-      <p>External YouTube embed below: a <strong>live YouTube search</strong> for
-        “Bangladesh railway” (DEMONSTRATION ONLY — requires network). A fixed
-        video ID is deliberately NOT hardcoded because no single public video
-        ID could be verified as stable and appropriate; see the F15 handoff.</p>
+      <p>External YouTube video (R-09): <strong>“Bangladesh Trains! 8 Minutes,
+        16+ Trains!”</strong> by Nondini Multimedia. Embedded from YouTube with a
+        fixed, verified video ID — the retired YouTube search-embed mode (removed
+        in November 2020) is no longer used. External content, requires internet;
+        DEMONSTRATION ONLY.</p>
       <div class="video-wrap">
-        <!-- F15: YouTube search-embed (R-09). Requires network; without it the
-             frame stays empty and the offline note below applies. -->
+        <!-- F15: verified embeddable YouTube video (checked 2026-11-14:
+             oEmbed 200, playableInEmbed=true). Fixed ID instead of the retired
+             search embed. No video file is downloaded or redistributed. -->
         <iframe id="rail-video"
-          src="https://www.youtube.com/embed?listType=search&amp;list=bangladesh+railway+train"
-          title="Bangladesh railway videos on YouTube (demonstration)"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          src="https://www.youtube.com/embed/9MisJt1LBeU?rel=0"
+          title="Bangladesh trains (YouTube, demonstration)"
+          width="560" height="315"
+          referrerpolicy="strict-origin-when-cross-origin"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           allowfullscreen
           loading="lazy"></iframe>
       </div>
-      <p class="fallback-note">Video is external content from YouTube, not RailMate data.
+      <p class="fallback-note" id="video-fallback">If the player stays blank you
+        are offline or YouTube is unreachable; tap Play inside the player once the
+        network is back. Video is external content from YouTube, not RailMate data.
         DEMONSTRATION ONLY.</p>
     </section>
 

@@ -11,6 +11,7 @@ import '../features/board/post/post.dart';
 import '../features/board/post/post_feed_realtime.dart';
 import '../features/board/post/post_feed_state.dart';
 import '../features/board/post/feed_screen.dart';
+import '../features/board/ratings/rating_realtime.dart';
 import '../features/board/reactions/reaction_realtime.dart';
 import '../features/booking/passenger_ui/passenger.dart';
 import '../features/booking/passenger_ui/passenger_form_state.dart';
@@ -82,14 +83,17 @@ class _HomeShellState extends State<HomeShell> {
   StreamController<BoardPostEvent>? _boardEvents;
   RealtimeChannel? _boardChannel;
 
-  /// Teacher final gate: one shared channel each for `post_comments` and
-  /// `post_reactions`, mapped into typed events and fanned out to the cards
-  /// that own the affected post. One channel per table (not per card) keeps
-  /// the subscription count constant and two-client behaviour deterministic.
+  /// Teacher final gate: one shared channel each for `post_comments`,
+  /// `post_reactions` and `post_ratings`, mapped into typed events and fanned
+  /// out to the cards that own the affected post. One channel per table (not
+  /// per card) keeps the subscription count constant and two-client behaviour
+  /// deterministic.
   StreamController<CommentRealtimeEvent>? _commentEvents;
   RealtimeChannel? _commentChannel;
   StreamController<ReactionRealtimeEvent>? _reactionEvents;
   RealtimeChannel? _reactionChannel;
+  StreamController<RatingRealtimeEvent>? _ratingEvents;
+  RealtimeChannel? _ratingChannel;
 
   @override
   void initState() {
@@ -104,6 +108,7 @@ class _HomeShellState extends State<HomeShell> {
     _subscribeBoardRealtime();
     _subscribeCommentRealtime();
     _subscribeReactionRealtime();
+    _subscribeRatingRealtime();
   }
 
   /// Subscribes to `postgres_changes` on `public.posts` so inserts, updates
@@ -286,6 +291,54 @@ class _HomeShellState extends State<HomeShell> {
     };
     if (kind == null) return null;
     return ReactionRealtimeEvent(
+      eventId: '$eventId:$postId:$userId',
+      kind: kind,
+      postId: postId.toString(),
+    );
+  }
+
+  /// Subscribes to `postgres_changes` on `public.post_ratings` (1-5 star
+  /// ratings, R-07). Same shared-channel shape as comments/reactions; cards
+  /// reconcile their authoritative average/count when their own post changes.
+  void _subscribeRatingRealtime() {
+    final SupabaseClient? client = widget.dependencies.client;
+    if (client == null) return;
+    final StreamController<RatingRealtimeEvent> events =
+        StreamController<RatingRealtimeEvent>.broadcast();
+    _ratingEvents = events;
+    final RealtimeChannel channel = client.channel('public:board-ratings');
+    _ratingChannel = channel;
+    channel
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'post_ratings',
+          callback: (PostgresChangePayload payload) {
+            if (_ratingChannel == null) return;
+            final RatingRealtimeEvent? event = _mapRatingPayload(payload);
+            if (event != null) events.add(event);
+          },
+        )
+        .subscribe();
+  }
+
+  /// Maps one `post_ratings` payload onto a typed event. The primary key is
+  /// (`post_id`, `user_id`), so delete payloads still carry the affected post.
+  RatingRealtimeEvent? _mapRatingPayload(PostgresChangePayload payload) {
+    final String eventId = payload.commitTimestamp.toIso8601String();
+    final Object? postId =
+        payload.newRecord['post_id'] ?? payload.oldRecord['post_id'];
+    if (postId == null || postId.toString().isEmpty) return null;
+    final Object? userId =
+        payload.newRecord['user_id'] ?? payload.oldRecord['user_id'] ?? '';
+    final RatingRealtimeKind? kind = switch (payload.eventType) {
+      PostgresChangeEvent.insert => RatingRealtimeKind.insert,
+      PostgresChangeEvent.update => RatingRealtimeKind.update,
+      PostgresChangeEvent.delete => RatingRealtimeKind.delete,
+      _ => null,
+    };
+    if (kind == null) return null;
+    return RatingRealtimeEvent(
       eventId: '$eventId:$postId:$userId',
       kind: kind,
       postId: postId.toString(),
@@ -568,12 +621,19 @@ class _HomeShellState extends State<HomeShell> {
     if (reactions != null && client != null) {
       unawaited(client.removeChannel(reactions));
     }
+    final RealtimeChannel? ratings = _ratingChannel;
+    _ratingChannel = null;
+    if (ratings != null && client != null) {
+      unawaited(client.removeChannel(ratings));
+    }
     unawaited(_boardEvents?.close());
     _boardEvents = null;
     unawaited(_commentEvents?.close());
     _commentEvents = null;
     unawaited(_reactionEvents?.close());
     _reactionEvents = null;
+    unawaited(_ratingEvents?.close());
+    _ratingEvents = null;
     unawaited(_boardRealtime.dispose());
     widget.dependencies.auth.removeListener(_onAuthChanged);
     _searchState.dispose();
@@ -676,6 +736,7 @@ class _HomeShellState extends State<HomeShell> {
                   // initState; null when no client (tests/unwired hosts).
                   commentEvents: _commentEvents?.stream,
                   reactionEvents: _reactionEvents?.stream,
+                  ratingEvents: _ratingEvents?.stream,
                   onCompose: () {
                     _keys[2].currentState?.pushNamed(
                       AppRoutes.boardCompose,

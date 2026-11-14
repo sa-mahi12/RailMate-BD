@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../design/design.dart';
+import '../ratings/rating_realtime.dart';
 import '../ratings/rating_state.dart';
 import '../ratings/star_row.dart';
 import '../reactions/reaction.dart';
@@ -58,6 +59,11 @@ class PostEngagement extends StatefulWidget {
   /// Null keeps the previous behaviour (optimistic + own reconcile only).
   final Stream<ReactionRealtimeEvent>? realtime;
 
+  /// Optional cross-client change stream for `public.post_ratings`. Ratings
+  /// are a separate table with their own channel; null keeps the previous
+  /// own-write-only behaviour.
+  final Stream<RatingRealtimeEvent>? ratingRealtime;
+
   const PostEngagement({
     super.key,
     required this.post,
@@ -69,6 +75,7 @@ class PostEngagement extends StatefulWidget {
     required this.upsertRating,
     required this.deleteRating,
     this.realtime,
+    this.ratingRealtime,
   });
 
   @override
@@ -91,12 +98,21 @@ class _PostEngagementState extends State<PostEngagement> {
       widget.currentUserId != null && widget.currentUserId!.isNotEmpty;
 
   StreamSubscription<ReactionRealtimeEvent>? _realtimeSub;
+  StreamSubscription<RatingRealtimeEvent>? _ratingSub;
+
+  /// Coalesces a burst of peer rating events into at most one refetch in
+  /// flight plus one queued refetch, instead of N concurrent fetches whose
+  /// results could land out of order.
+  bool _ratingRefreshRunning = false;
+  bool _ratingRefreshQueued = false;
+  Timer? _ratingDebounce;
 
   @override
   void initState() {
     super.initState();
     _loadFor(widget.post.id);
     _listenRealtime();
+    _listenRatingRealtime();
   }
 
   @override
@@ -109,6 +125,11 @@ class _PostEngagementState extends State<PostEngagement> {
       unawaited(_realtimeSub?.cancel());
       _realtimeSub = null;
       _listenRealtime();
+    }
+    if (oldWidget.ratingRealtime != widget.ratingRealtime) {
+      unawaited(_ratingSub?.cancel());
+      _ratingSub = null;
+      _listenRatingRealtime();
     }
   }
 
@@ -132,10 +153,52 @@ class _PostEngagementState extends State<PostEngagement> {
     _ratings.load(postId);
   }
 
+  /// Reconciles against the authoritative rating rows whenever ANOTHER client
+  /// rates this post. Never applies a delta, so an echoed own event can only
+  /// cause an extra refetch.
+  void _listenRatingRealtime() {
+    final stream = widget.ratingRealtime;
+    if (stream == null) return;
+    _ratingSub = stream.listen((RatingRealtimeEvent event) {
+      if (!mounted) return;
+      final postId = widget.post.id;
+      if (postId == null || postId.isEmpty) return;
+      if (!event.appliesTo(postId)) return;
+      // Debounce so a burst of events (several raters, or one client retrying)
+      // becomes one authoritative refetch instead of a fetch storm.
+      _ratingDebounce?.cancel();
+      _ratingDebounce = Timer(const Duration(milliseconds: 80), () {
+        unawaited(_refreshRatingsCoalesced());
+      });
+    });
+  }
+
+  Future<void> _refreshRatingsCoalesced() async {
+    if (_ratingRefreshRunning) {
+      _ratingRefreshQueued = true;
+      return;
+    }
+    _ratingRefreshRunning = true;
+    try {
+      await _ratings.refresh();
+      while (_ratingRefreshQueued && mounted) {
+        _ratingRefreshQueued = false;
+        await _ratings.refresh();
+      }
+    } finally {
+      _ratingRefreshRunning = false;
+      _ratingRefreshQueued = false;
+    }
+  }
+
   @override
   void dispose() {
     unawaited(_realtimeSub?.cancel());
     _realtimeSub = null;
+    _ratingDebounce?.cancel();
+    _ratingDebounce = null;
+    unawaited(_ratingSub?.cancel());
+    _ratingSub = null;
     _reactions.dispose();
     _ratings.dispose();
     super.dispose();

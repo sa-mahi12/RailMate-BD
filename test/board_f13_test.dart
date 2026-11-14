@@ -642,5 +642,41 @@ void main() {
       expect(state.ratingCount, 0);
       state.dispose();
     });
+
+    test('a stale slower load cannot overwrite a newer result', () async {
+      // Realtime bursts can leave two fetches in flight; the older answer must
+      // be discarded instead of resurrecting rows the user just changed.
+      final first = Completer<List<PostRating>>();
+      final second = Completer<List<PostRating>>();
+      var calls = 0;
+      final state = RatingState(
+        fetchRatings: (String postId) {
+          calls++;
+          return calls == 1 ? first.future : second.future;
+        },
+        upsertRating: ({
+          required postId,
+          required userId,
+          required stars,
+        }) async {},
+        deleteRating: ({required postId, required userId}) async {},
+      );
+
+      final slow = state.load('p1');
+      final fast = state.load('p1');
+      second.complete(<PostRating>[
+        const PostRating(postId: 'p1', userId: 'a', stars: 5),
+      ]);
+      await fast;
+      first.complete(<PostRating>[
+        const PostRating(postId: 'p1', userId: 'a', stars: 1),
+        const PostRating(postId: 'p1', userId: 'b', stars: 1),
+      ]);
+      await slow;
+
+      expect(state.ratingCount, 1);
+      expect(state.averageStars, 5.0);
+      state.dispose();
+    });
   });
 }

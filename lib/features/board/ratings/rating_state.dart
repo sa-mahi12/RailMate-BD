@@ -52,6 +52,11 @@ class RatingState extends ChangeNotifier {
   /// Authoritative row list for [postId]. Aggregates derive from this.
   List<PostRating> rows = const <PostRating>[];
 
+  /// Monotonic token: only the newest [load] may publish its result. Realtime
+  /// bursts and post switches can leave older fetches in flight, and a stale
+  /// response must never overwrite a newer set of rows.
+  int _loadToken = 0;
+
   RatingState({
     required this.fetchRatings,
     required this.upsertRating,
@@ -86,18 +91,21 @@ class RatingState extends ChangeNotifier {
   /// Reconnect path: call [refresh]/[load] again — the old list is
   /// discarded, so rows are never appended twice.
   Future<void> load(String postId) async {
+    final int token = ++_loadToken;
     this.postId = postId;
     status = RatingStatus.loading;
     errorMessage = null;
     notifyListeners();
     try {
       final fetched = await fetchRatings(postId);
+      if (token != _loadToken || this.postId != postId) return;
       // Defensive: keep only rows for this post (account/post isolation).
       rows = List<PostRating>.unmodifiable(
         fetched.where((r) => r.postId == postId),
       );
       status = RatingStatus.loaded;
     } catch (e) {
+      if (token != _loadToken) return;
       status = RatingStatus.error;
       errorMessage = e.toString();
     }

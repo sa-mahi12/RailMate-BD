@@ -170,11 +170,26 @@ void main() {
       });
 
       test(
-        'HTML contains a real YouTube iframe embed, labelled demonstration',
+        'HTML embeds a supported YouTube video, never the retired search mode',
         () {
           expect(html, contains('<iframe'));
-          expect(html, contains('youtube.com/embed'));
+          // The `listType=search` embed was removed by YouTube in Nov 2020 and
+          // renders an empty frame; the guard below keeps it from coming back.
+          expect(html, isNot(contains('listType=search')));
+          expect(html, isNot(contains('listType')));
+          expect(html, isNot(contains('http://')));
+          expect(html, contains('https://www.youtube.com/embed/'));
+          final RegExpMatch? id = RegExp(
+            r'youtube\.com/embed/([A-Za-z0-9_-]{11})',
+          ).firstMatch(html);
+          expect(
+            id,
+            isNotNull,
+            reason: 'a fixed, verified video ID is required',
+          );
+          expect(html, contains('allowfullscreen'));
           expect(html, contains('DEMONSTRATION ONLY'));
+          expect(html, contains('Nondini Multimedia'));
           expect(html, isNot(contains('R-09 BLOCKED')));
           expect(html, isNot(contains('R-10 BLOCKED')));
           expect(html, isNot(contains('R-16 BLOCKED')));
