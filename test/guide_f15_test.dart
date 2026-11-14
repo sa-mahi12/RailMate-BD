@@ -8,7 +8,8 @@ import 'package:railmate_bd/features/station_guide/station_guide.dart';
 /// What these tests PROVE: pure-Dart wiring (station-code normalization,
 /// query builder, coordinate table) plus static file markers showing the
 /// bundled page genuinely includes SASS-compiled styling, GSAP, Leaflet and
-/// a YouTube embed, and that the Flutter WebView screen degrades offline.
+/// an external HTML5 video player, and that the Flutter WebView screen
+/// degrades offline.
 ///
 /// What they do NOT prove: actual rendering, animation visibility, map tiles
 /// or video playback — that is F21 device proof on a real phone
@@ -170,26 +171,28 @@ void main() {
       });
 
       test(
-        'HTML embeds a supported YouTube video, never the retired search mode',
+        'HTML ships a playable external video, never the retired YouTube mode',
         () {
-          expect(html, contains('<iframe'));
-          // The `listType=search` embed was removed by YouTube in Nov 2020 and
-          // renders an empty frame; the guard below keeps it from coming back.
-          expect(html, isNot(contains('listType=search')));
+          // A YouTube iframe is genuinely embeddable but the player rejects the
+          // app's file:///android_asset origin with "Error 153" (no Referer).
+          // The shipped page therefore streams a licensed Commons clip through
+          // its own HTML5 player; this guard keeps it that way.
+          expect(html, contains('<video'));
           expect(html, isNot(contains('listType')));
           expect(html, isNot(contains('http://')));
-          expect(html, contains('https://www.youtube.com/embed/'));
-          final RegExpMatch? id = RegExp(
-            r'youtube\.com/embed/([A-Za-z0-9_-]{11})',
+          expect(html, contains('controls'));
+          expect(html, contains('type="video/webm"'));
+          final RegExpMatch? src = RegExp(
+            r'<source\s+src="(https://[^"]+\.webm)"',
           ).firstMatch(html);
           expect(
-            id,
+            src,
             isNotNull,
-            reason: 'a fixed, verified video ID is required',
+            reason: 'a fixed https video source is required',
           );
-          expect(html, contains('allowfullscreen'));
+          expect(html, contains('CC BY-SA 4.0'));
+          expect(html, contains('Wikimedia Commons'));
           expect(html, contains('DEMONSTRATION ONLY'));
-          expect(html, contains('Nondini Multimedia'));
           expect(html, isNot(contains('R-09 BLOCKED')));
           expect(html, isNot(contains('R-10 BLOCKED')));
           expect(html, isNot(contains('R-16 BLOCKED')));

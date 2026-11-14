@@ -23,12 +23,13 @@ void main() {
 
   test('web-guide page carries real interactive embeds (F15)', () {
     // F15 retired the B09 BLOCKED scaffold: the page now genuinely includes
-    // Leaflet map, GSAP animation and a YouTube embed with honest
+    // Leaflet map, GSAP animation and a real external video player with honest
     // offline/no-network degradation (asserted in test/guide_f15_test.dart).
     // This legacy case pins the new reality so a silent revert to the
     // placeholder scaffold fails loudly.
     final html = File('web-guide/index.html').readAsStringSync();
-    expect(html, contains('<iframe'));
+    expect(html, contains('<video'));
+    expect(html, contains('type="video/webm"'));
     expect(html, contains('leaflet'));
     expect(html, contains('gsap'));
     expect(html, isNot(contains('data-embed-pending="google-maps"')));

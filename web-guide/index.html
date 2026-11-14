@@ -50,27 +50,37 @@
 
     <section class="card" id="video-card">
       <h2>Video</h2>
-      <p>External YouTube video (R-09): <strong>“Bangladesh Trains! 8 Minutes,
-        16+ Trains!”</strong> by Nondini Multimedia. Embedded from YouTube with a
-        fixed, verified video ID — the retired YouTube search-embed mode (removed
-        in November 2020) is no longer used. External content, requires internet;
-        DEMONSTRATION ONLY.</p>
+      <p>External video (R-09): <strong>“Cox'sBazar Express Train”</strong>, a
+        Bangladesh railway clip by <strong>Frameofashik</strong> on Wikimedia
+        Commons, licensed <strong>CC BY-SA 4.0</strong>. Played by the page's own
+        HTML5 player, so it works inside the app's WebView; external content,
+        requires internet; DEMONSTRATION ONLY.</p>
       <div class="video-wrap">
-        <!-- F15: verified embeddable YouTube video (checked 2026-11-14:
-             oEmbed 200, playableInEmbed=true). Fixed ID instead of the retired
-             search embed. No video file is downloaded or redistributed. -->
-        <iframe id="rail-video"
-          src="https://www.youtube.com/embed/9MisJt1LBeU?rel=0"
-          title="Bangladesh trains (YouTube, demonstration)"
-          width="560" height="315"
-          referrerpolicy="strict-origin-when-cross-origin"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          allowfullscreen
-          loading="lazy"></iframe>
+        <!-- F15: a YouTube iframe was tried first. The video itself is
+             embeddable (oEmbed 200, playableInEmbed=true) but YouTube rejects
+             the player with "Error 153" when the page runs from
+             file:///android_asset (no valid HTTP Referer), which is exactly how
+             the app loads this page. A licensed Wikimedia Commons clip streams
+             over https with range requests and needs no referer, so the player
+             genuinely works offline-capable WebView shells. No file is
+             downloaded into the APK or redistributed; the page links the
+             source file instead. -->
+        <video id="rail-video"
+          controls
+          playsinline
+          preload="metadata"
+          poster="https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/Cox%27sBazar_Express_Train.webm/500px--Cox%27sBazar_Express_Train.webm.jpg"
+          crossorigin="anonymous">
+          <source src="https://upload.wikimedia.org/wikipedia/commons/9/9e/Cox%27sBazar_Express_Train.webm"
+            type="video/webm" />
+          Your WebView cannot play this video.
+        </video>
       </div>
       <p class="fallback-note" id="video-fallback">If the player stays blank you
-        are offline or YouTube is unreachable; tap Play inside the player once the
-        network is back. Video is external content from YouTube, not RailMate data.
+        are offline or Wikimedia is unreachable; press play once the network is
+        back. Source:
+        <a href="https://commons.wikimedia.org/wiki/File:Cox%27sBazar_Express_Train.webm">Wikimedia Commons</a>
+        (CC BY-SA 4.0, Frameofashik). Video is external content, not RailMate data.
         DEMONSTRATION ONLY.</p>
     </section>
 
