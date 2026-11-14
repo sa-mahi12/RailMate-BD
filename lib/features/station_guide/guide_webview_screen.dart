@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
 
 import '../../../design/design.dart';
 import 'station_guide.dart';
@@ -66,6 +69,15 @@ class _GuideWebViewScreenState extends State<GuideWebViewScreen> {
           },
         ),
       );
+    // Android WebView defaults to "media needs a user gesture", and in-app
+    // taps on the platform view do not reliably count for the HTML5 player, so
+    // the Station Guide video stayed at 0:00 on the emulator. Allowing muted
+    // playback lets the page's own player start; audio still needs an explicit
+    // unmute from the user (the page ships the clip muted).
+    final platform = _controller.platform;
+    if (platform is AndroidWebViewController) {
+      unawaited(platform.setMediaPlaybackRequiresUserGesture(false));
+    }
     _loadGuide();
   }
 

@@ -181,6 +181,11 @@ void main() {
           expect(html, isNot(contains('listType')));
           expect(html, isNot(contains('http://')));
           expect(html, contains('controls'));
+          // Muted autoplay is what the WebView media policy allows without a
+          // gesture, and it makes the demo show real motion; sound still needs
+          // an explicit unmute.
+          expect(html, contains('autoplay'));
+          expect(html, contains('muted'));
           // A CORS-mode media fetch (crossorigin=anonymous) fails from the
           // app's file:// origin even though the host sends ACAO:*: the poster
           // and the clip both stayed black in the emulator until it was

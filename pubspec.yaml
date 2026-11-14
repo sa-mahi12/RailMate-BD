@@ -45,6 +45,9 @@ dependencies:
   pdf: ^3.11.0 # ticket PDF export (F10)
   printing: ^5.13.0 # ticket PDF share/print (F10)
   webview_flutter: ^4.8.0 # station guide WebView (F15)
+  # F15: Android-only setting so the embedded guide video can start muted
+  # without the in-app tap being ignored by the WebView media policy.
+  webview_flutter_android: ^4.13.0
   shared_preferences: ^2.3.3 # P03: first-run onboarding completion flag
   app_links: ^7.2.2
 
