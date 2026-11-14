@@ -181,6 +181,11 @@ void main() {
           expect(html, isNot(contains('listType')));
           expect(html, isNot(contains('http://')));
           expect(html, contains('controls'));
+          // A CORS-mode media fetch (crossorigin=anonymous) fails from the
+          // app's file:// origin even though the host sends ACAO:*: the poster
+          // and the clip both stayed black in the emulator until it was
+          // removed, so the guard keeps it out.
+          expect(html, isNot(contains('crossorigin')));
           expect(html, contains('type="video/webm"'));
           final RegExpMatch? src = RegExp(
             r'<source\s+src="(https://[^"]+\.webm)"',
