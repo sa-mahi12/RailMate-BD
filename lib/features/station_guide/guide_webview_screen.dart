@@ -80,7 +80,7 @@ class _GuideWebViewScreenState extends State<GuideWebViewScreen> {
       // Diagnostic-only build switch for the R-09 video investigation; the
       // default (no define) keeps remote debugging off in shipped builds.
       if (const bool.fromEnvironment('RM_WEBVIEW_DEBUG')) {
-        unawaited(platform.enableDebugging(true));
+        unawaited(AndroidWebViewController.enableDebugging(true));
       }
     }
     _loadGuide();
