@@ -240,6 +240,9 @@ void main() {
         // NETWORK_NO_SOURCE and ignores play(); it needs load() again.
         expect(js, contains('video.load()'));
         expect(js, contains('NETWORK_NO_SOURCE'));
+        // paused === false does not mean playing: a source-less element stays
+        // "not paused" with currentTime 0, so the toggle must use real state.
+        expect(js, contains('function isPlaying()'));
         expect(css, contains('.video-play'));
       });
 

@@ -163,8 +163,15 @@
     var NO_SOURCE = 3; // HTMLMediaElement.NETWORK_NO_SOURCE
     var reloads = 0;
 
+    // paused === false only means "a play request is pending"; on a source-less
+    // element it stays false while nothing plays (CDP: paused=false with
+    // readyState 0, networkState 3). Every decision uses real playback state.
+    function isPlaying() {
+      return !video.paused && !video.ended && video.currentTime > 0;
+    }
+
     function syncButton() {
-      var playing = !video.paused && !video.ended && video.currentTime > 0;
+      var playing = isPlaying();
       button.hidden = false;
       button.textContent = playing ? 'Pause video' : 'Play video';
       button.setAttribute('aria-label', playing ? 'Pause the station guide video' : 'Play the station guide video');
@@ -210,10 +217,10 @@
     }
 
     button.addEventListener('click', function () {
-      if (video.paused || video.ended) {
-        attemptPlay();
-      } else {
+      if (isPlaying()) {
         video.pause();
+      } else {
+        attemptPlay();
       }
     });
     video.addEventListener('playing', syncButton);
