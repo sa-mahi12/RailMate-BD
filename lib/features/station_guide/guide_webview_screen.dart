@@ -77,11 +77,6 @@ class _GuideWebViewScreenState extends State<GuideWebViewScreen> {
     final platform = _controller.platform;
     if (platform is AndroidWebViewController) {
       unawaited(platform.setMediaPlaybackRequiresUserGesture(false));
-      // Diagnostic-only build switch for the R-09 video investigation; the
-      // default (no define) keeps remote debugging off in shipped builds.
-      if (const bool.fromEnvironment('RM_WEBVIEW_DEBUG')) {
-        unawaited(AndroidWebViewController.enableDebugging(true));
-      }
     }
     _loadGuide();
   }

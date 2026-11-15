@@ -236,6 +236,10 @@ void main() {
         expect(js, contains("addEventListener('playing'"));
         expect(js, contains("addEventListener('pause'"));
         expect(js, contains('Pause video'));
+        // A media element that failed its first resource fetch sits in
+        // NETWORK_NO_SOURCE and ignores play(); it needs load() again.
+        expect(js, contains('video.load()'));
+        expect(js, contains('NETWORK_NO_SOURCE'));
         expect(css, contains('.video-play'));
       });
 

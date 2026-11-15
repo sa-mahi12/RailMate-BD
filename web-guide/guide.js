@@ -150,12 +150,18 @@
   // is a real user activation, so play() is honoured even when the platform
   // blocks autoplay. The button doubles as pause and always reflects the real
   // element state: it is never hidden while the clip is stalled at 0:00.
+  //
+  // The emulator proved the real failure was source recovery, not policy: the
+  // element sat in NETWORK_NO_SOURCE (networkState 3, readyState 0, error
+  // null) after its first fetch, and play() alone never opens a codec. The
+  // same page over CDP with load() + play() reached readyState 4 and played.
   function initVideo() {
     var video = document.getElementById('rail-video');
     var button = document.getElementById('rail-video-play');
     if (!video || !button) return;
 
-    function showButton() { button.hidden = false; }
+    var NO_SOURCE = 3; // HTMLMediaElement.NETWORK_NO_SOURCE
+    var reloads = 0;
 
     function syncButton() {
       var playing = !video.paused && !video.ended && video.currentTime > 0;
@@ -164,18 +170,43 @@
       button.setAttribute('aria-label', playing ? 'Pause the station guide video' : 'Play the station guide video');
     }
 
+    // A media element whose first resource fetch failed sits in
+    // NETWORK_NO_SOURCE (networkState 3, readyState 0) and ignores play()
+    // forever; load() re-runs resource selection and revives it. Bounded so a
+    // genuinely offline reader never loops.
+    function ensureSource() {
+      if (video.networkState !== NO_SOURCE && video.readyState > 0) return;
+      if (reloads >= 2) return;
+      reloads += 1;
+      try {
+        video.load();
+      } catch (err) {
+        /* the button and the offline note still explain the state */
+      }
+    }
+
     function attemptPlay() {
+      ensureSource();
       try {
         var started = video.play();
         if (started && typeof started.catch === 'function') {
-          started.catch(showButton); // blocked: keep the button, no fake state
+          started.catch(syncButton); // blocked: keep the button, no fake state
         }
       } catch (err) {
-        showButton();
+        /* keep the control usable */
       }
-      // A play() that never produces a frame (stalled decoder) must not leave
-      // the reader without a control.
-      setTimeout(syncButton, 2500);
+      // A play() that never produces a frame must not leave the reader without
+      // a control; one reload is allowed here, at most twice overall.
+      setTimeout(function () {
+        if (video.currentTime === 0 && !video.paused) {
+          ensureSource();
+          var again = video.play();
+          if (again && typeof again.catch === 'function') {
+            again.catch(syncButton);
+          }
+        }
+        syncButton();
+      }, 2500);
     }
 
     button.addEventListener('click', function () {
@@ -191,7 +222,10 @@
     video.addEventListener('pause', syncButton);
     video.addEventListener('ended', syncButton);
     video.addEventListener('stalled', syncButton);
-    video.addEventListener('error', syncButton);
+    video.addEventListener('error', function () {
+      ensureSource();
+      syncButton();
+    });
 
     // Best effort only: if the WebView refuses, the button stays usable.
     video.muted = true;
