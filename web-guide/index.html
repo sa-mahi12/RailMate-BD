@@ -77,11 +77,13 @@
             type="video/webm" />
           Your WebView cannot play this video.
         </video>
-        <!-- F15: the WebView ignored both muted autoplay and taps on the
-             native media overlay, so the page ships its own DOM play button.
-             A DOM click is a real user activation, which lets guide.js call
-             video.play() and start the clip (muted; sound needs unmute). The
-             button returns whenever playback is paused. -->
+      </div>
+      <!-- F15: the WebView ignored muted autoplay and taps on the native media
+           overlay, and an overlay drawn on top of the player is hidden by the
+           video surface, so the control sits BESIDE the player instead. A DOM
+           click is a real user activation, which lets guide.js call
+           video.play() and start the clip (muted; sound needs unmute). -->
+      <div class="video-controls">
         <button id="rail-video-play" class="video-play" type="button"
           aria-label="Play the station guide video">Play video</button>
       </div>

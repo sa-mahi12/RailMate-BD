@@ -157,29 +157,29 @@ body {
   }
 }
 
-// F15: DOM play control. The Android WebView refused muted autoplay and its
-// native media overlay swallowed taps inside the Flutter platform view, so the
-// page starts the clip from this real button instead. Hidden while playing.
+// F15: DOM play/pause control. The Android WebView refused muted autoplay and
+// its native media overlay swallowed taps inside the Flutter platform view, so
+// this real button starts the clip. It sits beside the player because the video
+// surface paints above DOM overlays.
+.video-controls {
+  margin-top: 10px;
+}
+
 .video-play {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 2;
-  padding: 12px 22px;
+  padding: 10px 20px;
   border: 0;
   border-radius: 999px;
-  background: rgba(14, 90, 102, 0.94);
+  background: $teal;
   color: #fff;
   font: inherit;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 13px;
   cursor: pointer;
 
   &:hover,
   &:focus-visible {
-    background: $teal;
-    outline: 2px solid #fff;
+    background: #0b4a54;
+    outline: 2px solid $teal;
     outline-offset: 2px;
   }
 

@@ -148,15 +148,21 @@
   // F15 video: muted autoplay is attempted first (allowed where the WebView
   // permits it) and the page's own button is the guaranteed path - a DOM click
   // is a real user activation, so play() is honoured even when the platform
-  // blocks autoplay. The button reappears on pause/ended so playback is always
-  // restartable with one tap.
+  // blocks autoplay. The button doubles as pause and always reflects the real
+  // element state: it is never hidden while the clip is stalled at 0:00.
   function initVideo() {
     var video = document.getElementById('rail-video');
     var button = document.getElementById('rail-video-play');
     if (!video || !button) return;
 
     function showButton() { button.hidden = false; }
-    function hideButton() { button.hidden = true; }
+
+    function syncButton() {
+      var playing = !video.paused && !video.ended && video.currentTime > 0;
+      button.hidden = false;
+      button.textContent = playing ? 'Pause video' : 'Play video';
+      button.setAttribute('aria-label', playing ? 'Pause the station guide video' : 'Play the station guide video');
+    }
 
     function attemptPlay() {
       try {
@@ -167,17 +173,30 @@
       } catch (err) {
         showButton();
       }
+      // A play() that never produces a frame (stalled decoder) must not leave
+      // the reader without a control.
+      setTimeout(syncButton, 2500);
     }
 
-    button.addEventListener('click', attemptPlay);
-    video.addEventListener('playing', hideButton);
-    video.addEventListener('play', hideButton);
-    video.addEventListener('pause', showButton);
-    video.addEventListener('ended', showButton);
+    button.addEventListener('click', function () {
+      if (video.paused || video.ended) {
+        attemptPlay();
+      } else {
+        video.pause();
+      }
+    });
+    video.addEventListener('playing', syncButton);
+    video.addEventListener('play', syncButton);
+    video.addEventListener('timeupdate', syncButton);
+    video.addEventListener('pause', syncButton);
+    video.addEventListener('ended', syncButton);
+    video.addEventListener('stalled', syncButton);
+    video.addEventListener('error', syncButton);
 
-    // Best effort only: if the WebView refuses, the button stays visible.
+    // Best effort only: if the WebView refuses, the button stays usable.
     video.muted = true;
     attemptPlay();
+    syncButton();
   }
 
   function showStation(raw) {

@@ -120,25 +120,24 @@ body {
   background: #000;
 }
 
+.video-controls {
+  margin-top: 10px;
+}
+
 .video-play {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 2;
-  padding: 12px 22px;
+  padding: 10px 20px;
   border: 0;
   border-radius: 999px;
-  background: rgba(14, 90, 102, 0.94);
+  background: #0e5a66;
   color: #fff;
   font: inherit;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 13px;
   cursor: pointer;
 }
 .video-play:hover, .video-play:focus-visible {
-  background: #0e5a66;
-  outline: 2px solid #fff;
+  background: #0b4a54;
+  outline: 2px solid #0e5a66;
   outline-offset: 2px;
 }
 .video-play[hidden] {

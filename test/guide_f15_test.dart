@@ -210,19 +210,32 @@ void main() {
       );
 
       test('video ships an in-page play control the WebView can honour', () {
-        // Autoplay is best-effort only: the Android WebView refused both
-        // muted autoplay and taps on the native media overlay inside this
-        // Flutter platform view (emulator, v1.0.0+19, clip stayed at 0:00
-        // with no codec ever opened). A DOM <button> above the player is a
-        // real user activation, so its click handler can call video.play(),
-        // and the button comes back whenever playback pauses.
+        // Autoplay is best-effort only: the Android WebView ignored muted
+        // autoplay and taps on the native media overlay inside this Flutter
+        // platform view (emulator, v1.0.0+19/+20, clip stayed at 0:00 and no
+        // codec was ever opened). The page therefore ships its own DOM
+        // button; a DOM click is a real user activation, so its handler can
+        // call video.play(). It sits BELOW the player on purpose - the WebView
+        // draws the video in its own surface above DOM content, so an overlay
+        // would be invisible.
         expect(html, contains('id="rail-video-play"'));
         expect(html, contains('class="video-play"'));
+        final int wrapStart = html.indexOf('<div class="video-wrap">');
+        final int wrapEnd = html.indexOf('</div>', wrapStart);
+        expect(wrapStart, greaterThanOrEqualTo(0));
+        expect(wrapEnd, greaterThan(wrapStart));
+        expect(
+          html.substring(wrapStart, wrapEnd),
+          isNot(contains('rail-video-play')),
+          reason: 'the play button must live outside the video surface',
+        );
         expect(js, contains("getElementById('rail-video-play')"));
         expect(js, contains('.play()'));
+        expect(js, contains('.pause()'));
         expect(js, contains("addEventListener('click'"));
         expect(js, contains("addEventListener('playing'"));
         expect(js, contains("addEventListener('pause'"));
+        expect(js, contains('Pause video'));
         expect(css, contains('.video-play'));
       });
 
