@@ -209,6 +209,23 @@ void main() {
         },
       );
 
+      test('video ships an in-page play control the WebView can honour', () {
+        // Autoplay is best-effort only: the Android WebView refused both
+        // muted autoplay and taps on the native media overlay inside this
+        // Flutter platform view (emulator, v1.0.0+19, clip stayed at 0:00
+        // with no codec ever opened). A DOM <button> above the player is a
+        // real user activation, so its click handler can call video.play(),
+        // and the button comes back whenever playback pauses.
+        expect(html, contains('id="rail-video-play"'));
+        expect(html, contains('class="video-play"'));
+        expect(js, contains("getElementById('rail-video-play')"));
+        expect(js, contains('.play()'));
+        expect(js, contains("addEventListener('click'"));
+        expect(js, contains("addEventListener('playing'"));
+        expect(js, contains("addEventListener('pause'"));
+        expect(css, contains('.video-play'));
+      });
+
       test('WebView screen loads the bundled asset and degrades offline', () {
         expect(webviewScreen, contains('loadFlutterAsset'));
         expect(webviewScreen, contains('guideAssetPath'));

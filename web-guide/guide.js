@@ -141,8 +141,43 @@
     try {
       gsap.from('.card', { y: 24, opacity: 0, duration: 0.6, stagger: 0.08, ease: 'power2.out', clearProps: 'all' });
     } catch (err) {
-      /* static content remains — animation is enhancement only */
+      /* static content remains - animation is enhancement only */
     }
+  }
+
+  // F15 video: muted autoplay is attempted first (allowed where the WebView
+  // permits it) and the page's own button is the guaranteed path - a DOM click
+  // is a real user activation, so play() is honoured even when the platform
+  // blocks autoplay. The button reappears on pause/ended so playback is always
+  // restartable with one tap.
+  function initVideo() {
+    var video = document.getElementById('rail-video');
+    var button = document.getElementById('rail-video-play');
+    if (!video || !button) return;
+
+    function showButton() { button.hidden = false; }
+    function hideButton() { button.hidden = true; }
+
+    function attemptPlay() {
+      try {
+        var started = video.play();
+        if (started && typeof started.catch === 'function') {
+          started.catch(showButton); // blocked: keep the button, no fake state
+        }
+      } catch (err) {
+        showButton();
+      }
+    }
+
+    button.addEventListener('click', attemptPlay);
+    video.addEventListener('playing', hideButton);
+    video.addEventListener('play', hideButton);
+    video.addEventListener('pause', showButton);
+    video.addEventListener('ended', showButton);
+
+    // Best effort only: if the WebView refuses, the button stays visible.
+    video.muted = true;
+    attemptPlay();
   }
 
   function showStation(raw) {
@@ -171,6 +206,7 @@
     renderStation(currentCode);
     renderMap(currentCode);
     animateEntrance();
+    initVideo();
     document.body.setAttribute('data-guide-ready', 'true');
   }
 

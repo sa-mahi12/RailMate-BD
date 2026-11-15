@@ -120,6 +120,31 @@ body {
   background: #000;
 }
 
+.video-play {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  padding: 12px 22px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(14, 90, 102, 0.94);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+}
+.video-play:hover, .video-play:focus-visible {
+  background: #0e5a66;
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+.video-play[hidden] {
+  display: none;
+}
+
 .fallback-note,
 .placeholder-note {
   font-size: 12px;
