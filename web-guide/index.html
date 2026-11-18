@@ -50,22 +50,24 @@
 
     <section class="card" id="video-card">
       <h2>Video</h2>
-      <p>External video (R-09): <strong>“Cox'sBazar Express Train”</strong>, a
+      <p>Licensed video (R-09): <strong>“Cox'sBazar Express Train”</strong>, a
         Bangladesh railway clip by <strong>Frameofashik</strong> on Wikimedia
-        Commons, licensed <strong>CC BY-SA 4.0</strong>. Played by the page's own
-        HTML5 player from Commons' 480p VP9 transcode (4 MB instead of 12 MB,
-        kinder to mobile data), so it works inside the app's WebView; external
-        content, requires internet; DEMONSTRATION ONLY.</p>
+        Commons, <strong>CC BY-SA 4.0</strong>. A copy of Commons' 480p VP9
+        transcode (4 MB) ships inside the app and is played by the page's own
+        HTML5 player, so the clip starts with no network and no third-party
+        script; DEMONSTRATION ONLY.</p>
       <div class="video-wrap">
         <!-- F15: a YouTube iframe was tried first. The video itself is
              embeddable (oEmbed 200, playableInEmbed=true) but YouTube rejects
              the player with "Error 153" when the page runs from
              file:///android_asset (no valid HTTP Referer), which is exactly how
-             the app loads this page. A licensed Wikimedia Commons clip streams
-             over https with range requests and needs no referer, so the player
-             genuinely works offline-capable WebView shells. No file is
-             downloaded into the APK or redistributed; the page links the
-             source file instead. -->
+             the app loads this page. Streaming the Commons file instead was
+             also tried and is not dependable: Wikimedia answered this WebView
+             with HTTP 403 + text/html (rate limiting), which Chromium blocks as
+             net::ERR_BLOCKED_BY_ORB, so the element died ~200 ms after
+             loadstart. The same 480p file is therefore bundled as an asset
+             (unmodified, attribution below) and plays from
+             file:///android_asset with no range requests at all. -->
         <video id="rail-video"
           controls
           playsinline
@@ -73,8 +75,8 @@
           muted
           loop
           preload="metadata"
-          poster="https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/Cox%27sBazar_Express_Train.webm/500px--Cox%27sBazar_Express_Train.webm.jpg">
-          <source src="https://upload.wikimedia.org/wikipedia/commons/transcoded/9/9e/Cox%27sBazar_Express_Train.webm/Cox%27sBazar_Express_Train.webm.480p.vp9.webm"
+          poster="media/coxsbazar-express-poster.jpg">
+          <source src="media/coxsbazar-express-480p.webm"
             type="video/webm" />
           Your WebView cannot play this video.
         </video>
@@ -88,11 +90,12 @@
         <button id="rail-video-play" class="video-play" type="button"
           aria-label="Play the station guide video">Play video</button>
       </div>
-      <p class="fallback-note" id="video-fallback">If the player stays blank you
-        are offline or Wikimedia is unreachable; press play once the network is
-        back. Source:
+      <p class="fallback-note" id="video-fallback">If the player stays blank,
+        press play once. The clip is bundled with the app, so it needs no
+        network. Source:
         <a href="https://commons.wikimedia.org/wiki/File:Cox%27sBazar_Express_Train.webm">Wikimedia Commons</a>
-        (CC BY-SA 4.0, Frameofashik). Video is external content, not RailMate data.
+        (CC BY-SA 4.0, Frameofashik; unmodified copy in
+        <code>web-guide/media/</code>). The map still needs network for tiles.
         DEMONSTRATION ONLY.</p>
     </section>
 

@@ -72,6 +72,8 @@ flutter:
     - web-guide/index.html
     - web-guide/styles.css
     - web-guide/guide.js
+    - web-guide/media/coxsbazar-express-480p.webm
+    - web-guide/media/coxsbazar-express-poster.jpg
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

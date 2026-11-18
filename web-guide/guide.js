@@ -153,15 +153,20 @@
   //
   // The emulator proved the real failure was source recovery, not policy: the
   // element sat in NETWORK_NO_SOURCE (networkState 3, readyState 0, error
-  // null) after its first fetch, and play() alone never opens a codec. The
-  // same page over CDP with load() + play() reached readyState 4 and played.
+  // null) after its first fetch, play() alone never opens a codec, and load()
+  // revived it (CDP: load() + play() reached readyState 4 and played). The
+  // bundled clip removes the network from that path, but the same recovery
+  // still applies, and a tap must never be a silent dead end.
   function initVideo() {
     var video = document.getElementById('rail-video');
     var button = document.getElementById('rail-video-play');
     if (!video || !button) return;
 
     var NO_SOURCE = 3; // HTMLMediaElement.NETWORK_NO_SOURCE
-    var reloads = 0;
+    // Recovery budget for automatic attempts only (page load, error event).
+    // A real tap is never budgeted - see the click handler.
+    var autoReloads = 0;
+    var MAX_AUTO_RELOADS = 2;
 
     // paused === false only means "a play request is pending"; on a source-less
     // element it stays false while nothing plays (CDP: paused=false with
@@ -179,12 +184,15 @@
 
     // A media element whose first resource fetch failed sits in
     // NETWORK_NO_SOURCE (networkState 3, readyState 0) and ignores play()
-    // forever; load() re-runs resource selection and revives it. Bounded so a
-    // genuinely offline reader never loops.
-    function ensureSource() {
-      if (video.networkState !== NO_SOURCE && video.readyState > 0) return;
-      if (reloads >= 2) return;
-      reloads += 1;
+    // forever; load() re-runs resource selection and revives it. Bounded for
+    // automatic callers so a genuinely offline reader never loops; a user tap
+    // passes force and always gets a fresh attempt.
+    function ensureSource(force) {
+      if (video.readyState > 0 && video.networkState !== NO_SOURCE) return;
+      if (!force) {
+        if (autoReloads >= MAX_AUTO_RELOADS) return;
+        autoReloads += 1;
+      }
       try {
         video.load();
       } catch (err) {
@@ -192,8 +200,8 @@
       }
     }
 
-    function attemptPlay() {
-      ensureSource();
+    function attemptPlay(force) {
+      ensureSource(force === true);
       try {
         var started = video.play();
         if (started && typeof started.catch === 'function') {
@@ -203,10 +211,14 @@
         /* keep the control usable */
       }
       // A play() that never produces a frame must not leave the reader without
-      // a control; one reload is allowed here, at most twice overall.
+      // a control; one automatic reload is allowed here, at most twice overall.
       setTimeout(function () {
-        if (video.currentTime === 0 && !video.paused) {
-          ensureSource();
+        if (video.currentTime > 0) {
+          syncButton();
+          return;
+        }
+        if (video.networkState === NO_SOURCE) ensureSource(false);
+        if (video.paused || video.readyState === 0) {
           var again = video.play();
           if (again && typeof again.catch === 'function') {
             again.catch(syncButton);
@@ -220,7 +232,12 @@
       if (isPlaying()) {
         video.pause();
       } else {
-        attemptPlay();
+        // The emulator showed the dead end this prevents: the automatic
+        // attempts ran out while the element was still source-less, so every
+        // later tap called play() on NETWORK_NO_SOURCE and did nothing. A tap
+        // is a real user activation, so it resets the budget and reloads.
+        autoReloads = 0;
+        attemptPlay(true);
       }
     });
     video.addEventListener('playing', syncButton);
@@ -230,13 +247,13 @@
     video.addEventListener('ended', syncButton);
     video.addEventListener('stalled', syncButton);
     video.addEventListener('error', function () {
-      ensureSource();
+      ensureSource(false);
       syncButton();
     });
 
     // Best effort only: if the WebView refuses, the button stays usable.
     video.muted = true;
-    attemptPlay();
+    attemptPlay(false);
     syncButton();
   }
 

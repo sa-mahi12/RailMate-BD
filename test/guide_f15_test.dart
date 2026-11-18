@@ -171,12 +171,14 @@ void main() {
       });
 
       test(
-        'HTML ships a playable external video, never the retired YouTube mode',
+        'HTML ships a playable bundled video, never the retired YouTube mode',
         () {
           // A YouTube iframe is genuinely embeddable but the player rejects the
           // app's file:///android_asset origin with "Error 153" (no Referer).
-          // The shipped page therefore streams a licensed Commons clip through
-          // its own HTML5 player; this guard keeps it that way.
+          // Streaming the Commons file is not dependable either: Wikimedia
+          // answered the WebView with HTTP 403 + text/html, which Chromium
+          // blocks as net::ERR_BLOCKED_BY_ORB. The page therefore plays a
+          // licensed Commons clip bundled with the app; this guard keeps it so.
           expect(html, contains('<video'));
           expect(html, isNot(contains('listType')));
           expect(html, isNot(contains('http://')));
@@ -192,20 +194,40 @@ void main() {
           // removed, so the guard keeps it out.
           expect(html, isNot(contains('crossorigin')));
           expect(html, contains('type="video/webm"'));
+          // Bundled, not streamed: no remote media host may sneak back in.
+          expect(html, isNot(contains('upload.wikimedia.org')));
           final RegExpMatch? src = RegExp(
-            r'<source\s+src="(https://[^"]+\.webm)"',
+            r'<source\s+src="(media/[^"]+\.webm)"',
           ).firstMatch(html);
           expect(
             src,
             isNotNull,
-            reason: 'a fixed https video source is required',
+            reason: 'the clip must be a bundled asset path',
           );
+          final RegExpMatch? poster = RegExp(r'poster="(media/[^"]+\.jpg)"')
+              .firstMatch(html);
+          expect(poster, isNotNull, reason: 'the poster must be bundled too');
           expect(html, contains('CC BY-SA 4.0'));
           expect(html, contains('Wikimedia Commons'));
           expect(html, contains('DEMONSTRATION ONLY'));
           expect(html, isNot(contains('R-09 BLOCKED')));
           expect(html, isNot(contains('R-10 BLOCKED')));
           expect(html, isNot(contains('R-16 BLOCKED')));
+
+          // The files must really be in the checkout and of sane size, so a
+          // placeholder or a truncated download cannot pass this test.
+          for (final String name in <String>[
+            src!.group(1)!,
+            poster!.group(1)!,
+          ]) {
+            final File asset = File('$root/web-guide/$name');
+            expect(asset.existsSync(), isTrue, reason: 'missing $name');
+            expect(asset.lengthSync(), greaterThan(10000), reason: name);
+          }
+          final File clip = File('$root/web-guide/${src.group(1)!}');
+          expect(clip.lengthSync(), greaterThan(2000000));
+          // Keep the APK honest: the clip stays well under 8 MB.
+          expect(clip.lengthSync(), lessThan(8000000));
         },
       );
 
@@ -243,6 +265,15 @@ void main() {
         // paused === false does not mean playing: a source-less element stays
         // "not paused" with currentTime 0, so the toggle must use real state.
         expect(js, contains('function isPlaying()'));
+        // A tap must never be a silent no-op: the emulator spent the automatic
+        // reload budget before any gesture, after which every tap called
+        // play() on NETWORK_NO_SOURCE and nothing happened. A trusted tap
+        // resets the budget and forces a fresh load().
+        expect(js, contains('MAX_AUTO_RELOADS'));
+        expect(js, contains('function ensureSource(force)'));
+        expect(js, contains('autoReloads = 0;'));
+        expect(js, contains('attemptPlay(true)'));
+        expect(js, contains('attemptPlay(false)'));
         expect(css, contains('.video-play'));
       });
 
