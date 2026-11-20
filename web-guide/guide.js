@@ -119,8 +119,19 @@
     }
     if (fallback) fallback.hidden = true;
     el.classList.remove('map-unavailable');
-    el.textContent = '';
+    // Leaflet owns everything inside the container once initialised, so the
+    // container is cleared only on (re)initialisation. Clearing it while
+    // reusing the old instance left an empty box with no controls: the
+    // Flutter screen calls showStation() after load, so a second render used
+    // to wipe the map Leaflet had just built.
+    if (map !== null && !el.querySelector('.leaflet-pane')) {
+      // Container was torn down behind our back - rebuild instead of blanking.
+      try { map.remove(); } catch (err) { /* instance already detached */ }
+      map = null;
+      marker = null;
+    }
     if (map === null) {
+      el.textContent = '';
       map = L.map('map', { scrollWheelZoom: false }).setView([station.lat, station.lng], 13);
       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
@@ -132,8 +143,10 @@
       marker.setLatLng([station.lat, station.lng]);
     }
     marker.bindPopup('<b>' + station.name + ' (' + station.code + ')</b><br>DEMONSTRATION ONLY').openPopup();
-    // Fix sizing when the WebView reports layout late.
-    setTimeout(function () { map.invalidateSize(); }, 300);
+    // The WebView can report its final layout after Leaflet measured the box.
+    [300, 1200].forEach(function (delay) {
+      setTimeout(function () { if (map) map.invalidateSize(); }, delay);
+    });
   }
 
   function animateEntrance() {

@@ -171,6 +171,36 @@ void main() {
       });
 
       test(
+        'map re-render keeps the Leaflet instance instead of blanking it',
+        () {
+          // The Flutter screen injects window.RailMateGuide.showStation(code)
+          // after the asset loads, so renderMap() runs twice. Clearing the
+          // container while reusing the existing instance deleted Leaflet's own
+          // DOM and left an empty grey box with no tiles and no zoom controls.
+          final clear = js.indexOf("el.textContent = ''");
+          final init = js.indexOf('if (map === null) {');
+          expect(clear, greaterThan(0), reason: 'container is still cleared');
+          expect(init, greaterThan(0));
+          expect(
+            clear,
+            greaterThan(init),
+            reason: 'the container may only be cleared while initialising',
+          );
+          expect(
+            js.split("el.textContent = ''").length - 1,
+            1,
+            reason: 'exactly one clear site, inside the init branch',
+          );
+          // Defensive rebuild if the panes were torn down, and repeated
+          // invalidateSize for WebView layout that settles late.
+          expect(js, contains("el.querySelector('.leaflet-pane')"));
+          expect(js, contains('map.remove()'));
+          expect(js, contains('[300, 1200]'));
+          expect(js, contains('invalidateSize'));
+        },
+      );
+
+      test(
         'HTML ships a playable bundled video, never the retired YouTube mode',
         () {
           // A YouTube iframe is genuinely embeddable but the player rejects the
