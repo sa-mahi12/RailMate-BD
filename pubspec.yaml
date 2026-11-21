@@ -50,6 +50,7 @@ dependencies:
   webview_flutter_android: ^4.13.0
   shared_preferences: ^2.3.3 # P03: first-run onboarding completion flag
   app_links: ^7.2.2
+  url_launcher: ^6.3.3
 
 dev_dependencies:
   flutter_test:

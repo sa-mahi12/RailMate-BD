@@ -112,6 +112,11 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
   <!-- F15 CDN: Leaflet 1.9.4 interactive map library. -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- P41: optional Google Maps provider selection. No key is bundled: the
+       Flutter WebView injects window.RAILMATE_WEB_CONFIG only when the build
+       supplied --dart-define=GOOGLE_MAPS_KEY. Without it this file is inert
+       and the Leaflet/OSM map above is the renderer. -->
+  <script src="map-provider.js"></script>
   <script src="guide.js"></script>
 </body>
 </html>

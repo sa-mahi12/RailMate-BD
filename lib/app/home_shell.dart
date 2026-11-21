@@ -754,7 +754,10 @@ class _HomeShellState extends State<HomeShell> {
               child: _TabNavigator(
                 navigatorKey: _keys[3],
                 dependencies: widget.dependencies,
-                root: ProfileScreen(auth: widget.dependencies.auth),
+                root: ProfileScreen(
+                  auth: widget.dependencies.auth,
+                  telegram: widget.dependencies.telegramVerification,
+                ),
               ),
             ),
           ],

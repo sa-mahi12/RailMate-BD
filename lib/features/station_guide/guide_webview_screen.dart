@@ -5,6 +5,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 
 import '../../../design/design.dart';
+import 'map_provider_config.dart';
 import 'station_guide.dart';
 
 /// F15: interactive station guide rendered through a Flutter WebView.
@@ -50,6 +51,12 @@ class _GuideWebViewScreenState extends State<GuideWebViewScreen> {
           onPageFinished: (_) {
             // Select the requested station on the parameterized page.
             // Guarded in-page; a no-op if the hook is missing.
+            // P41: optional Google Maps key from --dart-define. Empty by
+            // default, so the proven OSM map is untouched.
+            final String mapConfig = GuideMapConfig.configScript();
+            if (mapConfig.isNotEmpty) {
+              unawaited(_controller.runJavaScript(mapConfig));
+            }
             _controller.runJavaScript(
               "if (window.RailMateGuide) { window.RailMateGuide.showStation('$code'); }",
             );

@@ -87,7 +87,10 @@
     if (note) {
       note.textContent =
         'Static demonstration coordinates: ' + station.lat.toFixed(4) + ', ' +
-        station.lng.toFixed(4) + '. Not live GPS. Map tiles © OpenStreetMap contributors.';
+        station.lng.toFixed(4) + '. Not live GPS. ' +
+        (resolvedProvider().provider === 'google'
+          ? 'Map data © Google.'
+          : 'Map tiles © OpenStreetMap contributors.');
     }
 
     var picker = document.getElementById('station-picker');
@@ -102,7 +105,7 @@
     }
   }
 
-  function renderMap(code) {
+  function renderOsmMap(code) {
     var station = STATIONS[code];
     var el = document.getElementById('map');
     var fallback = document.getElementById('map-fallback');
@@ -149,6 +152,91 @@
     });
   }
 
+  // P41: optional Google Maps. The proven Leaflet/OSM renderer above stays the
+  // default; Google is only reachable when an owner key is present in
+  // window.RAILMATE_WEB_CONFIG.googleMapsApiKey. Any load or render failure
+  // flips googleFailed and the very next render is OpenStreetMap again, so the
+  // guide can never end up as an empty box.
+  var googleFailed = false;
+  var googleMap = null;
+  var googleMarker = null;
+  var googleLoading = false;
+
+  function resolvedProvider() {
+    if (googleFailed || !window.RailMateMapProvider) {
+      return { provider: 'osm', key: '', reason: 'fallback' };
+    }
+    return window.RailMateMapProvider.resolveProvider(window.RAILMATE_WEB_CONFIG);
+  }
+
+  function drawGoogleMap(station, el, fallback) {
+    if (typeof google === 'undefined' || !google.maps) {
+      googleFailed = true;
+      renderOsmMap(currentCode);
+      return;
+    }
+    try {
+      if (fallback) fallback.hidden = true;
+      el.classList.remove('map-unavailable');
+      if (googleMap === null) {
+        el.textContent = '';
+        googleMap = new google.maps.Map(el, {
+          center: { lat: station.lat, lng: station.lng },
+          zoom: 13,
+          mapTypeControl: false,
+          streetViewControl: false,
+          fullscreenControl: false
+        });
+        googleMarker = new google.maps.Marker({
+          position: { lat: station.lat, lng: station.lng },
+          map: googleMap,
+          title: station.name + ' (' + station.code + ') - DEMONSTRATION ONLY'
+        });
+      } else {
+        googleMap.setCenter({ lat: station.lat, lng: station.lng });
+        googleMarker.setPosition({ lat: station.lat, lng: station.lng });
+      }
+    } catch (err) {
+      googleFailed = true;
+      googleMap = null;
+      googleMarker = null;
+      renderOsmMap(currentCode);
+    }
+  }
+
+  function renderGoogleMap(provider, code, el, fallback) {
+    var station = STATIONS[code];
+    if (typeof google !== 'undefined' && google.maps) {
+      drawGoogleMap(station, el, fallback);
+      return;
+    }
+    if (googleLoading) return;
+    googleLoading = true;
+    el.textContent = 'Loading Google Maps...';
+    window.RailMateMapProvider
+      .loadGoogleMaps(document, provider.key, { timeoutMs: 8000 })
+      .then(function (ok) {
+        googleLoading = false;
+        if (ok) {
+          drawGoogleMap(station, el, fallback);
+        } else {
+          googleFailed = true;
+          renderOsmMap(currentCode);
+        }
+      });
+  }
+
+  // Dispatcher: OSM unless a valid owner key selected Google.
+  function renderMap(code) {
+    var el = document.getElementById('map');
+    var fallback = document.getElementById('map-fallback');
+    var provider = resolvedProvider();
+    if (provider.provider === 'google' && el) {
+      renderGoogleMap(provider, code, el, fallback);
+      return;
+    }
+    renderOsmMap(code);
+  }
   function animateEntrance() {
     if (typeof gsap === 'undefined') return; // static fallback, no fake claim
     try {
@@ -301,7 +389,18 @@
   }
 
   // Public hook used by the Flutter WebView after asset load.
-  window.RailMateGuide = { showStation: showStation, stationCodes: Object.keys(STATIONS) };
+  window.RailMateGuide = {
+    showStation: showStation,
+    // P41: Flutter injects the optional provider config, then asks for a
+    // redraw so a Google key can take effect after the first OSM paint.
+    refreshMap: function () {
+      googleFailed = false;
+      googleMap = null;
+      googleMarker = null;
+      renderMap(currentCode);
+    },
+    stationCodes: Object.keys(STATIONS)
+  };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);

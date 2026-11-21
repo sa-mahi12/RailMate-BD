@@ -177,8 +177,16 @@ void main() {
           // after the asset loads, so renderMap() runs twice. Clearing the
           // container while reusing the existing instance deleted Leaflet's own
           // DOM and left an empty grey box with no tiles and no zoom controls.
-          final clear = js.indexOf("el.textContent = ''");
-          final init = js.indexOf('if (map === null) {');
+          // P41: the OSM renderer was renamed to renderOsmMap when the
+          // optional Google provider was added, so the clear-site rules are
+          // scoped to that function (the Google branch must never reuse it).
+          final osmStart = js.indexOf('function renderOsmMap');
+          final osmEnd = js.indexOf('function resolvedProvider');
+          expect(osmStart, greaterThan(0));
+          expect(osmEnd, greaterThan(osmStart));
+          final osm = js.substring(osmStart, osmEnd);
+          final clear = osm.indexOf("el.textContent = ''");
+          final init = osm.indexOf('if (map === null) {');
           expect(clear, greaterThan(0), reason: 'container is still cleared');
           expect(init, greaterThan(0));
           expect(
@@ -187,7 +195,7 @@ void main() {
             reason: 'the container may only be cleared while initialising',
           );
           expect(
-            js.split("el.textContent = ''").length - 1,
+            osm.split("el.textContent = ''").length - 1,
             1,
             reason: 'exactly one clear site, inside the init branch',
           );

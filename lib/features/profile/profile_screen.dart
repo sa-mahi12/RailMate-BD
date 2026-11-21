@@ -17,16 +17,22 @@ import '../../design/design.dart';
 import '../../design/state/state.dart';
 import '../auth/auth_state.dart';
 import '../auth/auth_theme.dart';
+import '../auth/telegram/telegram_verification_state.dart';
+import '../auth/telegram/telegram_verify_section.dart';
 
 /// Signed-in account profile driven by the shared session state.
 class ProfileScreen extends StatelessWidget {
   /// Shared session state (restored once at startup in `main.dart`).
   final AuthState auth;
 
+  /// P41 Telegram phone verification; null hides the section (tests that do
+  /// not exercise it).
+  final TelegramVerificationState? telegram;
+
   /// Route name for guard-friendly navigation (wired by F16).
   static const String routeName = '/profile';
 
-  const ProfileScreen({super.key, required this.auth});
+  const ProfileScreen({super.key, required this.auth, this.telegram});
 
   void _openKeySetup(BuildContext context) {
     Navigator.of(context).pushNamed(AppRoutes.keySetup);
@@ -146,6 +152,10 @@ class ProfileScreen extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (telegram != null) ...<Widget>[
+                  const SizedBox(height: 12),
+                  TelegramVerifySection(state: telegram!),
+                ],
                 if (auth.status == AuthStatus.needsVerification) ...<Widget>[
                   const Text(
                     'Check your inbox for the confirmation email to unlock '

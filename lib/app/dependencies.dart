@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+import 'package:url_launcher/url_launcher.dart';
+
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 
 import '../core/supabase/supabase_client.dart';
@@ -9,6 +11,8 @@ import '../features/auth/auth_state.dart';
 import '../features/auth/phone/phone_auth_repository.dart';
 import '../features/auth/phone/phone_state.dart';
 import '../features/auth/supabase_auth_client.dart';
+import '../features/auth/telegram/telegram_verification_client.dart';
+import '../features/auth/telegram/telegram_verification_state.dart';
 import '../features/auth/username/username_availability.dart';
 import '../features/board/comments/comment.dart';
 import '../features/board/list/cursor_page.dart';
@@ -59,12 +63,18 @@ class AppDependencies {
   /// [SupabasePhoneOtpClient] adapter; only tests inject the fake.
   final PhoneState phoneState;
 
+  /// P41 Telegram contact verification (phone lane alternative to SMS).
+  /// Production composes the real Edge-Function client and opens the t.me
+  /// deep link; only tests inject the in-memory fake.
+  final TelegramVerificationState telegramVerification;
+
   AppDependencies({
     this.client,
     required this.auth,
     required this.searchApi,
     required this.graphql,
     required this.phoneState,
+    required this.telegramVerification,
   });
 
   /// Production composition. Call only after
@@ -88,6 +98,18 @@ class AppDependencies {
           client: SupabasePhoneOtpClient(supabase: client),
         ),
       ),
+      // P41: phone verification through Telegram contact sharing. The bot
+      // username and token live only in hosted Edge Function secrets.
+      telegramVerification: TelegramVerificationState(
+        client: SupabaseTelegramVerificationClient(supabase: client),
+        openLink: (String url) async {
+          final Uri uri = Uri.tryParse(url) ?? Uri();
+          if (!uri.hasScheme) {
+            throw StateError('Invalid verification link');
+          }
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        },
+      ),
     );
   }
 
@@ -101,6 +123,7 @@ class AppDependencies {
     SupabaseClient? client,
     StationGraphqlClient? graphql,
     PhoneState? phoneState,
+    TelegramVerificationState? telegramVerification,
   }) {
     return AppDependencies(
       client: client,
@@ -116,6 +139,12 @@ class AppDependencies {
           phoneState ??
           PhoneState(
             repository: PhoneAuthRepository(client: FakePhoneOtpClient()),
+          ),
+      telegramVerification:
+          telegramVerification ??
+          TelegramVerificationState(
+            client: DemoTelegramVerificationClient(),
+            openLink: (String url) async {},
           ),
     );
   }

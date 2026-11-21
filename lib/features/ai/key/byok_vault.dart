@@ -121,15 +121,17 @@ class ByokVault {
   }
 
   /// Masked preview safe for UI display. Exposes at most the last 4
-  /// characters, e.g. `••••abcd`. Returns `'not set'` for null/empty.
+  /// characters, and only for keys long enough for that to be meaningless
+  /// (`> 8`). Shorter values are masked entirely so no key is ever echoed.
+  /// Returns `'not set'` for null/empty.
   /// Pure function: safe to assert in tests that it never leaks the full key.
   static String maskedPreviewOf(String? key) {
     if (key == null || key.isEmpty) {
       return 'not set';
     }
     const mask = '••••';
-    if (key.length <= 4) {
-      return '$mask$key'.substring(0, mask.length + key.length);
+    if (key.length <= 8) {
+      return mask;
     }
     return '$mask${key.substring(key.length - 4)}';
   }
