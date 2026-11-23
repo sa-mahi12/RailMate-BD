@@ -25,6 +25,13 @@ P41 added a provider-selection layer that can activate Google Maps **only** when
 a key is supplied at build time. Without a key nothing changes and no Google
 script is loaded.
 
+**Packaging finding:** the published `+27` APK does not contain the referenced
+`map-provider.js`, so its Google opt-in cannot run even if configured. The
+declaration in `pubspec.yaml` is repaired in the +28 corrective source and the
+recorded generated Flutter bundle regression passes. Source proof alone is not
+APK proof; consult the P41 closure for new-release inspection before trying
+Google. Do not overwrite +27.
+
 ### If the owner decides OSM is acceptable
 
 Nothing to do. Keep R-10 as a deviation, attach this document to the submission
@@ -35,13 +42,19 @@ and tell the teacher the map is interactive OpenStreetMap.
 1. Google Cloud Console → create/select a project → enable
    **Maps JavaScript API** → billing must be active (the API is not free).
 2. Credentials → **Create credentials → API key**.
-3. Restrict the key: **Application restrictions → Android apps**, add the
-   release package name (`com.example.railmate_bd` — check
-   `android/app/build.gradle` for the exact `applicationId`) and the release
-   signing SHA-1. Optionally restrict the API to Maps JavaScript API.
-   A Maps JavaScript key used from a WebView is visible to the device by
-   design; the restriction is what protects it.
-4. Build with the key from the environment, never from source:
+3. **Resolve the origin restriction before enabling this layer.** This uses
+   Maps JavaScript API, not Maps SDK for Android. Google's guidance requires
+   **Website (HTTP referrer)** restrictions for JavaScript; Android package/
+   SHA-1 restrictions do not authorize this API. The current guide uses
+   `file:///android_asset`, which has no reliable HTTP referrer. A key alone
+   therefore does not establish a secure, working Google integration. An
+   owner-approved, restricted HTTPS guide origin (or a separately reviewed
+   native Maps SDK implementation) is required. Do not remove restrictions
+   to make the demo work. The actual APK package is `bd.railmate.railmate_bd`.
+   See [Google's API security guidance](https://developers.google.com/maps/api-security-best-practices).
+4. Only after resolving that prerequisite, supply the key through an
+   owner-approved hosted build environment, never source. Example Flutter
+   argument shape (do not run a local heavy build under project governance):
 
    ```bash
    flutter build apk --release \
@@ -50,7 +63,9 @@ and tell the teacher the map is interactive OpenStreetMap.
    ```
 
    `GOOGLE_MAPS_KEY` is read by `lib/features/station_guide/map_provider_config.dart`
-   and injected into the WebView after load; the bundled assets never contain it.
+   and injected into the WebView after load; the source assets never contain
+   it. A configured key is public in the compiled APK by design. The published
+   `+27` workflow did not supply a Google key and continues to use OSM.
 5. Device verification (required before any PASS claim):
    * open a station guide, confirm the map shows Google tiles/attribution,
    * switch stations (marker moves, no blank box),
@@ -63,9 +78,9 @@ and tell the teacher the map is interactive OpenStreetMap.
 | Situation | Behaviour |
 |---|---|
 | No key at build time | `window.RAILMATE_WEB_CONFIG` is never set; Leaflet/OSM renders exactly as today |
-| Key present, script loads | Google map renders; Leaflet path untouched |
-| Key present, script blocked/timeout (8 s) | `googleFailed = true`, OSM renderer used; no empty box |
-| Key present, `google.maps` throws | caught, falls back to OSM |
+| Key present, script loads | Attempts a Google map; authorization/rendering still needs live verification |
+| Key present, script blocked/timeout (8 s) | OSM fallback attempted; visible tiles still require Leaflet/CDN access |
+| Key present, `google.maps` throws | caught, OSM fallback attempted; non-throwing provider authorization errors are not live-tested |
 | Invalid/blank key in config | treated as absent (`invalid_google_maps_key` / `no_google_maps_key`) |
 
 ### Tests that exist

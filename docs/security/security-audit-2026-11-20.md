@@ -48,7 +48,25 @@ gh secret list --repo sa-mahi12/RailMate-BD
 
 ## Priority action for the owner
 
-Rotate the Supabase **JWT secret** (which invalidates the old `anon` and
-`service_role` keys) and update every consumer. Do this before sharing the
-repository link with anyone else. See
+Publication scan supplement (2026-11-21): Gitleaks 8.30.1 scanned reachable
+history in both repositories and the complete publishable working trees
+(archive depth 3). Current-tree scans exited 0; app history exited 1 with two
+JWT findings (anon and service-role), internal history exited 0. A supplemental
+metadata-only scan covered 330 app files/665 reachable blobs and 216 internal
+files/357 reachable blobs, with manual fixture and privacy classification.
+Current credential-like assignments are mocked-test values/examples, not
+provider credentials. Personal account details, machine paths and session IDs
+in the nine publication documents are withheld/redacted before publication.
+Older public documentation still contains personal/operational metadata; this
+pass does not erase historical copies or authorize broader cleanup. Binary
+files were inventoried and scanned by Gitleaks where supported; supplemental
+regex classification skips binaries. No scan guarantees universal absence of
+sensitive information, and no leaked credential was tested for validity.
+
+Retire the exposed legacy Supabase credential urgently through the owner's
+approved API-key/signing-key migration. New keys alone do not revoke it;
+legacy-key deactivation and legacy JWT secret revocation need explicit
+verification. Current revocation state is unknown. The runbook was corrected
+on 2026-11-21 against official Supabase documentation; reserved `SUPABASE_`
+variables must not be set as custom secrets. See
 [`credential-rotation-runbook.md`](credential-rotation-runbook.md).

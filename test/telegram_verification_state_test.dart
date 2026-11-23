@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:railmate_bd/features/auth/telegram/telegram_verification_client.dart';
 import 'package:railmate_bd/features/auth/telegram/telegram_verification_state.dart';
@@ -5,6 +7,145 @@ import 'package:railmate_bd/features/auth/telegram/telegram_verification_state.d
 import 'support/telegram_fakes.dart';
 
 void main() {
+  group('Telegram async lifecycle', () {
+    const TelegramChallengeStatus verified = TelegramChallengeStatus(
+      state: TelegramChallengeState.verified,
+      maskedPhone: '+880*****5678',
+    );
+    TelegramVerificationState makeState(FakeTelegramClient client) {
+      final TelegramVerificationState state = TelegramVerificationState(
+        client: client,
+        openLink: (_) async {},
+        pollInterval: const Duration(hours: 1),
+      );
+      addTearDown(state.dispose);
+      return state;
+    }
+
+    test(
+      'late poll cannot undo cancel even while backend cancellation waits',
+      () async {
+        final Completer<TelegramChallengeStatus?> response =
+            Completer<TelegramChallengeStatus?>();
+        final Completer<void> cancellation = Completer<void>();
+        final FakeTelegramClient client = FakeTelegramClient();
+        client.statusResponse = (_) => response.future;
+        client.cancelResponse = (_) => cancellation.future;
+        final TelegramVerificationState state = makeState(client);
+        await state.start();
+        final Future<void> polling = state.pollOnce();
+        final Future<void> cancelling = state.cancel();
+        response.complete(verified);
+        await polling;
+        final TelegramStatus afterPoll = state.status;
+        cancellation.complete();
+        await cancelling;
+        expect(afterPoll, TelegramStatus.cancelled);
+        expect(state.isVerified, isFalse);
+        expect(state.maskedPhone, isEmpty);
+      },
+    );
+
+    test(
+      'a reset invalidates pending hydration and permits a new restore',
+      () async {
+        final Completer<TelegramChallengeStatus?> response =
+            Completer<TelegramChallengeStatus?>();
+        final FakeTelegramClient client = FakeTelegramClient()
+          ..restoreResponse = () => response.future;
+        final TelegramVerificationState state = makeState(client);
+        final Future<void> restoring = state.restore();
+        state.reset();
+        response.complete(verified);
+        await restoring;
+        expect(state.isVerified, isFalse);
+        client.restoreResponse = null;
+        client.latestVerified = verified;
+        await state.restore();
+        expect(state.isVerified, isTrue);
+      },
+    );
+
+    test('late challenge creation after cancel never opens Telegram', () async {
+      final Completer<TelegramChallenge> response =
+          Completer<TelegramChallenge>();
+      final FakeTelegramClient client = FakeTelegramClient()
+        ..createResponse = () => response.future;
+      final List<String> opened = <String>[];
+      final TelegramVerificationState state = TelegramVerificationState(
+        client: client,
+        openLink: (url) async => opened.add(url),
+        pollInterval: const Duration(hours: 1),
+      );
+      addTearDown(state.dispose);
+      final Future<void> starting = state.start();
+      await state.cancel();
+      response.complete(
+        TelegramChallenge(
+          id: 'old',
+          deepLink: 'https://t.me/test?start=old',
+          expiresAt: DateTime.now().add(const Duration(minutes: 5)),
+        ),
+      );
+      await starting;
+      expect(opened, isEmpty);
+      expect(state.status, TelegramStatus.cancelled);
+    });
+
+    test(
+      'late poll for an old challenge cannot verify a new challenge',
+      () async {
+        final Completer<TelegramChallengeStatus?> response =
+            Completer<TelegramChallengeStatus?>();
+        final FakeTelegramClient client = FakeTelegramClient()
+          ..statusResponse = (_) => response.future;
+        final TelegramVerificationState state = makeState(client);
+        await state.start();
+        final Future<void> polling = state.pollOnce();
+        await state.start();
+        response.complete(verified);
+        await polling;
+        expect(state.status, TelegramStatus.waiting);
+        expect(state.maskedPhone, isEmpty);
+      },
+    );
+
+    test('slow status fetches never overlap for one challenge', () async {
+      final Completer<TelegramChallengeStatus?> response =
+          Completer<TelegramChallengeStatus?>();
+      final FakeTelegramClient client = FakeTelegramClient()
+        ..statusResponse = (_) => response.future;
+      final TelegramVerificationState state = makeState(client);
+      await state.start();
+      final Future<void> first = state.pollOnce();
+      final Future<void> second = state.pollOnce();
+      final int requestsWhilePending = client.fetchCalls;
+      response.complete(verified);
+      await Future.wait(<Future<void>>[first, second]);
+      expect(requestsWhilePending, 1);
+      expect(state.isVerified, isTrue);
+    });
+
+    test(
+      'disposing invalidates a pending poll without notifier errors',
+      () async {
+        final Completer<TelegramChallengeStatus?> response =
+            Completer<TelegramChallengeStatus?>();
+        final FakeTelegramClient client = FakeTelegramClient()
+          ..statusResponse = (_) => response.future;
+        final TelegramVerificationState state = TelegramVerificationState(
+          client: client,
+          openLink: (_) async {},
+          pollInterval: const Duration(hours: 1),
+        );
+        await state.start();
+        final Future<void> polling = state.pollOnce();
+        state.dispose();
+        response.complete(verified);
+        await expectLater(polling, completes);
+      },
+    );
+  });
   group('TelegramVerificationState', () {
     test(
       'start opens the deep link and waits without claiming success',
@@ -263,18 +404,30 @@ void main() {
       state.dispose();
     });
 
-    test('a failed restore never invents a verification', () async {
-      final TelegramVerificationState state = TelegramVerificationState(
-        client: FakeTelegramClient(fetchError: StateError('offline')),
-        openLink: (String url) async {},
-      );
+    test(
+      'a failed restore stays unverified and permits a successful retry',
+      () async {
+        final FakeTelegramClient client = FakeTelegramClient();
+        client.restoreResponse = () async => throw StateError('offline');
+        final TelegramVerificationState state = TelegramVerificationState(
+          client: client,
+          openLink: (String url) async {},
+        );
 
-      await state.restore();
+        await state.restore();
 
-      expect(state.isVerified, isFalse);
-      expect(state.maskedPhone, isEmpty);
-      state.dispose();
-    });
+        expect(state.isVerified, isFalse);
+        expect(state.maskedPhone, isEmpty);
+        client.restoreResponse = null;
+        client.latestVerified = const TelegramChallengeStatus(
+          state: TelegramChallengeState.verified,
+          maskedPhone: '+880*****5678',
+        );
+        await state.restore();
+        expect(state.isVerified, isTrue);
+        state.dispose();
+      },
+    );
 
     test('a polling failure does not fabricate verification', () async {
       final FakeTelegramClient client = FakeTelegramClient(

@@ -75,7 +75,9 @@ class AppDependencies {
     required this.graphql,
     required this.phoneState,
     required this.telegramVerification,
-  });
+  }) {
+    telegramVerification.bindAuth(auth);
+  }
 
   /// Production composition. Call only after
   /// `SupabaseBootstrap.instance.initialize(connect: supabaseConnect)`

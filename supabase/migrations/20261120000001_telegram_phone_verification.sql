@@ -27,6 +27,7 @@ create table if not exists public.phone_verifications (
   verified_at timestamptz,
   consumed_at timestamptz,
   cancelled_at timestamptz,
+  verification_update_id bigint,
   constraint phone_verifications_e164_format
     check (phone_e164 is null or phone_e164 ~ '^\+[1-9][0-9]{7,14}$'),
   constraint phone_verifications_verified_has_phone
@@ -53,11 +54,34 @@ create index if not exists phone_verifications_expiry_idx
   on public.phone_verifications (expires_at)
   where status in ('pending', 'contact_shared');
 
--- Webhook idempotency: a repeated Telegram update_id is processed once.
+-- Staged/not applied: tolerate re-running the additive schema on a checkout
+-- that already applied its earlier form. Owner must review/apply explicitly.
+alter table public.phone_verifications
+  add column if not exists verification_update_id bigint;
+
+-- Webhook idempotency: only completed updates are permanently acknowledged.
+-- A worker crash leaves a lease that can be reclaimed; transient errors
+-- release their claim. Conditional bind/consume writes remain the authority.
 create table if not exists public.telegram_webhook_updates (
   update_id bigint primary key,
-  received_at timestamptz not null default now()
+  received_at timestamptz not null default now(),
+  state text not null default 'processing' check (state in ('processing', 'completed')),
+  claim_id uuid,
+  lease_expires_at timestamptz,
+  completed_at timestamptz
 );
+
+-- Earlier insert-only ledger rows cannot be proved complete; make them
+-- reclaimable rather than silently suppressing a real Telegram retry.
+alter table public.telegram_webhook_updates
+  add column if not exists state text not null default 'processing'
+    check (state in ('processing', 'completed')),
+  add column if not exists claim_id uuid,
+  add column if not exists lease_expires_at timestamptz,
+  add column if not exists completed_at timestamptz;
+update public.telegram_webhook_updates
+  set lease_expires_at = now()
+  where state = 'processing' and lease_expires_at is null;
 
 comment on table public.telegram_webhook_updates is
   'Idempotency ledger for Telegram webhook updates (service-role access only).';

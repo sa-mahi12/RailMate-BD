@@ -153,8 +153,9 @@ class _TelegramVerifySectionState extends State<TelegramVerifySection> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             const Text(
-              'Not verified yet. Telegram shares only your own number, and it '
-              'is stored masked.',
+              'Not verified yet. Share your own number through Telegram. '
+              'RailMate stores the full number in a protected verification '
+              'record and displays it masked.',
               style: TextStyle(fontSize: 13, color: kAuthHint, height: 1.4),
             ),
             const SizedBox(height: 10),

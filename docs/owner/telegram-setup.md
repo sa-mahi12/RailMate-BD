@@ -1,7 +1,8 @@
 # Telegram phone verification — owner setup (P41)
 
-Status: **code complete, not deployed, not provider-verified.** The app, the
-Edge Functions, the migration and the mocked-update tests are committed. Nothing
+Status: **corrective source for +28, not deployed, not provider-verified.** The original
+implementation is committed at `8df1654`/`+27`; the corrective app/backend/schema
+changes target a separate +28 release; consult the P41 closure for publication evidence. Nothing
 below has been executed by the agent, because it needs the owner's Telegram bot
 and privileged Supabase access.
 
@@ -34,7 +35,8 @@ openssl rand -hex 32        # or: python -c "import secrets;print(secrets.token_
    chat, documents, screenshots or this repository.
 4. `/setdescription` — paste the explanation used in the bot chat:
    *"RailMate BD phone verification. Share your own number with the button
-   below. The number is stored masked and is never shown to other travellers."*
+   below. Your number is stored in a protected verification record and shown
+   masked in RailMate. It is not shown to other travellers."*
 5. `/setcommands` → `start - Start phone verification`.
 6. Optional: `/setjoingroups` → **Disable** (the flow rejects group chats).
 
@@ -52,14 +54,28 @@ one partial unique index per verified Telegram identity, RLS read-own for the
 app and service-role-only writes. It does not touch `auth.users`, `profiles`,
 bookings or the SMS lane.
 
-Apply **one** of:
+The corrected staged schema also records `verification_update_id` to recover
+an ambiguous consume result, plus processing/completed update claims with
+two-minute reclaimable leases. The backend returns HTTP 503 on a transient
+failure or busy claim so Telegram can retry; only completed updates dedupe
+permanently. The owner must review/apply this corrected schema together with
+the corrected functions, not mix the old ledger with the new adapter. These
+properties have mocked-update/HTTP-handler tests only; hosted/RLS execution is
+unverified. A verification-success chat notification is best effort after the
+protected write; the app's server row remains authoritative if Telegram is down.
+
+Review the exact pending migration scope before applying:
 
 ```bash
 # A. CLI (needs the database password / linked project)
 supabase link --project-ref "$SUPABASE_PROJECT_REF"
-supabase db push
+# Review the linked project's pending migration list before db push; do not
+# apply unrelated migrations blindly. Otherwise use the exact SQL file below.
+supabase db push --dry-run
 
-# B. Dashboard → SQL Editor → paste the file → Run
+# B. Owner: Dashboard → SQL Editor → paste the exact reviewed file → Run
+# Or, after reviewing the dry-run list and approving every pending migration,
+# the owner may run supabase db push. The agent does not run it.
 ```
 
 Verify (SQL editor):
@@ -83,9 +99,12 @@ supabase secrets set \
   TELEGRAM_WEBHOOK_SECRET='...'
 ```
 
-`SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are already present as hosted
-function secrets (used by `book-trip` / `cancel-booking`). Do not add them to
-the app.
+`SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` are
+platform-injected legacy variables used by these adapters. Do not set custom
+`SUPABASE_` secrets or add privileged keys to the app. If legacy keys are
+disabled during rotation, the adapters need a reviewed migration to the
+platform's new publishable/secret key dictionaries before deployment; see the
+rotation runbook.
 
 ## 4. Deploy the two functions
 
@@ -125,7 +144,9 @@ absent.
 
 ## 6. End-to-end verification (owner action)
 
-Run the +27 build on a phone, signed in with a **test account**:
+After coordinator review/publication of a **new corrected signed build** and
+owner backend setup, run it on a phone with a **test account**. Do not use +27
+for closure: it contains the reviewed account/lifecycle defects.
 
 1. Profile → **Phone verification** → **Verify with Telegram**.
 2. Telegram opens the bot with `/start <token>`.
@@ -137,6 +158,11 @@ Run the +27 build on a phone, signed in with a **test account**:
 7. Negative checks: typing a number in the bot is rejected; another Telegram
    account cannot complete the same link; the same Telegram account cannot be
    linked to a second RailMate account.
+8. Account/lifecycle checks: log out of A and sign in as B; A's masked number
+   must disappear. Cancel while a poll is pending, then start a fresh challenge;
+   late results must not verify it. Test retries after a transient backend error.
+9. Telegram may supply an international number without `+`; a sender-owned
+   card is canonicalized, while a typed number never verifies an account.
 
 Row check (SQL editor):
 
@@ -149,7 +175,8 @@ select status, method, phone_masked, verified_at is not null as verified,
 
 Expected: `status = verified`, `method = telegram_contact`,
 `phone_e164` populated, `phone_masked` masked, `auth.users.phone_confirmed_at`
-still `null` for that account.
+unchanged from its prior value for that account (null for a fresh account
+without any earlier SMS verification).
 
 ## 7. Revocation / rotation
 

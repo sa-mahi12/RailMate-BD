@@ -10,6 +10,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import '../auth_state.dart';
 import 'telegram_verification_client.dart';
 
 /// Lifecycle visible to the verification UI.
@@ -47,6 +48,38 @@ class TelegramVerificationState extends ChangeNotifier {
   String _errorMessage = '';
   DateTime? _expiresAt;
   Timer? _timer;
+  int _generation = 0;
+  int? _pollGeneration;
+  bool _disposed = false;
+  AuthState? _auth;
+  String? _accountId;
+
+  /// Dependencies bind once, independent of whether HomeShell is mounted.
+  /// Logout/account changes clear data and supersede all outstanding work.
+  void bindAuth(AuthState auth) {
+    if (_disposed) return;
+    _auth?.removeListener(_onAuthChanged);
+    _auth = auth;
+    _accountId = auth.user?.id;
+    reset();
+    auth.addListener(_onAuthChanged);
+  }
+
+  void _onAuthChanged() {
+    final String? nextAccount = _auth?.user?.id;
+    if (_accountId == nextAccount) return;
+    _accountId = nextAccount;
+    reset();
+  }
+
+  bool get _canOperate => !_disposed && (_auth == null || _accountId != null);
+  bool _isCurrent(int generation) => _canOperate && generation == _generation;
+
+  int _invalidate() {
+    _stopTimer();
+    _pollGeneration = null;
+    return ++_generation;
+  }
 
   TelegramStatus get status => _status;
 
@@ -85,15 +118,18 @@ class TelegramVerificationState extends ChangeNotifier {
   /// Only an idle state is hydrated, and a failure is silent: the section then
   /// stays "not verified" rather than inventing a status.
   Future<void> restore() async {
-    if (_restored) return;
+    if (!_canOperate || _restored) return;
+    final int generation = _generation;
     _restored = true;
     if (_status != TelegramStatus.idle) return;
     final TelegramChallengeStatus? existing;
     try {
       existing = await client.fetchLatestVerified();
     } catch (_) {
+      if (_isCurrent(generation)) _restored = false;
       return;
     }
+    if (!_isCurrent(generation) || _status != TelegramStatus.idle) return;
     if (existing == null) return;
     if (existing.state != TelegramChallengeState.verified) return;
     if (existing.maskedPhone.isEmpty) return;
@@ -106,21 +142,29 @@ class TelegramVerificationState extends ChangeNotifier {
 
   /// Creates a challenge, opens Telegram, then polls until a verdict arrives.
   Future<void> start() async {
-    _stopTimer();
+    if (!_canOperate) return;
+    final int generation = _invalidate();
+    _challengeId = '';
+    _deepLink = '';
+    _expiresAt = null;
     _errorMessage = '';
     _maskedPhone = '';
     _status = TelegramStatus.creating;
     notifyListeners();
+    if (!_isCurrent(generation)) return;
 
     try {
       final TelegramChallenge challenge = await client.createChallenge();
+      if (!_isCurrent(generation)) return;
       _challengeId = challenge.id;
       _deepLink = challenge.deepLink;
       _expiresAt = challenge.expiresAt;
     } on TelegramVerificationException catch (e) {
+      if (!_isCurrent(generation)) return;
       _fail(e.message);
       return;
     } catch (_) {
+      if (!_isCurrent(generation)) return;
       _fail(
         'Could not start verification. Check your connection and try again.',
       );
@@ -130,32 +174,45 @@ class TelegramVerificationState extends ChangeNotifier {
     try {
       await openLink(_deepLink);
     } catch (_) {
+      if (!_isCurrent(generation)) return;
       // Telegram missing or blocked: the user can still open it manually.
       _fail('Could not open Telegram. Install it, then tap Try again.');
       return;
     }
 
+    if (!_isCurrent(generation)) return;
     _status = TelegramStatus.waiting;
     notifyListeners();
-    _startTimer();
+    if (_isCurrent(generation)) _startTimer();
   }
 
   /// One status check. Public so tests can drive the poller without timers.
   Future<void> pollOnce() async {
-    if (_challengeId.isEmpty) return;
+    if (!_canOperate || _challengeId.isEmpty || _pollGeneration != null) return;
     if (_status != TelegramStatus.waiting) {
       return;
     }
+    final int generation = _generation;
+    final String challengeId = _challengeId;
+    _pollGeneration = generation;
     final TelegramChallengeStatus? result;
     try {
-      result = await client.fetchStatus(_challengeId);
+      result = await client.fetchStatus(challengeId);
     } catch (_) {
+      if (!_isCurrent(generation) || challengeId != _challengeId) return;
       // Transient network trouble must not claim anything: keep waiting and
       // surface a soft error only when the challenge has also run out.
       if (_expiresAt != null && clock().isAfter(_expiresAt!)) {
         _stopTimer();
         _fail('Verification timed out. Start again when you are ready.');
       }
+      return;
+    } finally {
+      if (_pollGeneration == generation) _pollGeneration = null;
+    }
+    if (!_isCurrent(generation) ||
+        challengeId != _challengeId ||
+        _status != TelegramStatus.waiting) {
       return;
     }
     if (result == null) {
@@ -187,29 +244,32 @@ class TelegramVerificationState extends ChangeNotifier {
 
   /// Cancels the pending challenge (server + local state).
   Future<void> cancel() async {
-    _stopTimer();
-    if (_challengeId.isNotEmpty) {
+    if (!_canOperate) return;
+    final String challengeId = _challengeId;
+    _clear(TelegramStatus.cancelled);
+    if (challengeId.isNotEmpty) {
       try {
-        await client.cancel(_challengeId);
+        await client.cancel(challengeId);
       } catch (_) {
         // Best effort; the row expires server-side regardless.
       }
     }
-    _challengeId = '';
-    _status = TelegramStatus.cancelled;
-    notifyListeners();
   }
 
   /// Returns to idle so the section can be reused.
-  void reset() {
-    _stopTimer();
+  void reset() => _clear(TelegramStatus.idle);
+
+  void _clear(TelegramStatus status) {
+    if (_disposed) return;
+    _invalidate();
+    _restored = false;
     _challengeId = '';
     _deepLink = '';
     _maskedPhone = '';
     _method = 'telegram_contact';
     _errorMessage = '';
     _expiresAt = null;
-    _status = TelegramStatus.idle;
+    _status = status;
     notifyListeners();
   }
 
@@ -238,7 +298,9 @@ class TelegramVerificationState extends ChangeNotifier {
 
   @override
   void dispose() {
-    _stopTimer();
+    _disposed = true;
+    _invalidate();
+    _auth?.removeListener(_onAuthChanged);
     super.dispose();
   }
 }

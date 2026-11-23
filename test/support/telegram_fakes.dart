@@ -20,6 +20,10 @@ class FakeTelegramClient implements TelegramVerificationClient {
   TelegramChallengeStatus? latestVerified;
   TelegramChallengeState statusAfterCreate;
   TelegramChallengeStatus? statusOverride;
+  Future<TelegramChallenge> Function()? createResponse;
+  Future<TelegramChallengeStatus?> Function(String id)? statusResponse;
+  Future<TelegramChallengeStatus?> Function()? restoreResponse;
+  Future<void> Function(String id)? cancelResponse;
 
   int createCalls = 0;
   int fetchCalls = 0;
@@ -32,6 +36,7 @@ class FakeTelegramClient implements TelegramVerificationClient {
   @override
   Future<TelegramChallenge> createChallenge() async {
     createCalls++;
+    if (createResponse != null) return createResponse!();
     final TelegramVerificationException? error = createError;
     if (error != null) throw error;
     return TelegramChallenge(
@@ -44,6 +49,7 @@ class FakeTelegramClient implements TelegramVerificationClient {
   @override
   Future<TelegramChallengeStatus?> fetchStatus(String challengeId) async {
     fetchCalls++;
+    if (statusResponse != null) return statusResponse!(challengeId);
     final Object? error = fetchError;
     if (error != null) throw error;
     if (returnNullStatus) return null;
@@ -60,12 +66,13 @@ class FakeTelegramClient implements TelegramVerificationClient {
 
   @override
   Future<TelegramChallengeStatus?> fetchLatestVerified() async =>
-      latestVerified;
+      restoreResponse == null ? latestVerified : await restoreResponse!();
 
   @override
   Future<void> cancel(String challengeId) async {
     cancelCalls++;
     cancelledId = challengeId;
+    if (cancelResponse != null) return cancelResponse!(challengeId);
     final Object? error = cancelError;
     if (error != null) throw error;
   }
