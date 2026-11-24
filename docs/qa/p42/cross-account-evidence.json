@@ -1,0 +1,158 @@
+{
+  "p42Evidence": true,
+  "generatedAt": "2026-11-24T17:18:46.218Z",
+  "projectRef": "psuzlyingfmstnyfvlnj",
+  "runId": "mwuyl77s16e9",
+  "accounts": "synthetic demo accounts created for this run (not the owner accounts)",
+  "steps": [
+    {
+      "step": "two independent accounts created and signed in",
+      "ok": true,
+      "at": "2026-11-24T17:18:47.677Z",
+      "accountA": "9fbbc87b-2dde-42db-9f5b-c119cd69ce55",
+      "accountB": "4ac7e92d-d055-4b60-aa00-37296731b15d",
+      "distinct": true
+    },
+    {
+      "step": "public profiles + usernames claimed",
+      "ok": true,
+      "at": "2026-11-24T17:18:48.420Z",
+      "usernameA": "p42_amina_7s16e9",
+      "usernameB": "p42_rafi_7s16e9"
+    },
+    {
+      "step": "account A created a post",
+      "ok": true,
+      "at": "2026-11-24T17:18:48.570Z",
+      "postId": "80a27190-8cbb-437e-8a1f-467e1d03d008"
+    },
+    {
+      "step": "account A uploaded image + video + PDF to Supabase Storage",
+      "ok": true,
+      "at": "2026-11-24T17:19:04.526Z",
+      "objects": 3,
+      "imageBytes": 691678,
+      "videoBytes": 4039910,
+      "pdfBytes": 807
+    },
+    {
+      "step": "account A inserted 5 attachments (image, video, PDF, 2 links)",
+      "ok": true,
+      "at": "2026-11-24T17:19:04.635Z",
+      "kinds": [
+        "image",
+        "video",
+        "file",
+        "link",
+        "link"
+      ]
+    },
+    {
+      "step": "database rejects a non-HTTPS link (check constraint)",
+      "ok": true,
+      "at": "2026-11-24T17:19:04.737Z",
+      "status": 400
+    },
+    {
+      "step": "database rejects an attachment owned by another account",
+      "ok": true,
+      "at": "2026-11-24T17:19:04.842Z",
+      "status": 400
+    },
+    {
+      "step": "anonymous reader sees the post with all 5 attachments",
+      "ok": true,
+      "at": "2026-11-24T17:19:04.940Z",
+      "status": 200,
+      "attachments": 5,
+      "kinds": [
+        "file",
+        "image",
+        "link",
+        "link",
+        "video"
+      ]
+    },
+    {
+      "step": "public author card exposes only safe fields",
+      "ok": true,
+      "at": "2026-11-24T17:19:05.032Z",
+      "status": 200,
+      "fields": [
+        "display_name",
+        "id",
+        "joined_at",
+        "post_count",
+        "username"
+      ],
+      "leaked": []
+    },
+    {
+      "step": "account B comments, likes and rates the post",
+      "ok": true,
+      "at": "2026-11-24T17:19:05.503Z",
+      "comment": 201,
+      "reaction": 201,
+      "rating": 201
+    },
+    {
+      "step": "public stats show B's engagement to every reader",
+      "ok": true,
+      "at": "2026-11-24T17:19:05.595Z",
+      "status": 200,
+      "stats": {
+        "post_id": "80a27190-8cbb-437e-8a1f-467e1d03d008",
+        "like_count": 1,
+        "dislike_count": 0,
+        "rating_count": 1,
+        "rating_average": 5,
+        "comment_count": 1
+      }
+    },
+    {
+      "step": "account B cannot delete account A's post",
+      "ok": true,
+      "at": "2026-11-24T17:19:05.777Z",
+      "deleteStatus": 200,
+      "deleteRows": 0
+    },
+    {
+      "step": "the post still exists after the cross-account delete attempt",
+      "ok": true,
+      "at": "2026-11-24T17:19:05.777Z",
+      "status": 200
+    },
+    {
+      "step": "report stored for the reporter but hidden from the author",
+      "ok": true,
+      "at": "2026-11-24T17:19:05.968Z",
+      "reportStatus": 201,
+      "authorVisibleRows": 0
+    },
+    {
+      "step": "database rejects reporting yourself",
+      "ok": true,
+      "at": "2026-11-24T17:19:06.079Z",
+      "status": 403
+    },
+    {
+      "step": "account B can report account A's public profile",
+      "ok": true,
+      "at": "2026-11-24T17:19:06.194Z",
+      "status": 201
+    },
+    {
+      "step": "feed read is public and does not require the service key",
+      "ok": true,
+      "at": "2026-11-24T17:19:06.284Z",
+      "status": 200
+    },
+    {
+      "step": "earlier evidence posts cleaned up",
+      "ok": true,
+      "at": "2026-11-24T17:19:06.706Z",
+      "removed": 1
+    }
+  ],
+  "ok": true
+}

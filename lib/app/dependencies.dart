@@ -16,8 +16,10 @@ import '../features/auth/telegram/telegram_verification_state.dart';
 import '../features/auth/username/username_availability.dart';
 import '../features/board/comments/comment.dart';
 import '../features/board/list/cursor_page.dart';
+import '../features/board/media/post_attachment.dart';
 import '../features/board/post/post.dart';
 import '../features/board/post/post_feed_state.dart';
+import '../features/board/profile/public_profile.dart';
 import '../features/board/ratings/rating.dart';
 import '../features/board/reactions/reaction.dart';
 import '../features/booking/seat_ui/seat_selection_state.dart' show SeatFetcher;
@@ -222,14 +224,97 @@ class AppDependencies {
   }) async {
     final rows = await _backend
         .from('posts')
-        .select()
+        .select(_postSelect)
         .order('created_at', ascending: false)
         .order('id', ascending: false)
         .limit(limit)
         .timeout(const Duration(seconds: 15));
-    return (rows as List)
-        .map((row) => Post.fromMap(Map<String, dynamic>.from(row as Map)))
+    return _hydratePosts(rows);
+  }
+
+  /// Embedded attachment collection + safe author identity selection (P42).
+  static const String _postSelect = '*, post_attachments(*)';
+
+  /// Parses post rows, then attaches safe public author cards in one extra
+  /// query (`public_profile_cards`), so the feed never exposes `profiles`.
+  Future<List<Post>> _hydratePosts(Object? rows) async {
+    final List<Post> posts = <Post>[
+      for (final Object? row in (rows as List))
+        Post.fromMap(Map<String, dynamic>.from(row as Map)),
+    ];
+    if (posts.isEmpty) return posts;
+    final Map<String, PublicProfile> authors = await fetchPublicProfiles(
+      posts
+          .map((Post p) => p.userId)
+          .where((String id) => id.isNotEmpty)
+          .toSet(),
+    );
+    return <Post>[
+      for (final Post post in posts)
+        post.author == null ? post.withAuthor(authors[post.userId]) : post,
+    ];
+  }
+
+  /// Safe public author cards for [userIds] (never the `profiles` table).
+  Future<Map<String, PublicProfile>> fetchPublicProfiles(
+    Set<String> userIds,
+  ) async {
+    final List<String> ids = userIds
+        .map((String id) => id.trim())
+        .where((String id) => id.isNotEmpty)
         .toList();
+    if (ids.isEmpty) return const <String, PublicProfile>{};
+    final rows = await _backend
+        .from('public_profile_cards')
+        .select()
+        .inFilter('id', ids)
+        .timeout(const Duration(seconds: 15));
+    final Map<String, PublicProfile> cards = <String, PublicProfile>{};
+    for (final Object? row in (rows as List)) {
+      final PublicProfile card = PublicProfile.fromMap(
+        Map<String, dynamic>.from(row as Map),
+      );
+      if (card.id.isNotEmpty) cards[card.id] = card;
+    }
+    return cards;
+  }
+
+  /// One safe public author card, or null when the account has no profile.
+  Future<PublicProfile?> fetchPublicProfile(String userId) async {
+    final Map<String, PublicProfile> cards = await fetchPublicProfiles(<String>{
+      userId,
+    });
+    return cards[userId];
+  }
+
+  /// Newest-first public posts by one author (public profile page).
+  Future<List<Post>> fetchBoardPostsByAuthor(
+    String userId, {
+    int limit = 20,
+  }) async {
+    final rows = await _backend
+        .from('posts')
+        .select(_postSelect)
+        .eq('user_id', userId)
+        .order('created_at', ascending: false)
+        .order('id', ascending: false)
+        .limit(limit)
+        .timeout(const Duration(seconds: 15));
+    return _hydratePosts(rows);
+  }
+
+  /// One post by id with attachments and author (permalink/deep-link view).
+  /// Returns null when the row does not exist or was deleted.
+  Future<Post?> fetchBoardPostById(String postId) async {
+    final row = await _backend
+        .from('posts')
+        .select(_postSelect)
+        .eq('id', postId)
+        .maybeSingle()
+        .timeout(const Duration(seconds: 15));
+    if (row == null) return null;
+    final List<Post> hydrated = await _hydratePosts(<Object?>[row]);
+    return hydrated.isEmpty ? null : hydrated.first;
   }
 
   /// Keyset board page for cursor pagination (F13b, 5/page via the feed
@@ -240,7 +325,7 @@ class AppDependencies {
     required int limit,
     PageCursor? before,
   }) async {
-    var query = _backend.from('posts').select();
+    var query = _backend.from('posts').select(_postSelect);
     final PageCursor? cursor = before;
     if (cursor != null) {
       final String ts = cursor.createdAt.toUtc().toIso8601String();
@@ -253,9 +338,7 @@ class AppDependencies {
         .order('id', ascending: false)
         .limit(limit)
         .timeout(const Duration(seconds: 15));
-    return (rows as List)
-        .map((row) => Post.fromMap(Map<String, dynamic>.from(row as Map)))
-        .toList();
+    return _hydratePosts(rows);
   }
 
   /// Authenticated post insert (RLS: own `user_id` only).
@@ -291,6 +374,91 @@ class AppDependencies {
         .from('post-media')
         .remove(<String>[path])
         .timeout(const Duration(seconds: 30));
+  }
+
+  /// P42: uploads one attachment with its declared MIME type. The bucket
+  /// enforces a size + MIME allowlist, so the content type must be real.
+  Future<void> uploadBoardAttachment(
+    String path,
+    List<int> bytes,
+    String contentType,
+  ) {
+    return _backend.storage
+        .from('post-media')
+        .uploadBinary(
+          path,
+          Uint8List.fromList(bytes),
+          fileOptions: FileOptions(contentType: contentType, upsert: false),
+        )
+        .timeout(const Duration(seconds: 60));
+  }
+
+  /// P42: inserts one `public.post_attachments` row (RLS: own post only).
+  Future<PostAttachment> insertBoardAttachment(PostAttachment row) async {
+    final inserted = await _backend
+        .from('post_attachments')
+        .insert(row.toInsertMap())
+        .select()
+        .single()
+        .timeout(const Duration(seconds: 15));
+    return PostAttachment.fromMap(Map<String, dynamic>.from(inserted as Map));
+  }
+
+  /// P42: deletes one attachment row (own rows only).
+  Future<void> deleteBoardAttachment(String attachmentId) {
+    return _backend
+        .from('post_attachments')
+        .delete()
+        .eq('id', attachmentId)
+        .timeout(const Duration(seconds: 15));
+  }
+
+  /// P42: reports one post (one report per reporter, own row only).
+  Future<void> reportBoardPost({
+    required String postId,
+    required String reporterId,
+    required String reason,
+    String? details,
+  }) {
+    return _backend
+        .from('post_reports')
+        .upsert(<String, dynamic>{
+          'post_id': postId,
+          'reporter_id': reporterId,
+          'reason': reason,
+          if (details != null && details.trim().isNotEmpty)
+            'details': details.trim(),
+        }, onConflict: 'post_id,reporter_id')
+        .timeout(const Duration(seconds: 15));
+  }
+
+  /// P42: reports one public profile (never yourself; own row only).
+  Future<void> reportBoardUser({
+    required String reportedUserId,
+    required String reporterId,
+    required String reason,
+    String? details,
+  }) {
+    return _backend
+        .from('user_reports')
+        .upsert(<String, dynamic>{
+          'reported_user_id': reportedUserId,
+          'reporter_id': reporterId,
+          'reason': reason,
+          if (details != null && details.trim().isNotEmpty)
+            'details': details.trim(),
+        }, onConflict: 'reported_user_id,reporter_id')
+        .timeout(const Duration(seconds: 15));
+  }
+
+  /// Public display URL for one uploaded attachment object.
+  String? boardAttachmentUrl(String? storagePath) {
+    if (storagePath == null || storagePath.isEmpty) return null;
+    final String base = AppConfigParts.current().url.replaceAll(
+      RegExp(r'/+$'),
+      '',
+    );
+    return attachmentPublicUrl(supabaseUrl: base, storagePath: storagePath);
   }
 
   /// Orphan post-row delete (RLS: own rows only).

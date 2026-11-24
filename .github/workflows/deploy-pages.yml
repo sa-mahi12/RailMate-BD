@@ -1,0 +1,89 @@
+name: Deploy public site (GitHub Pages)
+
+# Publishes site/ to https://<owner>.github.io/RailMate-BD/.
+#
+# The page is real, live data: it reads the hosted Supabase project through
+# the public REST API with the anon key. Writes stay in the Android app.
+#
+# Required repository configuration (Settings → Secrets and variables →
+# Actions → Variables), already present on this repository:
+#   SUPABASE_URL          https://<ref>.supabase.co
+#   SUPABASE_ANON_KEY     the public anon key
+#
+# Nothing secret is needed: the anon key is public by design and every table
+# is protected by RLS. The generated assets/config.js is never committed.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - '.github/workflows/deploy-pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build site artifact
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+
+      - name: Install site tooling
+        working-directory: site
+        run: npm ci
+
+      - name: Unit-test site helpers
+        working-directory: site
+        run: npm test
+
+      - name: Compile Sass → CSS
+        working-directory: site
+        run: npm run build:css
+
+      - name: Generate public runtime config
+        working-directory: site
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+          SITE_BASE: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+        run: node scripts/write-config.mjs
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+        with:
+          # First run also creates the Pages site (build type: workflow).
+          enablement: true
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

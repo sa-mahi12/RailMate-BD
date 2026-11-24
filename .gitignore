@@ -36,6 +36,12 @@ supabase/.temp/
 *.pem
 *.p12
 *.pfx
+
+# P42 public website (site/): runtime config is generated at deploy time from
+# repository variables, and node_modules is installed by CI/local dev.
+site/assets/config.js
+site/node_modules/
+
 # Worker runtime/lock/logs
 .locks/
 .worker-runtime/

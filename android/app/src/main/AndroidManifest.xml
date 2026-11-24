@@ -70,6 +70,29 @@
                     android:host="auth"
                     android:pathPrefix="/verify"/>
             </intent-filter>
+            <!-- P42 permanent post links: `railmatebd://post/<uuid>` (app
+                 scheme used by the share sheet) and the handoff alias
+                 `railmate://post/<uuid>`. Both open the single-post screen in
+                 AppGate; a deleted/unknown id shows an honest "not available"
+                 state instead of a blank page. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="railmatebd" android:host="post"/>
+                <data android:scheme="railmate" android:host="post"/>
+            </intent-filter>
+            <!-- P42 public profile links: `railmatebd://profile/<uuid>`. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="railmatebd" android:host="profile"/>
+                <data android:scheme="railmate" android:host="profile"/>
+            </intent-filter>
+            <!-- P42: the published GitHub Pages post/profile URLs are ordinary
+                 https links; the app never claims them (the website is the
+                 primary target), so no https filter is declared. -->
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

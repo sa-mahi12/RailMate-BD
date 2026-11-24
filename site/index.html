@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>RailMate BD — Journey Board</title>
+    <meta
+      name="description"
+      content="Live Journey Board from RailMate BD: real station tips, photos, videos and documents shared by travellers. Demonstration prototype — no real tickets or money."
+    />
+    <link rel="canonical" href="https://sa-mahi12.github.io/RailMate-BD/" />
+    <link rel="stylesheet" href="assets/styles.css" />
+  </head>
+  <body data-page="feed">
+    <header class="site-header">
+      <div class="wrap">
+        <div class="brand"><span class="dot" aria-hidden="true"></span><a href="./">RailMate BD</a></div>
+        <h1>Journey Board</h1>
+        <p>
+          Real tips, photos and documents shared by RailMate BD travellers. This page reads the same
+          hosted database as the Android app — every card below is a real post.
+        </p>
+        <div class="header-actions">
+          <a href="https://github.com/sa-mahi12/RailMate-BD/releases/latest">Get the Android app</a>
+          <a href="https://github.com/sa-mahi12/RailMate-BD">Source code</a>
+          <span id="refreshed">Live</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <div id="status" class="status" hidden></div>
+      <section id="feed" aria-label="Journey Board posts" aria-live="polite"></section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap">
+        <strong>RailMate BD — demonstration prototype.</strong>
+        <span>No real tickets, payments or reservations. Post ratings describe a post, never a person.</span>
+        <span>Media is stored in Supabase Storage; this site is static GitHub Pages HTML.</span>
+      </div>
+    </footer>
+
+    <script src="assets/config.js"></script>
+    <script type="module" src="assets/app.js"></script>
+  </body>
+</html>

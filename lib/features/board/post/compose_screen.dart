@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../media/board_attachment_picker.dart';
 import '../media/board_image_picker.dart';
+import '../media/post_attachment.dart';
 import '../media/post_media.dart';
+import 'compose_attachment.dart';
 import 'post.dart';
 import 'post_compose_state.dart';
 
@@ -48,6 +51,16 @@ class BoardComposeScreen extends StatefulWidget {
   /// when the user cancels. Null hides the attach button.
   final Future<List<int>?> Function()? pickImageBytes;
 
+  /// P42 multi-format picker (photo/video/document). Null hides the P42
+  /// attachment row and keeps the legacy single-photo flow.
+  final PickBoardAttachment? pickAttachment;
+
+  /// P42 byte upload with the declared content type (hosted Storage).
+  final UploadAttachmentBytes? uploadAttachment;
+
+  /// P42 attachment-row insert (`public.post_attachments`).
+  final InsertAttachmentRow? insertAttachment;
+
   /// Called once a full submit (row, plus image if attached) succeeds.
   final VoidCallback? onDone;
 
@@ -62,6 +75,9 @@ class BoardComposeScreen extends StatefulWidget {
     this.deleteObject,
     this.updatePostImage,
     this.pickImageBytes,
+    this.pickAttachment,
+    this.uploadAttachment,
+    this.insertAttachment,
     this.onDone,
   });
 
@@ -134,14 +150,100 @@ class _BoardComposeScreenState extends State<BoardComposeScreen> {
   }
 
   Future<void> _submit() async {
-    final ok = await widget.compose.submit(
-      userId: widget.userId,
-      newUuid: widget.newUuid,
-      createPost: widget.createPost,
-      uploadBytes: widget.uploadBytes,
-      updatePostImage: widget.updatePostImage,
-    );
+    final bool p42 =
+        widget.uploadAttachment != null && widget.insertAttachment != null;
+    if (!p42) {
+      final ok = await widget.compose.submit(
+        userId: widget.userId,
+        newUuid: widget.newUuid,
+        createPost: widget.createPost,
+        uploadBytes: widget.uploadBytes,
+        updatePostImage: widget.updatePostImage,
+      );
+      if (ok && mounted) widget.onDone?.call();
+      return;
+    }
+    final bool ok = widget.compose.createdPost == null
+        ? await widget.compose.submitWithAttachments(
+            userId: widget.userId,
+            newUuid: widget.newUuid,
+            createPost: widget.createPost,
+            uploadAttachment: widget.uploadAttachment!,
+            insertAttachment: widget.insertAttachment!,
+          )
+        : await widget.compose.retryFailedAttachments(
+            userId: widget.userId,
+            newUuid: widget.newUuid,
+            uploadAttachment: widget.uploadAttachment!,
+            insertAttachment: widget.insertAttachment!,
+          );
     if (ok && mounted) widget.onDone?.call();
+  }
+
+  /// P42: picks one file (photo, video or document) and validates it before
+  /// anything is uploaded. Cancel is a silent no-op; a rejected file shows the
+  /// honest reason; a platform failure shows a retry notice.
+  Future<void> _pickP42(BoardPickSource source) async {
+    final PickBoardAttachment? pick = widget.pickAttachment;
+    if (pick == null) return;
+    late final PickedBoardFile? file;
+    try {
+      file = await pick(source);
+    } on BoardAttachmentRejectedException catch (e) {
+      if (mounted) _showPickError(e.message, retry: true);
+      return;
+    } catch (_) {
+      if (mounted) {
+        _showPickError(
+          "Couldn't open the file picker. Retry or post without it.",
+          retry: true,
+        );
+      }
+      return;
+    }
+    if (file == null) return;
+    final String? error = widget.compose.addPickedAttachment(file);
+    if (error != null && mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(error)));
+    }
+  }
+
+  /// P42: adds one external HTTPS link (video providers get an embed later).
+  Future<void> _addLink() async {
+    final TextEditingController controller = TextEditingController();
+    final String? value = await showDialog<String>(
+      context: context,
+      builder: (BuildContext ctx) => AlertDialog(
+        title: const Text('Attach a link'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: TextInputType.url,
+          decoration: const InputDecoration(
+            labelText: 'https://…',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(controller.text),
+            child: const Text('Attach'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (value == null) return;
+    final String? error = widget.compose.addLinkAttachment(value);
+    if (error != null && mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(error)));
+    }
   }
 
   String _uploadLabel(UploadState state) {
@@ -227,12 +329,99 @@ class _BoardComposeScreenState extends State<BoardComposeScreen> {
                             ),
                           ),
                           const SizedBox(height: 12),
-                          if (widget.pickImageBytes != null)
+                          if (widget.pickImageBytes != null &&
+                              widget.pickAttachment == null)
                             OutlinedButton.icon(
                               onPressed: compose.submitting ? null : _pick,
                               icon: const Icon(Icons.photo_outlined),
                               label: const Text('Attach photo'),
                             ),
+                          if (widget.pickAttachment != null) ...[
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: <Widget>[
+                                OutlinedButton.icon(
+                                  onPressed: compose.submitting
+                                      ? null
+                                      : () => _pickP42(BoardPickSource.gallery),
+                                  icon: const Icon(
+                                    Icons.photo_library_outlined,
+                                    size: 18,
+                                  ),
+                                  label: const Text('Photos'),
+                                ),
+                                OutlinedButton.icon(
+                                  onPressed: compose.submitting
+                                      ? null
+                                      : () => _pickP42(BoardPickSource.camera),
+                                  icon: const Icon(
+                                    Icons.photo_camera_outlined,
+                                    size: 18,
+                                  ),
+                                  label: const Text('Camera'),
+                                ),
+                                OutlinedButton.icon(
+                                  onPressed: compose.submitting
+                                      ? null
+                                      : () => _pickP42(BoardPickSource.video),
+                                  icon: const Icon(
+                                    Icons.videocam_outlined,
+                                    size: 18,
+                                  ),
+                                  label: const Text('Video'),
+                                ),
+                                OutlinedButton.icon(
+                                  onPressed: compose.submitting
+                                      ? null
+                                      : () =>
+                                            _pickP42(BoardPickSource.document),
+                                  icon: const Icon(Icons.attach_file, size: 18),
+                                  label: const Text('File'),
+                                ),
+                                OutlinedButton.icon(
+                                  onPressed: compose.submitting
+                                      ? null
+                                      : _addLink,
+                                  icon: const Icon(Icons.link, size: 18),
+                                  label: const Text('Link'),
+                                ),
+                              ],
+                            ),
+                            if (compose.attachments.isNotEmpty) ...[
+                              const SizedBox(height: 10),
+                              for (
+                                int i = 0;
+                                i < compose.attachments.length;
+                                i++
+                              )
+                                _AttachmentDraftTile(
+                                  key: ValueKey<String>(
+                                    compose.attachments[i].key,
+                                  ),
+                                  item: compose.attachments[i],
+                                  index: i,
+                                  total: compose.attachments.length,
+                                  enabled: !compose.submitting,
+                                  onRemove: () => compose.removeAttachmentAt(i),
+                                  onUp: i == 0
+                                      ? null
+                                      : () => compose.moveAttachment(i, i - 1),
+                                  onDown: i == compose.attachments.length - 1
+                                      ? null
+                                      : () => compose.moveAttachment(i, i + 1),
+                                ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${compose.attachments.length} of '
+                                '$postAttachmentMaxPerPost attachments',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: Color(0xFF5B6B73),
+                                ),
+                              ),
+                            ],
+                          ],
                           if (compose.media.hasBytes) ...[
                             const SizedBox(height: 8),
                             Row(
@@ -307,7 +496,7 @@ class _BoardComposeScreenState extends State<BoardComposeScreen> {
                                 deleteObject: widget.deleteObject,
                               ),
                               icon: const Icon(Icons.delete_outline),
-                              label: const Text('Delete post (photo failed)'),
+                              label: const Text('Delete post (upload failed)'),
                             ),
                           ],
                         ],
@@ -320,6 +509,129 @@ class _BoardComposeScreenState extends State<BoardComposeScreen> {
           ),
         );
       },
+    );
+  }
+}
+
+/// One draft attachment row in the composer (P42).
+///
+/// Shows the filename/type/size, the honest upload state, remove and simple
+/// move up/down controls. Nothing here uploads: the state object owns the
+/// lifecycle and only reports "Uploaded" after the Storage upload and the
+/// `post_attachments` insert both succeeded.
+class _AttachmentDraftTile extends StatelessWidget {
+  final ComposeAttachment item;
+  final int index;
+  final int total;
+  final bool enabled;
+  final VoidCallback onRemove;
+  final VoidCallback? onUp;
+  final VoidCallback? onDown;
+
+  const _AttachmentDraftTile({
+    super.key,
+    required this.item,
+    required this.index,
+    required this.total,
+    required this.enabled,
+    required this.onRemove,
+    this.onUp,
+    this.onDown,
+  });
+
+  IconData get _icon {
+    if (item.isLink) {
+      return externalVideoProviderFor(item.externalUrl) != null
+          ? Icons.smart_display_outlined
+          : Icons.link;
+    }
+    switch (item.kind) {
+      case PostAttachmentKind.image:
+        return Icons.image_outlined;
+      case PostAttachmentKind.video:
+        return Icons.videocam_outlined;
+      case PostAttachmentKind.file:
+        return item.mimeType == 'application/pdf'
+            ? Icons.picture_as_pdf_outlined
+            : Icons.insert_drive_file_outlined;
+      case PostAttachmentKind.link:
+        return Icons.link;
+    }
+  }
+
+  Color get _statusColor {
+    switch (item.state) {
+      case UploadState.failed:
+        return const Color(0xFFE5484D);
+      case UploadState.uploaded:
+        return const Color(0xFF0E5A66);
+      case UploadState.uploading:
+      case UploadState.local:
+        return const Color(0xFF5B6B73);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final String subtitle = <String>[
+      item.statusLabel,
+      if (!item.isLink && item.sizeBytes > 0)
+        formatAttachmentSize(item.sizeBytes),
+    ].join(' · ');
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF4F7F9),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFE1E8ED)),
+      ),
+      child: Row(
+        children: <Widget>[
+          Icon(_icon, size: 18, color: const Color(0xFF0E5A66)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  item.filename,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 11, color: _statusColor),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            tooltip: 'Move up',
+            visualDensity: VisualDensity.compact,
+            onPressed: enabled ? onUp : null,
+            icon: const Icon(Icons.arrow_upward, size: 16),
+          ),
+          IconButton(
+            tooltip: 'Move down',
+            visualDensity: VisualDensity.compact,
+            onPressed: enabled ? onDown : null,
+            icon: const Icon(Icons.arrow_downward, size: 16),
+          ),
+          IconButton(
+            tooltip: 'Remove',
+            visualDensity: VisualDensity.compact,
+            onPressed: enabled ? onRemove : null,
+            icon: const Icon(Icons.close, size: 16),
+          ),
+        ],
+      ),
     );
   }
 }

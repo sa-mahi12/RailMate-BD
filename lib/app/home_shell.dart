@@ -7,12 +7,17 @@ import 'package:uuid/uuid.dart';
 import '../design/design.dart';
 import '../features/board/comments/comment.dart';
 import '../features/board/comments/comment_subscription.dart';
+import '../features/board/media/attachment_view.dart';
+import '../features/board/moderation/report_dialog.dart';
 import '../features/board/post/post.dart';
 import '../features/board/post/post_feed_realtime.dart';
 import '../features/board/post/post_feed_state.dart';
 import '../features/board/post/feed_screen.dart';
+import '../features/board/post/post_screen.dart';
+import '../features/board/profile/public_profile_screen.dart';
 import '../features/board/ratings/rating_realtime.dart';
 import '../features/board/reactions/reaction_realtime.dart';
+import '../features/board/share/post_actions.dart';
 import '../features/booking/passenger_ui/passenger.dart';
 import '../features/booking/passenger_ui/passenger_form_state.dart';
 import '../features/booking/payment_ui/payment_state.dart';
@@ -95,6 +100,12 @@ class _HomeShellState extends State<HomeShell> {
   StreamController<RatingRealtimeEvent>? _ratingEvents;
   RealtimeChannel? _ratingChannel;
 
+  /// P42: `post_attachments` channel. The `posts` channel carries no
+  /// attachment columns, so an attachment insert from another client triggers
+  /// one bounded feed reload instead of inventing rows locally.
+  RealtimeChannel? _attachmentChannel;
+  bool _attachmentRefreshInFlight = false;
+
   @override
   void initState() {
     super.initState();
@@ -109,6 +120,7 @@ class _HomeShellState extends State<HomeShell> {
     _subscribeCommentRealtime();
     _subscribeReactionRealtime();
     _subscribeRatingRealtime();
+    _subscribeAttachmentRealtime();
   }
 
   /// Subscribes to `postgres_changes` on `public.posts` so inserts, updates
@@ -184,6 +196,172 @@ class _HomeShellState extends State<HomeShell> {
 
   void _onAuthChanged() {
     if (mounted) setState(() {});
+  }
+
+  /// P42: reload the feed when an attachment row changes on another client.
+  /// Bounded (one in-flight refresh at a time) and never synthesises a row.
+  void _subscribeAttachmentRealtime() {
+    final SupabaseClient? client = widget.dependencies.client;
+    if (client == null) return;
+    final RealtimeChannel channel = client.channel('public:board-attachments');
+    _attachmentChannel = channel;
+    channel
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'post_attachments',
+          callback: (PostgresChangePayload payload) {
+            if (_attachmentChannel == null || _attachmentRefreshInFlight) {
+              return;
+            }
+            _attachmentRefreshInFlight = true;
+            unawaited(
+              _boardFeed.refresh().whenComplete(() {
+                _attachmentRefreshInFlight = false;
+              }),
+            );
+          },
+        )
+        .subscribe();
+  }
+
+  /// P42: native share sheet with the canonical permanent link.
+  void _sharePost(Post post) {
+    final String? id = post.id;
+    if (id == null || id.isEmpty) return;
+    unawaited(shareBoardPost(body: post.body, postId: id));
+  }
+
+  /// P42: copy the canonical permanent link.
+  Future<void> _copyPostLink(Post post) async {
+    final String? id = post.id;
+    if (id == null || id.isEmpty) return;
+    final bool ok = await copyBoardPostLink(id);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(ok ? 'Link copied' : "Couldn't copy the link.")),
+    );
+  }
+
+  /// P42: report a post (one report per reporter; own row only).
+  Future<void> _reportPost(Post post) async {
+    final String? id = post.id;
+    final String? uid = _uid;
+    if (id == null || id.isEmpty) return;
+    if (uid == null) {
+      _notice('Sign in to report a post.');
+      return;
+    }
+    final ReportDraft? draft = await showBoardReportDialog(
+      context,
+      target: ReportTarget.post,
+      targetLabel: post.body.length > 120
+          ? '${post.body.substring(0, 120)}…'
+          : post.body,
+    );
+    if (draft == null) return;
+    try {
+      await widget.dependencies.reportBoardPost(
+        postId: id,
+        reporterId: uid,
+        reason: draft.reason.dbValue,
+        details: draft.details,
+      );
+      if (!mounted) return;
+      _notice('Report sent. Thank you.');
+    } catch (_) {
+      if (!mounted) return;
+      _notice("Couldn't send the report. Try again later.");
+    }
+  }
+
+  /// P42: report a public profile (never yourself).
+  Future<void> _reportProfile(String userId, String label) async {
+    final String? uid = _uid;
+    if (uid == null) {
+      _notice('Sign in to report a profile.');
+      return;
+    }
+    if (uid == userId) return;
+    final ReportDraft? draft = await showBoardReportDialog(
+      context,
+      target: ReportTarget.user,
+      targetLabel: label,
+    );
+    if (draft == null) return;
+    try {
+      await widget.dependencies.reportBoardUser(
+        reportedUserId: userId,
+        reporterId: uid,
+        reason: draft.reason.dbValue,
+        details: draft.details,
+      );
+      if (!mounted) return;
+      _notice('Report sent. Thank you.');
+    } catch (_) {
+      if (!mounted) return;
+      _notice("Couldn't send the report. Try again later.");
+    }
+  }
+
+  void _notice(String message) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  /// P42: opens the author's public profile inside the Board tab.
+  void _openProfile(Post post) {
+    final String authorId = post.userId;
+    if (authorId.isEmpty) return;
+    _keys[2].currentState?.push(
+      MaterialPageRoute<void>(
+        builder: (_) => PublicProfileScreen(
+          userId: authorId,
+          fetchProfile: widget.dependencies.fetchPublicProfile,
+          fetchPosts: (String id) =>
+              widget.dependencies.fetchBoardPostsByAuthor(id),
+          resolveAttachmentUrl: widget.dependencies.boardAttachmentUrl,
+          openExternal: openExternalHttps,
+          onReportProfile: () =>
+              _reportProfile(authorId, post.author?.label ?? 'This traveller'),
+          onOpenPost: (Post tapped) => _openPost(tapped.id ?? ''),
+        ),
+      ),
+    );
+  }
+
+  /// P42: opens one post (permanent link target) inside the Board tab.
+  void _openPost(String postId) {
+    if (postId.isEmpty) return;
+    final String? uid = _uid;
+    _keys[2].currentState?.push(
+      MaterialPageRoute<void>(
+        builder: (_) => BoardPostScreen(
+          postId: postId,
+          fetchPost: widget.dependencies.fetchBoardPostById,
+          imageUrlFor: widget.dependencies.boardImageUrl,
+          resolveAttachmentUrl: widget.dependencies.boardAttachmentUrl,
+          openExternal: openExternalHttps,
+          currentUserId: uid,
+          fetchReactions: widget.dependencies.fetchBoardReactions,
+          upsertReaction: widget.dependencies.upsertBoardReaction,
+          deleteReaction: widget.dependencies.deleteBoardReaction,
+          fetchRatings: widget.dependencies.fetchBoardRatings,
+          upsertRating: widget.dependencies.upsertBoardRating,
+          deleteRating: widget.dependencies.deleteBoardRating,
+          fetchComments: widget.dependencies.fetchComments,
+          addComment: widget.dependencies.addCommentRow,
+          deleteComment: widget.dependencies.deleteCommentRow,
+          commentEvents: _commentEvents?.stream,
+          reactionEvents: _reactionEvents?.stream,
+          ratingEvents: _ratingEvents?.stream,
+          onShare: _sharePost,
+          onCopyLink: _copyPostLink,
+          onReportPost: _reportPost,
+          onOpenProfile: _openProfile,
+        ),
+      ),
+    );
   }
 
   /// Subscribes to `postgres_changes` on `public.post_comments` and fans the
@@ -626,6 +804,11 @@ class _HomeShellState extends State<HomeShell> {
     if (ratings != null && client != null) {
       unawaited(client.removeChannel(ratings));
     }
+    final RealtimeChannel? attachments = _attachmentChannel;
+    _attachmentChannel = null;
+    if (attachments != null && client != null) {
+      unawaited(client.removeChannel(attachments));
+    }
     unawaited(_boardEvents?.close());
     _boardEvents = null;
     unawaited(_commentEvents?.close());
@@ -737,6 +920,14 @@ class _HomeShellState extends State<HomeShell> {
                   commentEvents: _commentEvents?.stream,
                   reactionEvents: _reactionEvents?.stream,
                   ratingEvents: _ratingEvents?.stream,
+                  // P42: attachments, safe author identity, share/copy/report
+                  // and the public profile page.
+                  resolveAttachmentUrl: widget.dependencies.boardAttachmentUrl,
+                  openExternal: openExternalHttps,
+                  onShare: _sharePost,
+                  onCopyLink: _copyPostLink,
+                  onReportPost: _reportPost,
+                  onOpenProfile: _openProfile,
                   onCompose: () {
                     _keys[2].currentState?.pushNamed(
                       AppRoutes.boardCompose,

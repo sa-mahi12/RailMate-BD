@@ -1,6 +1,9 @@
 import 'package:flutter/foundation.dart';
 
+import '../media/board_attachment_picker.dart';
+import '../media/post_attachment.dart';
 import '../media/post_media.dart';
+import 'compose_attachment.dart';
 import 'post.dart';
 
 /// Injected post-row insert: creates a text-only `public.posts` row and
@@ -28,6 +31,20 @@ typedef UpdatePostImage = Future<Post> Function({
   required String postId,
   required String imagePath,
 });
+
+/// P42 injected byte upload for one attachment, including its declared MIME
+/// type (the `post-media` bucket enforces an allowlist, so a missing content
+/// type would be rejected as `application/octet-stream`).
+typedef UploadAttachmentBytes = Future<void> Function(
+  String path,
+  List<int> bytes,
+  String contentType,
+);
+
+/// P42 injected attachment-row insert (`public.post_attachments`).
+typedef InsertAttachmentRow = Future<PostAttachment> Function(
+  PostAttachment row,
+);
 
 /// Compose state for one board post (packet A07, R-13).
 ///
@@ -68,6 +85,11 @@ class PostComposeState extends ChangeNotifier {
   /// via [cleanupOrphan] just like the upload-failure orphan path.
   String? imageLinkError;
 
+  /// P42 multi-attachment draft (0..[postAttachmentMaxPerPost]).
+  final List<ComposeAttachment> attachments = <ComposeAttachment>[];
+
+  int _attachmentSeq = 0;
+
   PostComposeState() {
     media.addListener(notifyListeners);
   }
@@ -89,14 +111,21 @@ class PostComposeState extends ChangeNotifier {
   /// must surface the [cleanupOrphan] action in this case. Also true when
   /// the upload succeeded but linking `image_path` failed ([imageLinkError]
   /// set): row and object both exist, so the same delete action applies.
+  /// P42: a failed multi-attachment upload is the same kind of partial
+  /// failure, so it also marks the draft as an orphan.
   bool get hasOrphan =>
       createdPost != null &&
-      (media.state == UploadState.failed || imageLinkError != null);
+      (media.state == UploadState.failed ||
+          imageLinkError != null ||
+          attachments.any(
+            (ComposeAttachment a) => a.state == UploadState.failed,
+          ));
 
   /// True when a full post (row, plus image if attached) is done.
   bool get isDone =>
       createdPost != null &&
-      (!media.hasBytes || media.state == UploadState.uploaded);
+      (!media.hasBytes || media.state == UploadState.uploaded) &&
+      attachments.every((ComposeAttachment a) => a.isStored);
 
   /// Updates the body and revalidates (clears [bodyError] when valid).
   void setBody(String value) {
@@ -114,6 +143,198 @@ class PostComposeState extends ChangeNotifier {
     reservedImagePath = null;
     imageLinkError = null;
     notifyListeners();
+  }
+
+  // ------------------------------------------------------------------
+  // P42 multi-attachment draft
+  // ------------------------------------------------------------------
+
+  /// Adds one picked file. Returns an honest error message, or null on
+  /// success. Rejects empty/oversize/non-allowlisted files and the 10-item cap
+  /// BEFORE anything is uploaded.
+  String? addPickedAttachment(PickedBoardFile file) {
+    if (attachments.length >= postAttachmentMaxPerPost) {
+      return 'You can attach up to $postAttachmentMaxPerPost items per post.';
+    }
+    final String? invalid = validatePickedAttachment(file);
+    if (invalid != null) return invalid;
+    attachments.add(
+      ComposeAttachment.file(local: file, key: 'att-${_attachmentSeq++}'),
+    );
+    notifyListeners();
+    return null;
+  }
+
+  /// Adds one external HTTPS link. Returns an honest error message, or null.
+  /// Duplicate URLs on the same draft are rejected (they would render twice).
+  String? addLinkAttachment(String rawUrl) {
+    if (attachments.length >= postAttachmentMaxPerPost) {
+      return 'You can attach up to $postAttachmentMaxPerPost items per post.';
+    }
+    final String? invalid = validateExternalHttpsUrl(rawUrl);
+    if (invalid != null) return invalid;
+    final String url = rawUrl.trim();
+    if (attachments.any((ComposeAttachment a) => a.externalUrl == url)) {
+      return 'That link is already attached.';
+    }
+    attachments.add(
+      ComposeAttachment.link(externalUrl: url, key: 'att-${_attachmentSeq++}'),
+    );
+    notifyListeners();
+    return null;
+  }
+
+  /// Removes one draft attachment (also clears its failure state).
+  void removeAttachmentAt(int index) {
+    if (index < 0 || index >= attachments.length) return;
+    attachments.removeAt(index);
+    notifyListeners();
+  }
+
+  /// Reorders one attachment (drag/reorder controls in the composer).
+  void moveAttachment(int from, int to) {
+    if (from < 0 || from >= attachments.length) return;
+    if (to < 0 || to >= attachments.length) return;
+    if (from == to) return;
+    final ComposeAttachment item = attachments.removeAt(from);
+    attachments.insert(to, item);
+    notifyListeners();
+  }
+
+  /// Publishes a text post plus every draft attachment.
+  ///
+  /// Order matters: the post row is inserted first (attachments need its id),
+  /// then each file is uploaded to `<uid>/<postId>/<uuid>.<ext>` and its row is
+  /// inserted, then each link row is inserted. A failure marks that attachment
+  /// [UploadState.failed] and stops the submit — the UI must not claim success
+  /// and offers Retry or Delete. Text-only posts keep working with no
+  /// attachments at all.
+  Future<bool> submitWithAttachments({
+    required String userId,
+    required String Function() newUuid,
+    required CreatePostRow createPost,
+    required UploadAttachmentBytes uploadAttachment,
+    required InsertAttachmentRow insertAttachment,
+    UpdatePostImage? updatePostImage,
+  }) async {
+    bodyError = Post.validateBody(_body);
+    if (bodyError != null) {
+      notifyListeners();
+      return false;
+    }
+    if (submitting) return false;
+    submitting = true;
+    errorMessage = null;
+    notifyListeners();
+    try {
+      final Post row = await createPost(userId: userId, body: _body.trim());
+      createdPost = row;
+      if (attachments.isEmpty) return true;
+      final String postId = row.id ?? '';
+      if (postId.isEmpty) {
+        errorMessage = "The post was saved, but its id came back empty.";
+        return false;
+      }
+      return await _persistAttachments(
+        userId: userId,
+        postId: postId,
+        newUuid: newUuid,
+        uploadAttachment: uploadAttachment,
+        insertAttachment: insertAttachment,
+      );
+    } catch (_) {
+      errorMessage = "Couldn't publish. Check your connection and retry.";
+      return false;
+    } finally {
+      submitting = false;
+      notifyListeners();
+    }
+  }
+
+  /// Retries every attachment that is not yet stored, for an already-created
+  /// post row. Returns true when all of them are now persisted.
+  Future<bool> retryFailedAttachments({
+    required String userId,
+    required String Function() newUuid,
+    required UploadAttachmentBytes uploadAttachment,
+    required InsertAttachmentRow insertAttachment,
+  }) async {
+    final Post? row = createdPost;
+    if (row == null || row.id == null || row.id!.isEmpty) return false;
+    if (submitting) return false;
+    submitting = true;
+    errorMessage = null;
+    notifyListeners();
+    try {
+      return await _persistAttachments(
+        userId: userId,
+        postId: row.id!,
+        newUuid: newUuid,
+        uploadAttachment: uploadAttachment,
+        insertAttachment: insertAttachment,
+      );
+    } finally {
+      submitting = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> _persistAttachments({
+    required String userId,
+    required String postId,
+    required String Function() newUuid,
+    required UploadAttachmentBytes uploadAttachment,
+    required InsertAttachmentRow insertAttachment,
+  }) async {
+    for (int i = 0; i < attachments.length; i++) {
+      final ComposeAttachment item = attachments[i];
+      if (item.isStored) continue;
+      try {
+        if (!item.isLink && item.state != UploadState.uploaded) {
+          item.state = UploadState.uploading;
+          notifyListeners();
+          final String path = buildAttachmentStoragePath(
+            userId: userId,
+            postId: postId,
+            uuid: newUuid(),
+            mimeType: item.mimeType,
+          );
+          await uploadAttachment(path, item.local!.bytes, item.mimeType);
+          item.remotePath = path;
+          item.state = UploadState.uploaded;
+          notifyListeners();
+        }
+        final PostAttachment stored = await insertAttachment(
+          PostAttachment(
+            postId: postId,
+            ownerId: userId,
+            kind: item.kind,
+            storagePath: item.remotePath,
+            externalUrl: item.externalUrl,
+            mimeType: item.isLink ? null : item.mimeType,
+            originalFilename: item.isLink ? null : item.filename,
+            fileSizeBytes: item.isLink ? null : item.sizeBytes,
+            displayOrder: i,
+          ),
+        );
+        item.attachmentId = stored.id;
+        item.state = UploadState.uploaded;
+        item.errorMessage = null;
+        notifyListeners();
+      } catch (_) {
+        item.state = UploadState.failed;
+        item.errorMessage = item.isLink
+            ? "Couldn't save that link. Remove it or retry."
+            : "Couldn't upload that file. Retry or remove it.";
+        errorMessage =
+            'Some attachments failed. Retry them or remove them before '
+            'leaving — the post is already visible with the items that '
+            'succeeded.';
+        notifyListeners();
+        return false;
+      }
+    }
+    return true;
   }
 
   /// Runs the create-then-upload-then-link flow described above.
@@ -230,6 +451,10 @@ class PostComposeState extends ChangeNotifier {
       if (reserved != null && reserved.isNotEmpty) paths.add(reserved);
       final linked = row.imagePath;
       if (linked != null && linked.isNotEmpty) paths.add(linked);
+      for (final ComposeAttachment item in attachments) {
+        final String? remote = item.remotePath;
+        if (remote != null && remote.isNotEmpty) paths.add(remote);
+      }
       if (deleteObject != null) {
         for (final path in paths) {
           try {
@@ -242,6 +467,7 @@ class PostComposeState extends ChangeNotifier {
       createdPost = null;
       reservedImagePath = null;
       media.clear();
+      attachments.clear();
       errorMessage = null;
       notifyListeners();
       return true;
@@ -263,6 +489,7 @@ class PostComposeState extends ChangeNotifier {
     reservedImagePath = null;
     submitting = false;
     media.clear();
+    attachments.clear();
     notifyListeners();
   }
 }

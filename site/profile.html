@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Profile — RailMate BD</title>
+    <meta name="description" content="Public RailMate BD traveller profile: display name, username, join date and public posts." />
+    <link rel="stylesheet" href="assets/styles.css" />
+  </head>
+  <body data-page="profile">
+    <header class="site-header">
+      <div class="wrap">
+        <div class="brand"><span class="dot" aria-hidden="true"></span><a href="./">RailMate BD</a></div>
+        <h1>Traveller profile</h1>
+        <p>Only public identity is shown: display name, username, join date and post count. No email, phone or booking data.</p>
+        <div class="header-actions"><a href="./">All posts</a></div>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <div id="status" class="status" hidden></div>
+      <section id="profile" aria-live="polite"></section>
+      <section id="posts" aria-label="Public posts" aria-live="polite"></section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap">
+        <strong>RailMate BD — demonstration prototype.</strong>
+        <span>No real tickets, payments or reservations.</span>
+      </div>
+    </footer>
+
+    <script src="assets/config.js"></script>
+    <script type="module" src="assets/app.js"></script>
+  </body>
+</html>

@@ -27,6 +27,11 @@ import '../features/auth/password_recovery.dart';
 import '../features/auth/signup_verify.dart';
 import '../features/auth/verify_screen.dart';
 import '../features/auth/welcome_screen.dart';
+import '../features/board/media/attachment_view.dart';
+import '../features/board/post/post.dart';
+import '../features/board/post/post_screen.dart';
+import '../features/board/profile/public_profile_screen.dart';
+import '../features/board/share/post_links.dart';
 import '../features/onboarding/onboarding_screen.dart';
 import 'boot_splash.dart';
 import 'dependencies.dart';
@@ -171,7 +176,65 @@ class AppGateState extends State<AppGate> {
     final SignupVerifyCode? verify = parseSignupVerifyLink(uri);
     if (verify != null) {
       await _handleSignupVerifyLink(verify);
+      return;
     }
+    // P42: permanent post/profile links (`railmatebd://post/<uuid>`,
+    // `railmate://post/<uuid>` and the public website URLs).
+    final String? postId = parsePostLink(uri);
+    if (postId != null) {
+      _openBoardPost(postId);
+      return;
+    }
+    final String? profileId = parseProfileLink(uri);
+    if (profileId != null) {
+      _openPublicProfile(profileId);
+    }
+  }
+
+  /// Opens one shared post above the shell. Unrecognised/deleted ids show the
+  /// screen's honest "not available" state, never a fabricated post.
+  void _openBoardPost(String postId) {
+    if (!mounted) return;
+    final AppDependencies deps = widget.dependencies;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => BoardPostScreen(
+          postId: postId,
+          fetchPost: deps.fetchBoardPostById,
+          imageUrlFor: deps.boardImageUrl,
+          resolveAttachmentUrl: deps.boardAttachmentUrl,
+          openExternal: openExternalHttps,
+          currentUserId: deps.auth.user?.id,
+          fetchReactions: deps.fetchBoardReactions,
+          upsertReaction: deps.upsertBoardReaction,
+          deleteReaction: deps.deleteBoardReaction,
+          fetchRatings: deps.fetchBoardRatings,
+          upsertRating: deps.upsertBoardRating,
+          deleteRating: deps.deleteBoardRating,
+          fetchComments: deps.fetchComments,
+          addComment: deps.addCommentRow,
+          deleteComment: deps.deleteCommentRow,
+        ),
+      ),
+    );
+  }
+
+  /// Opens one shared public profile above the shell.
+  void _openPublicProfile(String userId) {
+    if (!mounted) return;
+    final AppDependencies deps = widget.dependencies;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => PublicProfileScreen(
+          userId: userId,
+          fetchProfile: deps.fetchPublicProfile,
+          fetchPosts: (String id) => deps.fetchBoardPostsByAuthor(id),
+          resolveAttachmentUrl: deps.boardAttachmentUrl,
+          openExternal: openExternalHttps,
+          onOpenPost: (Post tapped) => _openBoardPost(tapped.id ?? ''),
+        ),
+      ),
+    );
   }
 
   /// Exchanges a signup-verify PKCE code for a session, exactly once per

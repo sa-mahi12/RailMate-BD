@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../features/ai/key/byok_vault.dart';
 import '../features/ai/rewrite/rewrite_launcher.dart';
+import '../features/board/media/board_attachment_picker.dart';
 import '../features/board/media/board_image_picker.dart';
 import '../features/board/post/compose_screen.dart';
 import '../features/board/post/post.dart';
@@ -90,6 +91,12 @@ class _BoardComposeHostState extends State<BoardComposeHost> {
           // handled inside the compose screen (silent cancel, settings
           // nudge on denial, retry on failure).
           pickImageBytes: boardGalleryPicker(),
+          // P42: multi-format attachments (photo/video/document/link) when
+          // the hosted closures are wired. Without them the legacy
+          // single-photo path above stays exactly as before.
+          pickAttachment: dependencies == null ? null : pickBoardAttachment,
+          uploadAttachment: dependencies?.uploadBoardAttachment,
+          insertAttachment: dependencies?.insertBoardAttachment,
           onDone: () => Navigator.of(context).pop(),
         ),
       ),

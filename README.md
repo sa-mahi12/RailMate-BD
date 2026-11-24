@@ -6,9 +6,20 @@ P41 corrective source targets signed release `v1.0.0+28` on `main` only — no P
 
 A Flutter Android app against hosted Supabase. **Splash → Onboarding → Welcome → Login/Register → Verify → Home** is a real startup state machine (`lib/app/app_gate.dart`), not an unconditional home route.
 
-Search covers **24 demo stations and 32 services**, with a today..+20-day picker, GraphQL-first stations, actual bundled TFLite ranking and demo-hold-aware seat maps. The hosted timetable is synthetic and requires owner-side horizon refresh; dates are not automatically kept current by the app. Booking is **atomic and multi-seat (1–4)** through deployed `book-trip` / `cancel-booking` Edge Functions after a simulated payment (**no real money**); QR+PDF tickets state **DEMONSTRATION ONLY / NOT VALID FOR TRAVEL**. Journey Board supports realtime comments, reactions and ratings plus cursor pagination. The guide bundles a licensed video and uses Leaflet/OpenStreetMap; maps and GSAP need reachable CDNs. Account-scoped OpenRouter BYOK "Improve Wording" sends the key only on an explicit, consented action. Bottom tabs: Home / Bookings / Board / Profile.
+Search covers **24 demo stations and 32 services**, with a today..+20-day picker, GraphQL-first stations, actual bundled TFLite ranking and demo-hold-aware seat maps. The hosted timetable is synthetic and requires owner-side horizon refresh; dates are not automatically kept current by the app. Booking is **atomic and multi-seat (1–4)** through deployed `book-trip` / `cancel-booking` Edge Functions after a simulated payment (**no real money**); QR+PDF tickets state **DEMONSTRATION ONLY / NOT VALID FOR TRAVEL**. Journey Board supports realtime comments, reactions and ratings plus cursor pagination, **multi-format attachments** (up to 10 images/videos/documents/links per post) and **permanent post links** (`railmatebd://post/<uuid>`, public web permalink). The guide bundles a licensed video and uses Leaflet/OpenStreetMap; maps and GSAP need reachable CDNs. Account-scoped OpenRouter BYOK "Improve Wording" sends the key only on an explicit, consented action. Bottom tabs: Home / Bookings / Board / Profile.
 
-Stack: Flutter Android, hosted Supabase (Postgres/Auth/Storage/Realtime/REST/pg_graphql/Edge Functions), OpenRouter BYOK, tiny TFLite search model. **No Docker, no local application DB.** This repository cannot sell real railway tickets.
+Stack: Flutter Android, hosted Supabase (Postgres/Auth/Storage/Realtime/REST/pg_graphql/Edge Functions), OpenRouter BYOK, tiny TFLite search model, plus a static **GitHub Pages** viewer (`site/`). **No Docker, no local application DB.** This repository cannot sell real railway tickets.
+
+## Public website (P42)
+
+<https://sa-mahi12.github.io/RailMate-BD/> is a live, read-only view of the same
+hosted Journey Board — real posts, attachments, comments and engagement counts
+(no static mockup). Posts are shareable as
+`https://sa-mahi12.github.io/RailMate-BD/post.html?id=<uuid>`, profiles as
+`profile.html?id=<uuid>`. The page polls every 20 s; the Android app remains the
+realtime client and the only place that writes. Media lives in Supabase Storage,
+never in this repository. Technical reference:
+[`docs/P42_SOCIAL_WEB.md`](docs/P42_SOCIAL_WEB.md).
 
 ## Installable signed builds
 
@@ -30,6 +41,8 @@ dart format --output=none --set-exit-if-changed lib test
 flutter analyze
 flutter test
 node --test web-guide/map-provider.test.cjs
+(cd site && npm ci && npm test && npm run build:css)
+node scripts/p42_cross_account_evidence.mjs   # hosted, needs app.env.json
 npx --yes deno@2 test supabase/functions/_shared/telegram_test.ts
 npx --yes deno@2 test supabase/functions/telegram-webhook/index_test.ts
 ```

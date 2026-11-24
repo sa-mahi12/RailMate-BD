@@ -1,0 +1,14 @@
+{
+  "name": "railmatebd-public-site",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Static GitHub Pages viewer for the RailMate BD Journey Board (live Supabase data).",
+  "type": "module",
+  "scripts": {
+    "build:css": "sass --no-source-map --style=compressed assets/styles.scss assets/styles.css",
+    "test": "node --test assets/util.test.mjs"
+  },
+  "devDependencies": {
+    "sass": "^1.83.0"
+  }
+}

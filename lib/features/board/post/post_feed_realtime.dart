@@ -146,6 +146,29 @@ CursorPaginator<Post> newPostPaginator(FetchCursorPage<Post> fetchPage) =>
       createdAtOf: (Post row) => row.createdAt,
     );
 
+/// Preserves P42 enrichment (author card + attachments) when a realtime
+/// payload replaces a row: a `postgres_changes` row carries only the `posts`
+/// columns, so without this the author header and media would disappear on
+/// every `posts` update emitted by another client.
+Post _mergeEnrichment(Post incoming, Post? existing) {
+  if (existing == null) return incoming;
+  final Post withAuthor = incoming.author != null
+      ? incoming
+      : incoming.withAuthor(existing.author);
+  if (incoming.attachments.isNotEmpty || existing.attachments.isEmpty) {
+    return withAuthor;
+  }
+  return Post(
+    id: withAuthor.id,
+    userId: withAuthor.userId,
+    body: withAuthor.body,
+    imagePath: withAuthor.imagePath,
+    createdAt: withAuthor.createdAt,
+    attachments: existing.attachments,
+    author: withAuthor.author,
+  );
+}
+
 /// Merges one realtime event into a cursor-paged window.
 ///
 /// - insert: front-inserts via [CursorPaginator.insertRealtime] (echo
@@ -173,7 +196,8 @@ bool applyPostEventToPaginator(
       final rows = paginator.rows;
       final index = rows.indexWhere((p) => p.id == id);
       if (index < 0) return paginator.insertRealtime(row);
-      final next = List<Post>.of(rows)..[index] = row;
+      final next = List<Post>.of(rows)
+        ..[index] = _mergeEnrichment(row, rows[index]);
       paginator.rows = List<Post>.unmodifiable(next);
       return true;
     case BoardPostEventKind.delete:
@@ -223,7 +247,9 @@ void applyPostEventToFeed(PostFeedState feed, BoardPostEvent event) {
       if (index < 0) {
         feed.replaceWindow(<Post>[...rows, row]..sort(_newestFirst));
       } else {
-        feed.replaceWindow(List<Post>.of(rows)..[index] = row);
+        feed.replaceWindow(
+          List<Post>.of(rows)..[index] = _mergeEnrichment(row, rows[index]),
+        );
       }
     case BoardPostEventKind.delete:
       final id = event.postId;

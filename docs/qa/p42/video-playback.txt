@@ -1,0 +1,27 @@
+Uploaded video playback proof (real Chrome, page reading hosted Supabase Storage)
+================================================================================
+
+Measured with page JS on the live feed card (video element inside #feed):
+
+{
+  "page": "index.html (local static server, same site/ build that is deployed)",
+  "at": "2026-11-24T17:26:53.950Z",
+  "file": "ae6c22ca-d14d-4721-b9e5-b11d76e7e764.webm",
+  "paused": false,
+  "currentTime": 2.34,
+  "duration": 20.4,
+  "videoWidth": 848,
+  "videoHeight": 480,
+  "readyState": 4
+}
+
+Interpretation: the object is a real WebM uploaded to the `post-media` bucket
+through the Storage API by account A; the public page streams it from
+`https://psuzlyingfmstnyfvlnj.supabase.co/storage/v1/object/public/post-media/...`,
+and Chrome decoded 848x480 frames with `paused: false` and `currentTime`
+advancing (2.34 s of 20.4 s). This is in-browser playback of an uploaded video,
+not a bundled clip pretending to be user media.
+
+The provider-link attachment on the same post stays a click-to-load button
+(`Play youtube video`), i.e. external videos are supported through an
+allowlisted embed, which is a different feature from uploaded video.

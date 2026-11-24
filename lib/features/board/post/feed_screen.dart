@@ -2,18 +2,17 @@ import 'package:flutter/material.dart';
 
 import '../../../design/design.dart';
 import '../../../design/state/state.dart';
-import '../comments/comment_section.dart';
 import '../comments/comment_subscription.dart';
 import '../comments/comment_thread.dart';
+import '../media/attachment_view.dart';
 import '../media/post_media.dart';
-import '../ratings/rating_state.dart';
 import '../ratings/rating_realtime.dart';
+import '../ratings/rating_state.dart';
 import '../reactions/reaction_realtime.dart';
 import '../reactions/reaction_state.dart';
 import 'post.dart';
-import 'post_engagement.dart';
+import 'post_card.dart';
 import 'post_feed_state.dart';
-import 'relative_time.dart';
 
 /// Fixed-size shimmer cards shown while the feed loads. Static under reduced
 /// motion; the layout does not jump when real cards arrive.
@@ -110,6 +109,24 @@ class BoardFeedScreen extends StatelessWidget {
   /// same shared-channel pattern as comments/reactions.
   final Stream<RatingRealtimeEvent>? ratingEvents;
 
+  /// P42: Storage → public URL resolver for uploaded attachments.
+  final ResolveAttachmentUrl? resolveAttachmentUrl;
+
+  /// P42: external link opener (url_launcher in production).
+  final OpenExternalUrl? openExternal;
+
+  /// P42: native share sheet for one post (canonical URL included).
+  final void Function(Post post)? onShare;
+
+  /// P42: copy the canonical post URL.
+  final void Function(Post post)? onCopyLink;
+
+  /// P42: report one post.
+  final void Function(Post post)? onReportPost;
+
+  /// P42: open the author's public profile.
+  final void Function(Post post)? onOpenProfile;
+
   const BoardFeedScreen({
     super.key,
     required this.feed,
@@ -128,29 +145,13 @@ class BoardFeedScreen extends StatelessWidget {
     this.commentEvents,
     this.reactionEvents,
     this.ratingEvents,
+    this.resolveAttachmentUrl,
+    this.openExternal,
+    this.onShare,
+    this.onCopyLink,
+    this.onReportPost,
+    this.onOpenProfile,
   });
-
-  /// True when the per-post engagement section can render for [post]: all
-  /// six seams wired and a concrete row id to vote on.
-  bool _engagementWired(Post post) =>
-      fetchReactions != null &&
-      upsertReaction != null &&
-      deleteReaction != null &&
-      fetchRatings != null &&
-      upsertRating != null &&
-      deleteRating != null &&
-      post.id != null &&
-      post.id!.isNotEmpty;
-
-  /// True when the per-post comments section can render for [post]: all
-  /// three seams wired and a concrete row id to load. Null seams (default)
-  /// hide the section so existing callers render exactly the old card.
-  bool _commentsWired(Post post) =>
-      fetchComments != null &&
-      addComment != null &&
-      deleteComment != null &&
-      post.id != null &&
-      post.id!.isNotEmpty;
 
   /// True when the pagination trailer row applies: a page is loading, the
   /// last page load failed (Retry), or more pages exist (Load more).
@@ -254,71 +255,32 @@ class BoardFeedScreen extends StatelessWidget {
           return FadeSlideIn(
             // Staggered entrance, 40 ms step, per the V4 motion matrix.
             delay: Duration(milliseconds: 40 * i.clamp(0, 6)),
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x14000000),
-                    blurRadius: 8,
-                    offset: Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(post.body, style: const TextStyle(fontSize: 14)),
-                  if (post.imagePath != null) ...[
-                    const SizedBox(height: 8),
-                    _postImage(post.imagePath!),
-                  ],
-                  if (_engagementWired(post)) ...[
-                    const SizedBox(height: 8),
-                    PostEngagement(
-                      key: ValueKey('engagement-${post.id}'),
-                      post: post,
-                      currentUserId: currentUserId,
-                      fetchReactions: fetchReactions!,
-                      upsertReaction: upsertReaction!,
-                      deleteReaction: deleteReaction!,
-                      fetchRatings: fetchRatings!,
-                      upsertRating: upsertRating!,
-                      deleteRating: deleteRating!,
-                      realtime: reactionEvents,
-                      ratingRealtime: ratingEvents,
-                    ),
-                  ],
-                  if (_commentsWired(post)) ...[
-                    const SizedBox(height: 8),
-                    CommentSection(
-                      key: ValueKey('comments-${post.id}'),
-                      postId: post.id!,
-                      currentUserId: currentUserId,
-                      fetchComments: fetchComments!,
-                      addComment: addComment!,
-                      deleteComment: deleteComment!,
-                      realtime: commentEvents,
-                    ),
-                  ],
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Spacer(),
-                      Text(
-                        formatRelativeTime(post.createdAt),
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+            child: BoardPostCard(
+              post: post,
+              imageUrlFor: imageUrlFor,
+              resolveAttachmentUrl: resolveAttachmentUrl,
+              openExternal: openExternal,
+              currentUserId: currentUserId,
+              fetchReactions: fetchReactions,
+              upsertReaction: upsertReaction,
+              deleteReaction: deleteReaction,
+              fetchRatings: fetchRatings,
+              upsertRating: upsertRating,
+              deleteRating: deleteRating,
+              fetchComments: fetchComments,
+              addComment: addComment,
+              deleteComment: deleteComment,
+              commentEvents: commentEvents,
+              reactionEvents: reactionEvents,
+              ratingEvents: ratingEvents,
+              onShare: onShare == null ? null : () => onShare!(post),
+              onCopyLink: onCopyLink == null ? null : () => onCopyLink!(post),
+              onReportPost: onReportPost == null
+                  ? null
+                  : () => onReportPost!(post),
+              onOpenProfile: onOpenProfile == null
+                  ? null
+                  : () => onOpenProfile!(post),
             ),
           );
         },
@@ -360,67 +322,6 @@ class BoardFeedScreen extends StatelessWidget {
         child: OutlinedButton(
           onPressed: feed.loadMore,
           child: const Text('Load more'),
-        ),
-      ),
-    );
-  }
-
-  /// Resolves [imagePath] through the injected [imageUrlFor], or null when
-  /// no resolver is wired. Never throws: a throwing resolver falls back to
-  /// the badge (a broken resolver must not break the whole feed).
-  String? _imageUrl(String? imagePath) {
-    final resolve = imageUrlFor;
-    if (resolve == null || imagePath == null || imagePath.isEmpty) {
-      return null;
-    }
-    try {
-      final url = resolve(imagePath);
-      return (url == null || url.isEmpty) ? null : url;
-    } catch (_) {
-      return null;
-    }
-  }
-
-  /// Display image for one post: the network photo when resolvable, else
-  /// the 'Photo attached' badge. A failed download also degrades to the
-  /// badge via [Image.errorBuilder] (never a red error box).
-  Widget _postImage(String imagePath) {
-    final url = _imageUrl(imagePath);
-    if (url == null) {
-      return const Row(
-        children: [
-          Icon(Icons.image_outlined, size: 14, color: Color(0xFF0E5A66)),
-          SizedBox(width: 4),
-          Text(
-            'Photo attached',
-            style: TextStyle(fontSize: 12, color: Color(0xFF0E5A66)),
-          ),
-        ],
-      );
-    }
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: Image.network(
-        url,
-        width: double.infinity,
-        fit: BoxFit.cover,
-        semanticLabel: 'Attached photo',
-        loadingBuilder: (context, child, progress) {
-          if (progress == null) return child;
-          return const SizedBox(
-            height: 120,
-            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-          );
-        },
-        errorBuilder: (context, _, _) => const Row(
-          children: [
-            Icon(Icons.image_outlined, size: 14, color: Color(0xFF0E5A66)),
-            SizedBox(width: 4),
-            Text(
-              'Photo attached',
-              style: TextStyle(fontSize: 12, color: Color(0xFF0E5A66)),
-            ),
-          ],
         ),
       ),
     );
