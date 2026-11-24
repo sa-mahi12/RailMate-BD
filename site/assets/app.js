@@ -436,9 +436,22 @@ async function renderProfile() {
 
 // ------------------------------------------------------------------- boot
 
+/**
+ * True while the reader is watching an uploaded video.
+ *
+ * The feed re-renders on the 20 s poll. Rebuilding the list replaces the
+ * `<video>` element, which would stop playback and reset it to 0:00, so a tick
+ * is skipped while any video is actually playing; the next tick renders.
+ */
+function mediaBusy() {
+  return [...document.querySelectorAll('video')].some(
+    (video) => !video.paused && !video.ended && video.currentTime > 0,
+  );
+}
+
 function startPolling(render) {
   const tick = async () => {
-    if (document.hidden) return;
+    if (document.hidden || mediaBusy()) return;
     try {
       await render();
       hideStatus();
