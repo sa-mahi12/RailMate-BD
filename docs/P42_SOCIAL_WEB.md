@@ -116,6 +116,11 @@ Static HTML/CSS/JS, no bundler, no framework, published by
 * `assets/config.js` is generated at deploy time from the repository variables
   `SUPABASE_URL` and `SUPABASE_ANON_KEY`; it is gitignored, so no key is
   committed. The anon key is public by design and RLS protects every row.
+* The same step stamps `?v=<commit>` onto `styles.css`, `app.js` and
+  `config.js` in the three published pages. GitHub Pages serves assets with
+  `cache-control: max-age=600`, so without a stamp a returning reader keeps the
+  previous JavaScript for ten minutes after a deploy; the committed HTML keeps
+  clean URLs for local preview.
 
 The site is read-only: posting, reacting, rating and commenting happen in the
 app. It refreshes itself every 20 s while the tab is visible and on focus.

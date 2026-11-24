@@ -34,3 +34,28 @@ window.RAILMATE_CONFIG = {
 const target = path.join(process.cwd(), 'assets', 'config.js');
 fs.writeFileSync(target, body);
 console.log(`config: wrote ${path.relative(process.cwd(), target)} (${url})`);
+
+// Cache-bust the asset URLs in the published HTML.
+//
+// GitHub Pages serves assets with `cache-control: max-age=600`, so a returning
+// reader can keep an old app.js for ten minutes after a deploy (that is exactly
+// how a fixed video-refresh guard kept running the previous build). Pages gives
+// no header control, so the version query is stamped into the HTML at deploy
+// time instead; the committed HTML keeps clean URLs for local preview.
+const stamp = String(process.env.GITHUB_SHA || '').slice(0, 8) || Date.now().toString(36);
+const pages = ['index.html', 'post.html', 'profile.html'];
+let stamped = 0;
+for (const page of pages) {
+  const file = path.join(process.cwd(), page);
+  if (!fs.existsSync(file)) continue;
+  const before = fs.readFileSync(file, 'utf8');
+  const after = before
+    .replace(/assets\/config\.js(\?[^"']*)?/g, `assets/config.js?v=${stamp}`)
+    .replace(/assets\/app\.js(\?[^"']*)?/g, `assets/app.js?v=${stamp}`)
+    .replace(/assets\/styles\.css(\?[^"']*)?/g, `assets/styles.css?v=${stamp}`);
+  if (after !== before) {
+    fs.writeFileSync(file, after);
+    stamped += 1;
+  }
+}
+console.log(`config: stamped ${stamped} page(s) at v=${stamp}`);
