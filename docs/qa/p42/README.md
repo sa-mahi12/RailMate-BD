@@ -86,6 +86,26 @@ Full suite at the P42 commit: **675 Flutter tests**, 10 site tests,
   workflow's own `enablement: true` was rejected with "Resource not accessible
   by integration" for the workflow token.
 
+## Signed release
+
+`v1.0.0+29` was published by release run `45453959869` from `84dd332` (the app
+code is identical at `main` today; later commits touched `site/` and `docs/`
+only). Verified after download, not from the log:
+
+* eight assets: universal APK, three split APKs (arm64-v8a, armeabi-v7a,
+  x86_64), AAB, `SHA256SUMS.txt`, `release-manifest.json`, `PROVENANCE.md`;
+* universal APK SHA256 `e2d67d17415393b1403b07d60e0e8984a237669537ce83a5a7aa5e890608eac6`
+  matches the GitHub asset digest and `SHA256SUMS.txt`;
+* `aapt2 dump badging`: `bd.railmate.railmate_bd`, `versionCode='29'`,
+  `versionName='1.0.0'`, minSdk 24, targetSdk 36;
+* `apksigner verify --min-sdk-version 24` exit 0, certificate SHA-256
+  `37c67c4c119d3adea7dcbeaae99ae69d8ab14e231ca2fecee9b6134190f2f155` — the same
+  release certificate as `+28`, so it updates an installed build;
+* the extracted `lib/arm64-v8a/libapp.so` contains the P42 symbols
+  `post_attachments`, `public_profile_cards` and `post_reports`, so the shipped
+  binary really includes this packet's code;
+* `v1.0.0+28` and its eight assets are unchanged (no overwrite).
+
 ## Not claimed
 
 * Per-post Open Graph previews (static hosting limitation, documented).

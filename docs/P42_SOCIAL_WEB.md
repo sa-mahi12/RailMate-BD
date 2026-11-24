@@ -125,6 +125,16 @@ Static HTML/CSS/JS, no bundler, no framework, published by
 The site is read-only: posting, reacting, rating and commenting happen in the
 app. It refreshes itself every 20 s while the tab is visible and on focus.
 
+## Published artifacts
+
+* Source: `main`, seven direct commits `c8565cd` … `c556e5d` (owner identity
+  `sa-mahi12`); no branch, PR or worktree.
+* Website: <https://sa-mahi12.github.io/RailMate-BD/> via
+  `.github/workflows/deploy-pages.yml` (Pages build type `workflow`).
+* Android: signed `v1.0.0+29` (release run `45453959869`) — universal + three
+  split APKs + AAB, same release certificate as `+28`, which is untouched.
+  Evidence and digests: [`docs/qa/p42/README.md`](qa/p42/README.md).
+
 ## Honest limitations
 
 * **Per-post Open Graph previews are not generated.** GitHub Pages is static
