@@ -404,6 +404,7 @@ async function renderProfile() {
   }
   state.authors.set(card.id, card);
   document.title = `${authorLabel(card)} on RailMate BD`;
+  const postCount = Number(card.post_count || 0);
   clear(host);
   host.append(
     el('div', { class: 'profile-card' }, [
@@ -413,7 +414,7 @@ async function renderProfile() {
         card.username ? el('div', { class: 'sub', text: `@${card.username}` }) : null,
         el('div', {
           class: 'sub',
-          text: `${card.joined_at ? `Joined ${formatDate(card.joined_at).split(',')[0]} · ` : ''}${card.post_count || 0} posts`,
+          text: `${card.joined_at ? `Joined ${formatDate(card.joined_at).split(',')[0]} · ` : ''}${postCount} ${postCount === 1 ? 'post' : 'posts'}`,
         }),
       ]),
     ]),
