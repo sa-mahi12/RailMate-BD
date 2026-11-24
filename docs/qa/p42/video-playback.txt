@@ -1,11 +1,52 @@
-Uploaded video playback proof (real Chrome, page reading hosted Supabase Storage)
-================================================================================
+Uploaded video playback proof (real Chrome, deployed page)
+==========================================================
 
-Measured with page JS on the live feed card (video element inside #feed):
+The page is the published GitHub Pages build
+(`https://sa-mahi12.github.io/RailMate-BD/`), reading the hosted Supabase
+project `psuzlyingfmstnyfvlnj`. The video is an object that account A uploaded
+through the real Storage API into the public `post-media` bucket during the
+cross-account run (see `cross-account-evidence.json`) — it is not a bundled app
+asset pretending to be user media.
+
+Live page, watch across a 20 s refresh boundary
+-----------------------------------------------
+Measured with page JS, 2026-11-24T17:54:36Z:
 
 {
-  "page": "index.html (local static server, same site/ build that is deployed)",
-  "at": "2026-11-24T17:26:53.950Z",
+  "page": "https://sa-mahi12.github.io/RailMate-BD/",
+  "watchedSeconds": 37.7,
+  "sameElement": true,
+  "paused": false,
+  "currentTime": 3.29,
+  "duration": 20.4,
+  "videoWidth": 848,
+  "videoHeight": 480,
+  "cards": 3,
+  "refreshedLabel": "Live · refreshed 11:53:58 PM"
+}
+
+Playback earlier in the same session (2026-11-24T17:53:58Z area):
+
+{
+  "playErr": null,
+  "paused": false,
+  "currentTime": 1.76,
+  "duration": 20.4,
+  "videoWidth": 848,
+  "videoHeight": 480
+}
+
+Interpretation: Chrome decoded 848×480 frames from the Supabase Storage object
+with `paused: false` and `currentTime` advancing, and the same `<video>`
+element was still playing 37.7 s later — i.e. across a poll boundary without the
+feed being torn down underneath the reader (`loop` was enabled only to keep the
+20 s clip running for the whole measurement window).
+
+Local static-server run (same `site/` build)
+-------------------------------------------
+Earlier measurement, 2026-11-24T17:26:53Z, served from `127.0.0.1`:
+
+{
   "file": "ae6c22ca-d14d-4721-b9e5-b11d76e7e764.webm",
   "paused": false,
   "currentTime": 2.34,
@@ -15,13 +56,16 @@ Measured with page JS on the live feed card (video element inside #feed):
   "readyState": 4
 }
 
-Interpretation: the object is a real WebM uploaded to the `post-media` bucket
-through the Storage API by account A; the public page streams it from
-`https://psuzlyingfmstnyfvlnj.supabase.co/storage/v1/object/public/post-media/...`,
-and Chrome decoded 848x480 frames with `paused: false` and `currentTime`
-advancing (2.34 s of 20.4 s). This is in-browser playback of an uploaded video,
-not a bundled clip pretending to be user media.
+Two defects were found by these measurements and fixed before the claim:
+the page rebuilt the whole feed every 20 s (stopping playback mid-watch), and
+GitHub Pages' `max-age=600` asset cache served the pre-fix `app.js` after a
+deploy (the deploy step now stamps `?v=<commit>` onto asset URLs).
 
-The provider-link attachment on the same post stays a click-to-load button
-(`Play youtube video`), i.e. external videos are supported through an
-allowlisted embed, which is a different feature from uploaded video.
+What this does and does not show
+--------------------------------
+* Shows: an uploaded WebM streams from Supabase Storage and plays in a normal
+  browser on the public URL.
+* Does not show: an Android-device playback run (no phone/emulator run of the
+  new attachment UI was recorded in this packet).
+* Provider links (`https://youtube.com/...`) are a different feature: they stay
+  a click-to-load button (`Play youtube video`), never an auto-loaded frame.
