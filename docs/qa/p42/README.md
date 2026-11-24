@@ -11,6 +11,7 @@ deployed page).
 | `cross-account-evidence.json` | HOSTED | two independent accounts: A publishes a post with image + video + PDF + YouTube link + plain link; an anonymous reader and B see all five; B comments/likes/rates; public stats reflect it; B cannot delete A's post; B's report is stored and hidden from A; non-HTTPS link, foreign-owned attachment and self-report are rejected by the database |
 | `site-live-feed.png` | BROWSER | the deployed feed at `https://sa-mahi12.github.io/RailMate-BD/` with the demo post, its image, video player, PDF card, provider-embed button and link card |
 | `site-live-post.png` | BROWSER | the deployed permalink `post.html?id=80a27190-…` with the same post, engagement pills and the comment written by account B |
+| `site-live-profile.png` | BROWSER | the deployed public profile `profile.html?id=9fbbc87b-…`: display name, `@username`, join date, `1 post` and that author's post — no email, phone or booking data |
 | `site-local-feed.png` | BROWSER | the same build served locally (offline comparison of feed layout) |
 | `site-local-post.png` | BROWSER | the same build served locally (post page) |
 | `video-playback.txt` | BROWSER | the uploaded WebM playing on the deployed page: `paused=false`, `currentTime` advancing, 848×480, same element still playing 37.7 s later across a 20 s refresh boundary |
@@ -48,7 +49,11 @@ Real Chrome, the deployed page:
    `Comments (1)` authored by `P42 Rafi (demo) · @p42_rafi_7s16e9`, and the
    document title becomes `P42 Amina (demo) on RailMate BD`.
 3. The video played on the deployed page (`video-playback.txt`).
-4. The two legacy pre-P42 posts render "Photo unavailable" for their missing
+4. `profile.html?id=9fbbc87b-2dde-42db-9f5b-c119cd69ce55` shows
+   `PA · P42 Amina (demo) · @p42_amina_7s16e9 · Joined Nov 24 · 1 post` and one
+   post; the page reads only the `public_profile_cards` view, so no email,
+   phone, Telegram identity or booking row is ever requested.
+5. The two legacy pre-P42 posts render "Photo unavailable" for their missing
    Storage objects instead of a broken image icon.
 
 ## What is unit-tested (UNIT)
