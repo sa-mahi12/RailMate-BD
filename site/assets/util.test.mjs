@@ -98,8 +98,7 @@ test('author helpers show public identity only', () => {
   assert.equal(initialsFor({ username: 'sam' }), 'S');
   assert.equal(initialsFor({ display_name: 'P42 Amina (demo)' }), 'PA');
   assert.equal(initialsFor({ display_name: '(demo)' }), '?');
-  assert.equal(initialsFor(null), '?');
-});
+  assert.equal(initialsFor(null), '?');});
 
 test('formatBytes and ratingLabel stay honest for empty data', () => {
   assert.equal(formatBytes(0), '');

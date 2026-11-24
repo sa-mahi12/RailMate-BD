@@ -59,20 +59,23 @@ class PublicProfile {
     return label;
   }
 
-  /// Initials for the avatar bubble (letters only, never punctuation).
+  /// Initials for the avatar bubble (never an external avatar service).
+  ///
+  /// Uses the first letter of the first two words that start with a letter, so
+  /// `Sam Mahi` → `SM`, `P42 Amina (demo)` → `PA` and a punctuation-only name
+  /// degrades to `?` instead of printing brackets.
   String get initials {
     final String source = displayName.isNotEmpty
         ? displayName
         : (username ?? '');
-    final List<String> words = RegExp(r'[A-Za-z\u00c0-\u024f]+')
-        .allMatches(source)
-        .map((RegExpMatch m) => m.group(0)!)
-        .toList();
-    if (words.isEmpty) return '?';
-    if (words.length == 1) {
-      return words.first.substring(0, 1).toUpperCase();
+    final List<String> letters = <String>[];
+    for (final String word in source.split(RegExp(r'\s+'))) {
+      if (word.isEmpty) continue;
+      final String first = word.substring(0, 1);
+      if (!RegExp(r'[A-Za-z\u00c0-\u024f]').hasMatch(first)) continue;
+      letters.add(first.toUpperCase());
+      if (letters.length == 2) break;
     }
-    return (words.first.substring(0, 1) + words.last.substring(0, 1))
-        .toUpperCase();
+    return letters.isEmpty ? '?' : letters.join();
   }
 }

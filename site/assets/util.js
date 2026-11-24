@@ -157,16 +157,24 @@ export function authorIdentity(card) {
   return authorLabel(card);
 }
 
-/** Two-letter initials for the avatar bubble (letters only). */
+/**
+ * Initials for the avatar bubble: the first letter of the first two words that
+ * begin with a letter, so `Sam Mahi` → `SM`, `P42 Amina (demo)` → `PA` and a
+ * punctuation-only name degrades to `?` instead of printing brackets.
+ */
 export function initialsFor(card) {
   const source = String(
     (card && (card.display_name || card.username)) || '',
   ).trim();
   if (!source) return '?';
-  const words = (source.match(/[A-Za-z\u00c0-\u024f]+/g) || []).filter(Boolean);
-  if (!words.length) return '?';
-  if (words.length === 1) return words[0].slice(0, 1).toUpperCase();
-  return (words[0].slice(0, 1) + words[words.length - 1].slice(0, 1)).toUpperCase();
+  const letters = [];
+  for (const word of source.split(/\s+/)) {
+    const first = word.slice(0, 1);
+    if (!/[A-Za-z\u00c0-\u024f]/.test(first)) continue;
+    letters.push(first.toUpperCase());
+    if (letters.length === 2) break;
+  }
+  return letters.length ? letters.join('') : '?';
 }
 
 /** Star average rounded to one decimal, or '' when there are no ratings. */
