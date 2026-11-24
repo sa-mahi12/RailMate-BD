@@ -12,9 +12,13 @@ happens to a report so nothing is overstated.
   * post: `spam`, `harassment`, `misinformation`, `unsafe_media`, `other`
   * profile: `spam`, `harassment`, `impersonation`, `other`
 * One row per reporter per target (`unique (target, reporter_id)`); a second
-  report updates the first.
+  report updates the first. The database resolves that update itself
+  (`20261125000002_p42_report_upsert.sql`), so a client that simply re-inserts
+  still records the new reason instead of erroring.
 * `details` is optional, ≤ 500 characters.
-* A profile cannot be reported by its owner (`user_reports_no_self`).
+* A profile cannot be reported by its owner (`user_reports_no_self`), and an
+  author cannot report their own post (`post_reports_no_self`,
+  `20261125000001_p42_hardening.sql`).
 * Reporters see only their own rows (RLS `reporter_id = auth.uid()`). The
   reported author never sees them, and the public site never queries them.
 

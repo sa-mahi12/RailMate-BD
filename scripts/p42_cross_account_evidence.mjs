@@ -544,6 +544,81 @@ try {
     status: signedUrls.status,
   });
 
+  // ---- hardening (20261125000001): review follow-up
+  const foreignPath = await userFetch(B.token, '/rest/v1/post_attachments', {
+    method: 'POST',
+    body: JSON.stringify([
+      {
+        post_id: postId,
+        owner_id: B.id,
+        kind: 'image',
+        storage_path: `${A.id}/${postId}/stolen.png`,
+        mime_type: 'image/png',
+        display_order: 0,
+      },
+    ]),
+  });
+  record(
+    "B cannot point its own attachment at A's storage folder",
+    foreignPath.status >= 400,
+    { status: foreignPath.status, code: foreignPath.body?.code ?? null },
+  );
+
+  const repeatReport = await userFetch(B.token, '/rest/v1/post_reports', {
+    method: 'POST',
+    headers: { prefer: 'resolution=merge-duplicates,return=representation' },
+    body: JSON.stringify({
+      post_id: postId,
+      reporter_id: B.id,
+      reason: 'harassment',
+      details: 'second report updates the first',
+    }),
+  });
+  const reportRows = await userFetch(
+    B.token,
+    `/rest/v1/post_reports?select=reason,details,created_at&post_id=eq.${postId}`,
+  );
+  const ownReports = Array.isArray(reportRows.body) ? reportRows.body : [];
+  record(
+    'a repeat report updates the reporter own row instead of erroring',
+    (repeatReport.status === 200 || repeatReport.status === 201) &&
+      ownReports.length === 1 &&
+      ownReports[0].reason === 'harassment',
+    {
+      status: repeatReport.status,
+      rows: ownReports.length,
+      reason: ownReports[0]?.reason ?? null,
+    },
+  );
+
+  const selfPostReport = await userFetch(A.token, '/rest/v1/post_reports', {
+    method: 'POST',
+    body: JSON.stringify({ post_id: postId, reporter_id: A.id, reason: 'spam' }),
+  });
+  record('an author cannot report their own post', selfPostReport.status >= 400, {
+    status: selfPostReport.status,
+  });
+
+  const backdated = await userFetch(A.token, '/rest/v1/posts', {
+    method: 'POST',
+    headers: { prefer: 'return=representation' },
+    body: JSON.stringify({
+      user_id: A.id,
+      body: `P42 backdated clock check ${suffix}`,
+      created_at: '2020-01-01T00:00:00Z',
+    }),
+  });
+  const stampedAt = backdated.body?.[0]?.created_at ?? '';
+  const stampedYear = Number(String(stampedAt).slice(0, 4));
+  record(
+    'a client-supplied created_at is replaced by the server clock',
+    backdated.status === 201 && stampedYear >= 2026,
+    { status: backdated.status, created_at: stampedAt },
+  );
+  if (backdated.body?.[0]?.id) {
+    await svc(`/rest/v1/posts?id=eq.${backdated.body[0].id}`, { method: 'DELETE' });
+  }
+
   // Keep the public board tidy: remove posts from earlier evidence runs so the
   // feed shows exactly one demonstration post per run.
   const stale = await svc(

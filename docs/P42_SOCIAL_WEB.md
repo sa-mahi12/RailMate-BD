@@ -20,9 +20,10 @@ Legacy rows are untouched: `posts.image_path` still renders, and the migration
 mirrors each existing path into `post_attachments` exactly once
 (`on conflict do nothing`, partial unique index on `(post_id, storage_path)`).
 
-## Hosted schema (migration `20261124000001_p42_social_web.sql`)
+## Hosted schema (migrations `20261124000001_p42_social_web.sql`,
+`20261125000001_p42_hardening.sql`, `20261125000002_p42_report_upsert.sql`)
 
-Applied to project `psuzlyingfmstnyfvlnj` on 2026-11-24 and recorded in
+Applied to project `psuzlyingfmstnyfvlnj` on 2026-11-24/25 and recorded in
 `supabase_migrations.schema_migrations`. Objects:
 
 * `public.public_profile_cards` (view) — `security_invoker = false`, granted to
@@ -52,6 +53,23 @@ Applied to project `psuzlyingfmstnyfvlnj` on 2026-11-24 and recorded in
 * Realtime publication now includes `post_attachments`; the app also keeps its
   existing `posts`, `post_comments`, `post_reactions` and `post_ratings`
   channels.
+
+### Hardening after review (`20261125000001`, `20261125000002`)
+
+An independent read-only review of the live schema found one Important gap: the
+`storage_path` check only required a `<uuid>/…` shape, so a user's attachment
+row could point at somebody else's object. Fixed:
+
+* `post_attachments_path_owner_chk` — the first path segment must equal
+  `owner_id`, validated against every existing row.
+* The ten-attachment cap now also fires on UPDATE when `post_id` changes.
+* `posts` and `post_comments` take `created_at` from the server clock on insert,
+  so a backdated insert cannot bypass the rate-limit trigger.
+* `post_reports` / `user_reports` gained an own-row UPDATE policy (the client
+  reports with an upsert) and an author can no longer report their own post.
+* `20261125000002` makes a repeat report update the existing row inside the
+  database, so the shipped `+29` client's upsert-without-conflict-target records
+  the second report instead of failing with 409.
 
 ## App changes
 
