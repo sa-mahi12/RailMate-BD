@@ -73,6 +73,7 @@ dev_dependencies:
 flutter:
   assets:
     - assets/models/ranker.tflite
+    - assets/data/official-timetable.json
     - web-guide/index.html
     - web-guide/styles.css
     - web-guide/guide.js

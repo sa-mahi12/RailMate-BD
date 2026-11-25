@@ -9,6 +9,7 @@ import 'home/home_greeting.dart';
 import 'home/home_sections.dart';
 import 'home/popular_routes_catalog.dart';
 import 'home/recent_searches_store.dart';
+import '../timetable/official_timetable_screen.dart';
 import 'home/upcoming_booking.dart';
 import 'models/station.dart';
 import 'search_date_utils.dart';
@@ -62,6 +63,10 @@ class HomeSearchScreen extends StatefulWidget {
   /// Opens sign-in (shown by the upcoming-booking section while signed out).
   final VoidCallback? onSignIn;
 
+  /// Opens the official published timetable. When null the entry card is not
+  /// rendered, so the widget stays usable in tests and previews.
+  final VoidCallback? onOpenOfficialTimetable;
+
   final DateTime Function()? clock;
 
   const HomeSearchScreen({
@@ -74,6 +79,7 @@ class HomeSearchScreen extends StatefulWidget {
     this.loadUpcomingBooking,
     this.onViewBooking,
     this.onSignIn,
+    this.onOpenOfficialTimetable,
     this.clock,
   });
 
@@ -252,6 +258,25 @@ class _HomeSearchScreenState extends State<HomeSearchScreen> {
                   child: StaggeredColumn(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: <Widget>[
+                      if (widget.onOpenOfficialTimetable != null) ...<Widget>[
+                        OfficialTimetableEntryPoint(
+                          onTap: widget.onOpenOfficialTimetable!,
+                        ),
+                        const SizedBox(height: AppSpacing.s16),
+                        Text(
+                          'Academic demo booking',
+                          style: AppTypography.sectionTitle,
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Text(
+                            'Synthetic trips, seats and a simulated payment. Not an '
+                            'official Bangladesh Railway booking.',
+                            style: AppTypography.caption,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.s8),
+                      ],
                       _buildRouteCard(context),
                       const SizedBox(height: AppSpacing.s12),
                       _buildDateCard(context),

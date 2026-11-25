@@ -30,6 +30,8 @@ import '../features/search/home/upcoming_booking.dart';
 import '../features/search/home_search_screen.dart';
 import '../features/search/models/station.dart';
 import '../features/search/models/trip.dart';
+import '../features/timetable/official_timetable_screen.dart';
+import '../features/timetable/timetable_repository.dart';
 import '../features/search/search_date_utils.dart';
 import '../features/search/search_state.dart';
 import '../features/ticket/ticket_data.dart';
@@ -72,6 +74,10 @@ class _HomeShellState extends State<HomeShell> {
         4,
         (_) => GlobalKey<NavigatorState>(),
       );
+
+  /// P43: the official timetable reads only the bundled dataset; it never
+  /// touches the demo booking repository or Supabase.
+  late final TimetableRepository _officialTimetable = TimetableRepository();
 
   late final SearchState _searchState = SearchState(
     api: widget.dependencies.searchApi,
@@ -870,6 +876,15 @@ class _HomeShellState extends State<HomeShell> {
                   },
                   onStationGuideTap: () {
                     _keys[0].currentState?.pushNamed(AppRoutes.guide);
+                  },
+                  onOpenOfficialTimetable: () {
+                    _keys[0].currentState?.push(
+                      MaterialPageRoute<void>(
+                        builder: (BuildContext context) => OfficialTimetableScreen(
+                          repository: _officialTimetable,
+                        ),
+                      ),
+                    );
                   },
                 ),
               ),

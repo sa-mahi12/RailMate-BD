@@ -1,0 +1,4134 @@
+{
+  "schema_version": 1,
+  "dataset_id": "bd-railway-timetable-54-intercity-2025-03-10",
+  "generated_at": "2026-11-25",
+  "timetable_number": "54",
+  "effective_from": "2025-03-10",
+  "retrieved": "2026-11-25",
+  "last_verified": "2026-11-25",
+  "published_only": true,
+  "live_status": false,
+  "notice": "Scheduled times republished from Bangladesh Railway Timetable No. 54 (effective 10 March 2025). This is a published timetable, not live running status: no location, delay, ETA, platform, seat inventory or fare is shown. Check the official e-ticket portal for current availability, fare and purchase.",
+  "official_portal": "https://eticket.railway.gov.bd/",
+  "coverage": {
+    "imported": [
+      "আন্তঃনগর ট্রেনের তালিকা (Eastern intercity summary)",
+      "পর্যায়ক্রমে বাস্তবায়নযোগ্য আন্তঃনগর ট্রেনের তালিকা (Eastern, phased)",
+      "আন্তঃনগর ট্রেনের তালিকা (Western intercity summary, incl. international)"
+    ],
+    "not_imported": [
+      {
+        "zone": "eastern",
+        "section": "কমিউটার ও মেইল ট্রেনের তালিকা (পূর্বাঞ্চল)",
+        "pages": "3-8",
+        "reason": "the mail/express and commuter summary tables continue for six more scanned pages and have not been transcribed yet; they are not guessed",
+        "approx_rows_visible_on_page_3": 45
+      },
+      {
+        "zone": "western",
+        "section": "কমিউটার ও মেইল ট্রেনের তালিকা (পশ্চিমাঞ্চল)",
+        "pages": "2-15",
+        "reason": "the mail/express and commuter summary tables continue for fourteen more pages and have not been transcribed yet; they are not guessed",
+        "approx_rows_visible_on_page_2": 39
+      }
+    ],
+    "rows_transcribed": 130,
+    "rows_excluded": 4,
+    "counts_by_zone": {
+      "eastern": 62,
+      "western": 68
+    },
+    "counts_by_class": {
+      "intercity": 120,
+      "intercity_phased": 4,
+      "international": 6
+    },
+    "single_direction_train_numbers": [
+      "3107/3110",
+      "3108/3109",
+      "3129",
+      "3130",
+      "3131",
+      "3132",
+      "701",
+      "702",
+      "703",
+      "704",
+      "705",
+      "706",
+      "707",
+      "708",
+      "709",
+      "710",
+      "711",
+      "712",
+      "713",
+      "714",
+      "715",
+      "716",
+      "717",
+      "718",
+      "719",
+      "720",
+      "721",
+      "722",
+      "723",
+      "724",
+      "725",
+      "726",
+      "727",
+      "728",
+      "729",
+      "730",
+      "731",
+      "732",
+      "733",
+      "734",
+      "735",
+      "736",
+      "737",
+      "738",
+      "739",
+      "740",
+      "741",
+      "742",
+      "743",
+      "744",
+      "745",
+      "746",
+      "747",
+      "748",
+      "749",
+      "750",
+      "751",
+      "752",
+      "753",
+      "754",
+      "755",
+      "756",
+      "757",
+      "758",
+      "759",
+      "760",
+      "761",
+      "762",
+      "763",
+      "764",
+      "765",
+      "766",
+      "767",
+      "768",
+      "769",
+      "770",
+      "771",
+      "772",
+      "773",
+      "774",
+      "775",
+      "776",
+      "777",
+      "778",
+      "779",
+      "780",
+      "781",
+      "782",
+      "783",
+      "784",
+      "785",
+      "786",
+      "787",
+      "788",
+      "789",
+      "790",
+      "791",
+      "792",
+      "793",
+      "794",
+      "795",
+      "796",
+      "797",
+      "798",
+      "799",
+      "800",
+      "801",
+      "802",
+      "803",
+      "804",
+      "805",
+      "806",
+      "809",
+      "810",
+      "813",
+      "814",
+      "815",
+      "816",
+      "817",
+      "818",
+      "819",
+      "820",
+      "821",
+      "822",
+      "823",
+      "824",
+      "825",
+      "826",
+      "827",
+      "828"
+    ],
+    "intermediate_stops_published": false
+  },
+  "documents": {
+    "eastern": {
+      "zone_label": "Eastern Zone (পূর্বাঞ্চল)",
+      "page_url": "https://railway.gov.bd/pages/static-pages/691997bf933eb65569ddec51",
+      "pdf_url": "https://objectstorage.ap-dcc-gazipur-1.oraclecloud15.com/n/axvjbnqprylg/b/V2Ministry/o/office-railway/2024/12/667d364484f84ac7b06d7e8e8804b2c9.pdf",
+      "pages": 8,
+      "rendering": "scanned pages, no text layer; rows transcribed from the scan",
+      "sha256": "d6e1af80252d98b45e8a07e7c30be1ec51f94ddf4b3c942daf4cc3a697137cc9",
+      "bytes": 4753066
+    },
+    "western": {
+      "zone_label": "Western Zone (পশ্চিমাঞ্চল)",
+      "page_url": "https://railway.gov.bd/pages/static-pages/691997b8933eb65569dde71d",
+      "pdf_url": "https://objectstorage.ap-dcc-gazipur-1.oraclecloud15.com/n/axvjbnqprylg/b/V2Ministry/o/office-railway/2024/12/59b5aa56840546f1a05b0741b8cca044.pdf",
+      "pages": 15,
+      "rendering": "text layer uses a legacy Bangla font encoding that extracts as mojibake; rows transcribed from the rendered page image",
+      "sha256": "bc40965826c3f597469d1ddff402b5d78bd340ac3512c22aab944ec28d2de533",
+      "bytes": 1817407
+    }
+  },
+  "stations": [
+    {
+      "id": "BHP",
+      "name_bn": "ভূঞাপুর",
+      "name_en": "Bhuanpur",
+      "name_provenance": "transliteration of the published Bangla station name",
+      "zones": [
+        "eastern"
+      ],
+      "coordinates": null,
+      "coordinate_provenance": null
+    },
+    {
+      "id": "BNP",
+      "name_bn": "বেনাপোল",
+      "name_en": "Benapole",
+      "name_provenance": "transliteration of the published Bangla station name",
+      "zones": [
+        "western"
+      ],
+      "coordinates": null,
+      "coordinate_provenance": null
+    },
+    {
+      "id": "BRM",
+      "name_bn": "বুড়িমারী",
+      "name_en": "Burimari",
+      "name_provenance": "transliteration of the published Bangla station name",
+      "zones": [
+        "western"
+      ],
+      "coordinates": null,
+      "coordinate_provenance": null
+    },
+    {
+      "id": "CDP",
+      "name_bn": "চাঁদপুর",
+      "name_en": "Chandpur",
+      "name_provenance": "transliteration of the published Bangla station name",
+      "zones": [
+        "eastern"
+      ],
+      "coordinates": null,
+      "coordinate_provenance": null
+    },
+    {
+      "id": "CHT",
+      "name_bn": "চিলাহাটি",
+      "name_en": "Chilahati",
+      "name_provenance": "transliteration of the published Bangla station name",
+      "zones": [
+        "western"
+      ],
+      "coordinates": null,
+      "coordinate_provenance": null
+    },
+    {
+      "id": "CNB",
+      "name_bn": "চাঁপাইনবাবগঞ্জ",
+      "name_en": "Chapainawabganj",
+      "name_provenance": "transliteration of the published Bangla station name",
+      "zones": [
+        "western"
+      ],
+      "coordinates": null,
+      "coordinate_provenance": null
+    },
+    {
+      "id": "CTG",
+      "name_bn": "চট্টগ্রাম",
+      "name_en": "Chattogram",
+      "name_provenance": "transliteration of the published Bangla station name",
+      "zones": [
+        "eastern"
+      ],
+      "coordinates": null,
+      "coordinate_provenance": null
+    },
+    {
+      "id": "CXB",
+      "name_bn": "কক্সবাজার",
+      "name_en": "Cox's Bazar",
+      "name_provenance": "transliteration of the published Bangla station name",
+      "zones": [
+        "eastern"
+      ],
+      "coordinates": null,
+      "coordinate_provenance": null
+    },
+    {
+      "id": "DAC",
+      "name_bn": "ঢাকা",
+      "name_en": "Dhaka",
+      "name_provenance": "transliteration of the published Bangla station name",
+      "zones": [
+        "eastern",
+        "western"
+      ],
+      "coordinates": null,
+      "coordinate_provenance": null
+    },
+    {
+      "id": "DCT",
+      "name_bn": "ঢাকা ক্যান্টঃ",
+      "name_en": "Dhaka Cantonment",
+      "name_provenance": "transliteration of the published Bangla station name",
+      "zones": [
+        "western"
+      ],
+      "coordinates": null,
+      "coordinate_provenance": null
+    },
+    {
+      "id": "DLC",
+      "name_bn": "ঢালারচর",
+      "name_en": "Dhalarchar",
+      "name_provenance": "transliteration of the published Bangla station name",
+      "zones": [
+        "western"
+      ],
+      "coordinates": null,
+      "coordinate_provenance": null
+    },
+    {
+      "id": "DWB",
+      "name_bn": "দেওয়ানগঞ্জ বাজার",
+      "name_en": "Dewanganj Bazar",
+      "name_provenance": "transliteration of the published Bangla station name",
+      "zones": [
+        "eastern"
+      ],
+      "coordinates": null,
+      "coordinate_provenance": null
+    },
+    {
+      "id": "GLD",
+      "name_bn": "গোয়ালন্দ",
+      "name_en": "Goalundo",
+      "name_provenance": "transliteration of the published Bangla station name",
+      "zones": [
+        "western"
+      ],
+      "coordinates": null,
+      "coordinate_provenance": null
+    },
+    {
+      "id": "JMP",
+      "name_bn": "জামালপুর",
+      "name_en": "Jamalpur",
+      "name_provenance": "transliteration of the published Bangla station name",
+      "zones": [
+        "eastern"
+      ],
+      "coordinates": null,
+      "coordinate_provenance": null
+    },
+    {
+      "id": "KLN",
+      "name_bn": "খুলনা",
+      "name_en": "Khulna",
+      "name_provenance": "transliteration of the published Bangla station name",
+      "zones": [
+        "western"
+      ],
+      "coordinates": null,
+      "coordinate_provenance": null
+    },
+    {
+      "id": "KOAA",
+      "name_bn": "কলকাতা",
+      "name_en": "Kolkata",
+      "name_provenance": "transliteration of the published Bangla station name",
+      "zones": [
+        "western"
+      ],
+      "coordinates": null,
+      "coordinate_provenance": null
+    },
+    {
+      "id": "KRM",
+      "name_bn": "কুড়িগ্রাম",
+      "name_en": "Kurigram",
+      "name_provenance": "transliteration of the published Bangla station name",
+      "zones": [
+        "western"
+      ],
+      "coordinates": null,
+      "coordinate_provenance": null
+    },
+    {
+      "id": "KSG",
+      "name_bn": "কিশোরগঞ্জ",
+      "name_en": "Kishoreganj",
+      "name_provenance": "transliteration of the published Bangla station name",
+      "zones": [
+        "eastern"
+      ],
+      "coordinates": null,
+      "coordinate_provenance": null
+    },
+    {
+      "id": "LMR",
+      "name_bn": "লালমনিরহাট",
+      "name_en": "Lalmonirhat",
+      "name_provenance": "transliteration of the published Bangla station name",
+      "zones": [
+        "western"
+      ],
+      "coordinates": null,
+      "coordinate_provenance": null
+    },
+    {
+      "id": "MHG",
+      "name_bn": "মোহনগঞ্জ",
+      "name_en": "Mohanganj",
+      "name_provenance": "transliteration of the published Bangla station name",
+      "zones": [
+        "eastern"
+      ],
+      "coordinates": null,
+      "coordinate_provenance": null
+    },
+    {
+      "id": "NJP",
+      "name_bn": "নিউ জলপাইগুড়ি",
+      "name_en": "New Jalpaiguri",
+      "name_provenance": "transliteration of the published Bangla station name",
+      "zones": [
+        "western"
+      ],
+      "coordinates": null,
+      "coordinate_provenance": null
+    },
+    {
+      "id": "NKH",
+      "name_bn": "নোয়াখালী",
+      "name_en": "Noakhali",
+      "name_provenance": "transliteration of the published Bangla station name",
+      "zones": [
+        "eastern"
+      ],
+      "coordinates": null,
+      "coordinate_provenance": null
+    },
+    {
+      "id": "PCG",
+      "name_bn": "পঞ্চগড়",
+      "name_en": "Panchagarh",
+      "name_provenance": "transliteration of the published Bangla station name",
+      "zones": [
+        "western"
+      ],
+      "coordinates": null,
+      "coordinate_provenance": null
+    },
+    {
+      "id": "RJH",
+      "name_bn": "রাজশাহী",
+      "name_en": "Rajshahi",
+      "name_provenance": "transliteration of the published Bangla station name",
+      "zones": [
+        "western"
+      ],
+      "coordinates": null,
+      "coordinate_provenance": null
+    },
+    {
+      "id": "RNG",
+      "name_bn": "রংপুর",
+      "name_en": "Rangpur",
+      "name_provenance": "transliteration of the published Bangla station name",
+      "zones": [
+        "western"
+      ],
+      "coordinates": null,
+      "coordinate_provenance": null
+    },
+    {
+      "id": "SJB",
+      "name_bn": "সিরাজগঞ্জ বাজার",
+      "name_en": "Sirajganj Bazar",
+      "name_provenance": "transliteration of the published Bangla station name",
+      "zones": [
+        "western"
+      ],
+      "coordinates": null,
+      "coordinate_provenance": null
+    },
+    {
+      "id": "STK",
+      "name_bn": "সাতক্ষীরা",
+      "name_en": "Satkhira",
+      "name_provenance": "transliteration of the published Bangla station name",
+      "zones": [
+        "western"
+      ],
+      "coordinates": null,
+      "coordinate_provenance": null
+    },
+    {
+      "id": "SYL",
+      "name_bn": "সিলেট",
+      "name_en": "Sylhet",
+      "name_provenance": "transliteration of the published Bangla station name",
+      "zones": [
+        "eastern"
+      ],
+      "coordinates": null,
+      "coordinate_provenance": null
+    },
+    {
+      "id": "TRK",
+      "name_bn": "তারাকান্দি",
+      "name_en": "Tarakandi",
+      "name_provenance": "transliteration of the published Bangla station name",
+      "zones": [
+        "eastern"
+      ],
+      "coordinates": null,
+      "coordinate_provenance": null
+    }
+  ],
+  "trains": [
+    {
+      "id": "e-int-701-CTG-DAC",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "701",
+      "name_bn": "সুবর্ণ এক্সপ্রেস",
+      "name_en": "Suborno Express",
+      "off_days": [
+        "monday"
+      ],
+      "origin": {
+        "station": "CTG",
+        "departure": "07:00"
+      },
+      "destination": {
+        "station": "DAC",
+        "arrival": "11:55"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 1,
+        "serial": 1
+      }
+    },
+    {
+      "id": "e-int-702-DAC-CTG",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "702",
+      "name_bn": "সুবর্ণ এক্সপ্রেস",
+      "name_en": "Suborno Express",
+      "off_days": [
+        "monday"
+      ],
+      "origin": {
+        "station": "DAC",
+        "departure": "16:30"
+      },
+      "destination": {
+        "station": "CTG",
+        "arrival": "21:25"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 1,
+        "serial": 2
+      }
+    },
+    {
+      "id": "e-int-703-CTG-DAC",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "703",
+      "name_bn": "মহানগর গোধূলি",
+      "name_en": "Mahanagar Godhuli",
+      "off_days": [],
+      "origin": {
+        "station": "CTG",
+        "departure": "15:00"
+      },
+      "destination": {
+        "station": "DAC",
+        "arrival": "20:45"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 1,
+        "serial": 3
+      }
+    },
+    {
+      "id": "e-int-704-DAC-CTG",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "704",
+      "name_bn": "মহানগর প্রভাতী",
+      "name_en": "Mahanagar Prabhati",
+      "off_days": [],
+      "origin": {
+        "station": "DAC",
+        "departure": "07:45"
+      },
+      "destination": {
+        "station": "CTG",
+        "arrival": "13:35"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 1,
+        "serial": 4
+      }
+    },
+    {
+      "id": "e-int-707-DAC-DWB",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "707",
+      "name_bn": "তিস্তা এক্সপ্রেস",
+      "name_en": "Tista Express",
+      "off_days": [
+        "monday"
+      ],
+      "origin": {
+        "station": "DAC",
+        "departure": "09:30"
+      },
+      "destination": {
+        "station": "DWB",
+        "arrival": "12:50"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 1,
+        "serial": 5
+      }
+    },
+    {
+      "id": "e-int-708-DWB-DAC",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "708",
+      "name_bn": "তিস্তা এক্সপ্রেস",
+      "name_en": "Tista Express",
+      "off_days": [
+        "monday"
+      ],
+      "origin": {
+        "station": "DWB",
+        "departure": "15:00"
+      },
+      "destination": {
+        "station": "DAC",
+        "arrival": "20:30"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 1,
+        "serial": 6
+      }
+    },
+    {
+      "id": "e-int-709-DAC-SYL",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "709",
+      "name_bn": "পারাবত এক্সপ্রেস",
+      "name_en": "Parabat Express",
+      "off_days": [
+        "monday"
+      ],
+      "origin": {
+        "station": "DAC",
+        "departure": "06:30"
+      },
+      "destination": {
+        "station": "SYL",
+        "arrival": "13:00"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 1,
+        "serial": 7
+      }
+    },
+    {
+      "id": "e-int-710-SYL-DAC",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "710",
+      "name_bn": "পারাবত এক্সপ্রেস",
+      "name_en": "Parabat Express",
+      "off_days": [
+        "monday"
+      ],
+      "origin": {
+        "station": "SYL",
+        "departure": "16:00"
+      },
+      "destination": {
+        "station": "DAC",
+        "arrival": "22:40"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 1,
+        "serial": 8
+      }
+    },
+    {
+      "id": "e-int-711-NKH-DAC",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "711",
+      "name_bn": "উপকূল এক্সপ্রেস",
+      "name_en": "Upakul Express",
+      "off_days": [
+        "wednesday"
+      ],
+      "origin": {
+        "station": "NKH",
+        "departure": "06:00"
+      },
+      "destination": {
+        "station": "DAC",
+        "arrival": "11:20"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 1,
+        "serial": 9
+      }
+    },
+    {
+      "id": "e-int-712-DAC-NKH",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "712",
+      "name_bn": "উপকূল এক্সপ্রেস",
+      "name_en": "Upakul Express",
+      "off_days": [
+        "tuesday"
+      ],
+      "origin": {
+        "station": "DAC",
+        "departure": "15:10"
+      },
+      "destination": {
+        "station": "NKH",
+        "arrival": "20:40"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 1,
+        "serial": 10
+      }
+    },
+    {
+      "id": "e-int-717-DAC-SYL",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "717",
+      "name_bn": "জয়ন্তিকা এক্সপ্রেস",
+      "name_en": "Jayantika Express",
+      "off_days": [
+        "tuesday"
+      ],
+      "origin": {
+        "station": "DAC",
+        "departure": "11:15"
+      },
+      "destination": {
+        "station": "SYL",
+        "arrival": "19:00"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 1,
+        "serial": 11
+      }
+    },
+    {
+      "id": "e-int-718-SYL-DAC",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "718",
+      "name_bn": "জয়ন্তিকা এক্সপ্রেস",
+      "name_en": "Jayantika Express",
+      "off_days": [
+        "thursday"
+      ],
+      "origin": {
+        "station": "SYL",
+        "departure": "12:00"
+      },
+      "destination": {
+        "station": "DAC",
+        "arrival": "19:15"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 1,
+        "serial": 12
+      }
+    },
+    {
+      "id": "e-int-719-CTG-SYL",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "719",
+      "name_bn": "পাহাড়িকা এক্সপ্রেস",
+      "name_en": "Paharika Express",
+      "off_days": [
+        "monday"
+      ],
+      "origin": {
+        "station": "CTG",
+        "departure": "07:50"
+      },
+      "destination": {
+        "station": "SYL",
+        "arrival": "15:55"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 1,
+        "serial": 13
+      }
+    },
+    {
+      "id": "e-int-720-SYL-CTG",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "720",
+      "name_bn": "পাহাড়িকা এক্সপ্রেস",
+      "name_en": "Paharika Express",
+      "off_days": [
+        "wednesday"
+      ],
+      "origin": {
+        "station": "SYL",
+        "departure": "10:30"
+      },
+      "destination": {
+        "station": "CTG",
+        "arrival": "18:55"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 1,
+        "serial": 14
+      }
+    },
+    {
+      "id": "e-int-721-CTG-DAC",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "721",
+      "name_bn": "মহানগর এক্সপ্রেস",
+      "name_en": "Mahanagar Express",
+      "off_days": [
+        "sunday"
+      ],
+      "origin": {
+        "station": "CTG",
+        "departure": "12:30"
+      },
+      "destination": {
+        "station": "DAC",
+        "arrival": "18:40"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 1,
+        "serial": 15
+      }
+    },
+    {
+      "id": "e-int-722-DAC-CTG",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "722",
+      "name_bn": "মহানগর এক্সপ্রেস",
+      "name_en": "Mahanagar Express",
+      "off_days": [
+        "sunday"
+      ],
+      "origin": {
+        "station": "DAC",
+        "departure": "21:20"
+      },
+      "destination": {
+        "station": "CTG",
+        "arrival": "03:30"
+      },
+      "overnight_inferred": true,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 1,
+        "serial": 16
+      }
+    },
+    {
+      "id": "e-int-723-CTG-SYL",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "723",
+      "name_bn": "উদয়ন এক্সপ্রেস",
+      "name_en": "Udayan Express",
+      "off_days": [
+        "wednesday"
+      ],
+      "origin": {
+        "station": "CTG",
+        "departure": "21:45"
+      },
+      "destination": {
+        "station": "SYL",
+        "arrival": "05:45"
+      },
+      "overnight_inferred": true,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 1,
+        "serial": 17
+      }
+    },
+    {
+      "id": "e-int-724-SYL-CTG",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "724",
+      "name_bn": "উদয়ন এক্সপ্রেস",
+      "name_en": "Udayan Express",
+      "off_days": [
+        "sunday"
+      ],
+      "origin": {
+        "station": "SYL",
+        "departure": "22:00"
+      },
+      "destination": {
+        "station": "CTG",
+        "arrival": "05:35"
+      },
+      "overnight_inferred": true,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 1,
+        "serial": 18
+      }
+    },
+    {
+      "id": "e-int-729-CTG-CDP",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "729",
+      "name_bn": "মেঘনা এক্সপ্রেস",
+      "name_en": "Meghna Express",
+      "off_days": [],
+      "origin": {
+        "station": "CTG",
+        "departure": "17:15"
+      },
+      "destination": {
+        "station": "CDP",
+        "arrival": "21:25"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 1,
+        "serial": 19
+      }
+    },
+    {
+      "id": "e-int-730-CDP-CTG",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "730",
+      "name_bn": "মেঘনা এক্সপ্রেস",
+      "name_en": "Meghna Express",
+      "off_days": [],
+      "origin": {
+        "station": "CDP",
+        "departure": "05:00"
+      },
+      "destination": {
+        "station": "CTG",
+        "arrival": "09:00"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 1,
+        "serial": 20
+      }
+    },
+    {
+      "id": "e-int-735-DAC-TRK",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "735",
+      "name_bn": "অন্নিবীণা",
+      "name_en": "Annibina",
+      "off_days": [],
+      "origin": {
+        "station": "DAC",
+        "departure": "11:30"
+      },
+      "destination": {
+        "station": "TRK",
+        "arrival": "17:00"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 1,
+        "serial": 21
+      }
+    },
+    {
+      "id": "e-int-736-TRK-DAC",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "736",
+      "name_bn": "অন্নিবীণা",
+      "name_en": "Annibina",
+      "off_days": [],
+      "origin": {
+        "station": "TRK",
+        "departure": "17:30"
+      },
+      "destination": {
+        "station": "DAC",
+        "arrival": "22:55"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 1,
+        "serial": 22
+      }
+    },
+    {
+      "id": "e-int-737-DAC-KSG",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "737",
+      "name_bn": "এগার সিন্ধুর প্রভাতী",
+      "name_en": "Egarosindhur Prabhati",
+      "off_days": [
+        "wednesday"
+      ],
+      "origin": {
+        "station": "DAC",
+        "departure": "07:15"
+      },
+      "destination": {
+        "station": "KSG",
+        "arrival": "11:10"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 1,
+        "serial": 23
+      }
+    },
+    {
+      "id": "e-int-738-KSG-DAC",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "738",
+      "name_bn": "এগারো সিন্ধুর প্রভাতী",
+      "name_en": "Egarosindhur Prabhati",
+      "off_days": [],
+      "origin": {
+        "station": "KSG",
+        "departure": "06:30"
+      },
+      "destination": {
+        "station": "DAC",
+        "arrival": "10:35"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 1,
+        "serial": 24
+      }
+    },
+    {
+      "id": "e-int-739-DAC-SYL",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "739",
+      "name_bn": "উপবন এক্সপ্রেস",
+      "name_en": "Uban Express",
+      "off_days": [
+        "wednesday"
+      ],
+      "origin": {
+        "station": "DAC",
+        "departure": "22:00"
+      },
+      "destination": {
+        "station": "SYL",
+        "arrival": "05:00"
+      },
+      "overnight_inferred": true,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 1,
+        "serial": 25
+      }
+    },
+    {
+      "id": "e-int-740-SYL-DAC",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "740",
+      "name_bn": "উপবন এক্সপ্রেস",
+      "name_en": "Uban Express",
+      "off_days": [
+        "monday"
+      ],
+      "origin": {
+        "station": "SYL",
+        "departure": "23:30"
+      },
+      "destination": {
+        "station": "DAC",
+        "arrival": "05:40"
+      },
+      "overnight_inferred": true,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 1,
+        "serial": 26
+      }
+    },
+    {
+      "id": "e-int-741-CTG-DAC",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "741",
+      "name_bn": "তূর্ণা",
+      "name_en": "Turna",
+      "off_days": [],
+      "origin": {
+        "station": "CTG",
+        "departure": "23:30"
+      },
+      "destination": {
+        "station": "DAC",
+        "arrival": "05:10"
+      },
+      "overnight_inferred": true,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 1,
+        "serial": 27
+      }
+    },
+    {
+      "id": "e-int-742-DAC-CTG",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "742",
+      "name_bn": "তূর্ণা",
+      "name_en": "Turna",
+      "off_days": [],
+      "origin": {
+        "station": "DAC",
+        "departure": "23:15"
+      },
+      "destination": {
+        "station": "CTG",
+        "arrival": "05:15"
+      },
+      "overnight_inferred": true,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 1,
+        "serial": 28
+      }
+    },
+    {
+      "id": "e-int-743-DAC-DWB",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "743",
+      "name_bn": "ব্রহ্মপুত্র এক্সপ্রেস",
+      "name_en": "Brahmaputra Express",
+      "off_days": [],
+      "origin": {
+        "station": "DAC",
+        "departure": "18:15"
+      },
+      "destination": {
+        "station": "DWB",
+        "arrival": "23:50"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 1,
+        "serial": 29
+      }
+    },
+    {
+      "id": "e-int-744-DWB-DAC",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "744",
+      "name_bn": "ব্রহ্মপুত্র এক্সপ্রেস",
+      "name_en": "Brahmaputra Express",
+      "off_days": [],
+      "origin": {
+        "station": "DWB",
+        "departure": "06:40"
+      },
+      "destination": {
+        "station": "DAC",
+        "arrival": "12:15"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 1,
+        "serial": 30
+      }
+    },
+    {
+      "id": "e-int-745-DAC-TRK",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "745",
+      "name_bn": "যমুনা এক্সপ্রেস",
+      "name_en": "Jamuna Express",
+      "off_days": [],
+      "origin": {
+        "station": "DAC",
+        "departure": "16:45"
+      },
+      "destination": {
+        "station": "TRK",
+        "arrival": "23:30"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 1,
+        "serial": 31
+      }
+    },
+    {
+      "id": "e-int-746-TRK-DAC",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "746",
+      "name_bn": "যমুনা এক্সপ্রেস",
+      "name_en": "Jamuna Express",
+      "off_days": [],
+      "origin": {
+        "station": "TRK",
+        "departure": "02:00"
+      },
+      "destination": {
+        "station": "DAC",
+        "arrival": "08:00"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 1,
+        "serial": 32
+      }
+    },
+    {
+      "id": "e-int-749-DAC-KSG",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "749",
+      "name_bn": "এগার সিন্ধুর গোধূলী",
+      "name_en": "Egarosindhur Godhuli",
+      "off_days": [],
+      "origin": {
+        "station": "DAC",
+        "departure": "18:45"
+      },
+      "destination": {
+        "station": "KSG",
+        "arrival": "22:40"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 1,
+        "serial": 33
+      }
+    },
+    {
+      "id": "e-int-750-KSG-DAC",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "750",
+      "name_bn": "এগার সিন্ধুর গোধূলী",
+      "name_en": "Egarosindhur Godhuli",
+      "off_days": [
+        "wednesday"
+      ],
+      "origin": {
+        "station": "KSG",
+        "departure": "12:50"
+      },
+      "destination": {
+        "station": "DAC",
+        "arrival": "16:45"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 1,
+        "serial": 34
+      }
+    },
+    {
+      "id": "e-int-773-DAC-SYL",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "773",
+      "name_bn": "কলনী এক্সপ্রেস",
+      "name_en": "Kalni Express",
+      "off_days": [
+        "friday"
+      ],
+      "origin": {
+        "station": "DAC",
+        "departure": "14:45"
+      },
+      "destination": {
+        "station": "SYL",
+        "arrival": "21:30"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 1,
+        "serial": 35
+      }
+    },
+    {
+      "id": "e-int-774-SYL-DAC",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "774",
+      "name_bn": "কলনী এক্সপ্রেস",
+      "name_en": "Kalni Express",
+      "off_days": [
+        "friday"
+      ],
+      "origin": {
+        "station": "SYL",
+        "departure": "06:15"
+      },
+      "destination": {
+        "station": "DAC",
+        "arrival": "12:25"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 1,
+        "serial": 36
+      }
+    },
+    {
+      "id": "e-int-777-DAC-MHG",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "777",
+      "name_bn": "হাওর এক্সপ্রেস",
+      "name_en": "Haor Express",
+      "off_days": [
+        "friday"
+      ],
+      "origin": {
+        "station": "DAC",
+        "departure": "22:15"
+      },
+      "destination": {
+        "station": "MHG",
+        "arrival": "08:40"
+      },
+      "overnight_inferred": true,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 1,
+        "serial": 37
+      }
+    },
+    {
+      "id": "e-int-778-MHG-DAC",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "778",
+      "name_bn": "হাওর এক্সপ্রেস",
+      "name_en": "Haor Express",
+      "off_days": [
+        "saturday"
+      ],
+      "origin": {
+        "station": "MHG",
+        "departure": "08:00"
+      },
+      "destination": {
+        "station": "DAC",
+        "arrival": "13:55"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 1,
+        "serial": 38
+      }
+    },
+    {
+      "id": "e-int-781-DAC-KSG",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "781",
+      "name_bn": "কিশোরগঞ্জ এক্সপ্রেস",
+      "name_en": "Kishoreganj Express",
+      "off_days": [
+        "tuesday"
+      ],
+      "origin": {
+        "station": "DAC",
+        "departure": "10:30"
+      },
+      "destination": {
+        "station": "KSG",
+        "arrival": "14:10"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 1,
+        "serial": 39
+      }
+    },
+    {
+      "id": "e-int-782-KSG-DAC",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "782",
+      "name_bn": "কিশোরগঞ্জ এক্সপ্রেস",
+      "name_en": "Kishoreganj Express",
+      "off_days": [
+        "tuesday"
+      ],
+      "origin": {
+        "station": "KSG",
+        "departure": "16:00"
+      },
+      "destination": {
+        "station": "DAC",
+        "arrival": "20:00"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 1,
+        "serial": 40
+      }
+    },
+    {
+      "id": "e-int-785-CTG-JMP",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "785",
+      "name_bn": "বিজয় এক্সপ্রেস",
+      "name_en": "Bijoy Express",
+      "off_days": [
+        "tuesday"
+      ],
+      "origin": {
+        "station": "CTG",
+        "departure": "09:15"
+      },
+      "destination": {
+        "station": "JMP",
+        "arrival": "18:00"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 1,
+        "serial": 41
+      }
+    },
+    {
+      "id": "e-int-786-JMP-CTG",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "786",
+      "name_bn": "বিজয় এক্সপ্রেস",
+      "name_en": "Bijoy Express",
+      "off_days": [
+        "tuesday"
+      ],
+      "origin": {
+        "station": "JMP",
+        "departure": "20:00"
+      },
+      "destination": {
+        "station": "CTG",
+        "arrival": "05:00"
+      },
+      "overnight_inferred": true,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 1,
+        "serial": 42
+      }
+    },
+    {
+      "id": "e-int-787-CTG-DAC",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "787",
+      "name_bn": "সোনার বাংলা এক্সপ্রেস",
+      "name_en": "Sonar Bangla Express",
+      "off_days": [
+        "tuesday"
+      ],
+      "origin": {
+        "station": "CTG",
+        "departure": "17:00"
+      },
+      "destination": {
+        "station": "DAC",
+        "arrival": "21:55"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 2,
+        "serial": 43
+      }
+    },
+    {
+      "id": "e-int-788-DAC-CTG",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "788",
+      "name_bn": "সোনার বাংলা এক্সপ্রেস",
+      "name_en": "Sonar Bangla Express",
+      "off_days": [
+        "wednesday"
+      ],
+      "origin": {
+        "station": "DAC",
+        "departure": "07:00"
+      },
+      "destination": {
+        "station": "CTG",
+        "arrival": "11:55"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 2,
+        "serial": 44
+      }
+    },
+    {
+      "id": "e-int-789-DAC-MHG",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "789",
+      "name_bn": "মোহনগঞ্জ এক্সপ্রেস",
+      "name_en": "Mohanganj Express",
+      "off_days": [
+        "wednesday"
+      ],
+      "origin": {
+        "station": "DAC",
+        "departure": "13:15"
+      },
+      "destination": {
+        "station": "MHG",
+        "arrival": "18:40"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 2,
+        "serial": 45
+      }
+    },
+    {
+      "id": "e-int-790-MHG-DAC",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "790",
+      "name_bn": "মোহনগঞ্জ এক্সপ্রেস",
+      "name_en": "Mohanganj Express",
+      "off_days": [
+        "wednesday"
+      ],
+      "origin": {
+        "station": "MHG",
+        "departure": "23:00"
+      },
+      "destination": {
+        "station": "DAC",
+        "arrival": "04:55"
+      },
+      "overnight_inferred": true,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 2,
+        "serial": 46
+      }
+    },
+    {
+      "id": "e-int-799-DAC-BHP",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "799",
+      "name_bn": "জামালপুর এক্সপ্রেস",
+      "name_en": "Jamalpur Express",
+      "off_days": [
+        "sunday"
+      ],
+      "origin": {
+        "station": "DAC",
+        "departure": "10:00"
+      },
+      "destination": {
+        "station": "BHP",
+        "arrival": "16:45"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 2,
+        "serial": 47
+      }
+    },
+    {
+      "id": "e-int-800-BHP-DAC",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "800",
+      "name_bn": "জামালপুর এক্সপ্রেস",
+      "name_en": "Jamalpur Express",
+      "off_days": [
+        "sunday"
+      ],
+      "origin": {
+        "station": "BHP",
+        "departure": "17:15"
+      },
+      "destination": {
+        "station": "DAC",
+        "arrival": "23:55"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 2,
+        "serial": 48
+      }
+    },
+    {
+      "id": "e-int-801-CTG-DAC",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "801",
+      "name_bn": "চট্টলা এক্সপ্রেস",
+      "name_en": "Chattala Express",
+      "off_days": [
+        "friday"
+      ],
+      "origin": {
+        "station": "CTG",
+        "departure": "06:00"
+      },
+      "destination": {
+        "station": "DAC",
+        "arrival": "12:40"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 2,
+        "serial": 49
+      }
+    },
+    {
+      "id": "e-int-802-DAC-CTG",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "802",
+      "name_bn": "চট্টলা এক্সপ্রেস",
+      "name_en": "Chattala Express",
+      "off_days": [
+        "friday"
+      ],
+      "origin": {
+        "station": "DAC",
+        "departure": "14:15"
+      },
+      "destination": {
+        "station": "CTG",
+        "arrival": "20:30"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 2,
+        "serial": 50
+      }
+    },
+    {
+      "id": "e-int-813-CXB-DAC",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "813",
+      "name_bn": "কক্সবাজার এক্সপ্রেস",
+      "name_en": "Cox's Bazar Express",
+      "off_days": [
+        "tuesday"
+      ],
+      "origin": {
+        "station": "CXB",
+        "departure": "12:30"
+      },
+      "destination": {
+        "station": "DAC",
+        "arrival": "21:00"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 2,
+        "serial": 51
+      }
+    },
+    {
+      "id": "e-int-814-DAC-CXB",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "814",
+      "name_bn": "কক্সবাজার এক্সপ্রেস",
+      "name_en": "Cox's Bazar Express",
+      "off_days": [
+        "monday"
+      ],
+      "origin": {
+        "station": "DAC",
+        "departure": "23:00"
+      },
+      "destination": {
+        "station": "CXB",
+        "arrival": "07:20"
+      },
+      "overnight_inferred": true,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 2,
+        "serial": 52
+      }
+    },
+    {
+      "id": "e-int-815-CXB-DAC",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "815",
+      "name_bn": "পর্যটক এক্সপ্রেস",
+      "name_en": "Paryatak Express",
+      "off_days": [
+        "wednesday"
+      ],
+      "origin": {
+        "station": "CXB",
+        "departure": "19:45"
+      },
+      "destination": {
+        "station": "DAC",
+        "arrival": "04:20"
+      },
+      "overnight_inferred": true,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 2,
+        "serial": 53
+      }
+    },
+    {
+      "id": "e-int-816-DAC-CXB",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "816",
+      "name_bn": "পর্যটক এক্সপ্রেস",
+      "name_en": "Paryatak Express",
+      "off_days": [
+        "wednesday"
+      ],
+      "origin": {
+        "station": "DAC",
+        "departure": "06:15"
+      },
+      "destination": {
+        "station": "CXB",
+        "arrival": "14:40"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 2,
+        "serial": 54
+      }
+    },
+    {
+      "id": "e-int-821-CTG-CXB",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "821",
+      "name_bn": "সৈকত এক্সপ্রেস",
+      "name_en": "Sea Beach Express",
+      "off_days": [
+        "monday"
+      ],
+      "origin": {
+        "station": "CTG",
+        "departure": "06:15"
+      },
+      "destination": {
+        "station": "CXB",
+        "arrival": "09:50"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 2,
+        "serial": 55
+      }
+    },
+    {
+      "id": "e-int-822-CXB-CTG",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "822",
+      "name_bn": "প্রবাল এক্সপ্রেস",
+      "name_en": "Probal Express",
+      "off_days": [
+        "monday"
+      ],
+      "origin": {
+        "station": "CXB",
+        "departure": "10:20"
+      },
+      "destination": {
+        "station": "CTG",
+        "arrival": "14:10"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 2,
+        "serial": 56
+      }
+    },
+    {
+      "id": "e-int-823-CTG-CXB",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "823",
+      "name_bn": "প্রবাল এক্সপ্রেস",
+      "name_en": "Probal Express",
+      "off_days": [
+        "monday"
+      ],
+      "origin": {
+        "station": "CTG",
+        "departure": "15:10"
+      },
+      "destination": {
+        "station": "CXB",
+        "arrival": "19:00"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 2,
+        "serial": 57
+      }
+    },
+    {
+      "id": "e-int-824-CXB-CTG",
+      "zone": "eastern",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "824",
+      "name_bn": "সৈকত এক্সপ্রেস",
+      "name_en": "Sea Beach Express",
+      "off_days": [
+        "monday"
+      ],
+      "origin": {
+        "station": "CXB",
+        "departure": "20:00"
+      },
+      "destination": {
+        "station": "CTG",
+        "arrival": "23:50"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 2,
+        "serial": 58
+      }
+    },
+    {
+      "id": "e-int-817-NKH-DAC",
+      "zone": "eastern",
+      "service_class": "intercity_phased",
+      "operational_status": "phased",
+      "train_number": "817",
+      "name_bn": "সুবর্ণচর এক্সপ্রেস",
+      "name_en": "Subarnachar Express",
+      "off_days": [],
+      "origin": {
+        "station": "NKH",
+        "departure": "14:30"
+      },
+      "destination": {
+        "station": "DAC",
+        "arrival": "20:15"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 2,
+        "serial": 3
+      }
+    },
+    {
+      "id": "e-int-818-DAC-NKH",
+      "zone": "eastern",
+      "service_class": "intercity_phased",
+      "operational_status": "phased",
+      "train_number": "818",
+      "name_bn": "সুবর্ণচর এক্সপ্রেস",
+      "name_en": "Subarnachar Express",
+      "off_days": [],
+      "origin": {
+        "station": "DAC",
+        "departure": "08:00"
+      },
+      "destination": {
+        "station": "NKH",
+        "arrival": "13:30"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 2,
+        "serial": 4
+      }
+    },
+    {
+      "id": "e-int-819-SYL-DAC",
+      "zone": "eastern",
+      "service_class": "intercity_phased",
+      "operational_status": "phased",
+      "train_number": "819",
+      "name_bn": "টাঙ্গুয়ার এক্সপ্রেস",
+      "name_en": "Tangua Express",
+      "off_days": [],
+      "origin": {
+        "station": "SYL",
+        "departure": "09:30"
+      },
+      "destination": {
+        "station": "DAC",
+        "arrival": "15:00"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 2,
+        "serial": 5
+      }
+    },
+    {
+      "id": "e-int-820-DAC-SYL",
+      "zone": "eastern",
+      "service_class": "intercity_phased",
+      "operational_status": "phased",
+      "train_number": "820",
+      "name_bn": "টাঙ্গুয়ার এক্সপ্রেস",
+      "name_en": "Tangua Express",
+      "off_days": [],
+      "origin": {
+        "station": "DAC",
+        "departure": "18:00"
+      },
+      "destination": {
+        "station": "SYL",
+        "arrival": "23:30"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "eastern",
+        "page": 2,
+        "serial": 6
+      }
+    },
+    {
+      "id": "w-int-705-DAC-PCG",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "705",
+      "name_bn": "একতা এক্সপ্রেস",
+      "name_en": "Ekota Express",
+      "off_days": [],
+      "origin": {
+        "station": "DAC",
+        "departure": "10:15"
+      },
+      "destination": {
+        "station": "PCG",
+        "arrival": "21:00"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 1
+      }
+    },
+    {
+      "id": "w-int-706-PCG-DAC",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "706",
+      "name_bn": "একতা এক্সপ্রেস",
+      "name_en": "Ekota Express",
+      "off_days": [],
+      "origin": {
+        "station": "PCG",
+        "departure": "21:10"
+      },
+      "destination": {
+        "station": "DAC",
+        "arrival": "07:20"
+      },
+      "overnight_inferred": true,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 2
+      }
+    },
+    {
+      "id": "w-int-713-STK-BRM",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "713",
+      "name_bn": "করতোয়া এক্সপ্রেস",
+      "name_en": "Korotoya Express",
+      "off_days": [
+        "wednesday"
+      ],
+      "origin": {
+        "station": "STK",
+        "departure": "09:25"
+      },
+      "destination": {
+        "station": "BRM",
+        "arrival": "16:00"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 3
+      }
+    },
+    {
+      "id": "w-int-714-BRM-STK",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "714",
+      "name_bn": "করতোয়া এক্সপ্রেস",
+      "name_en": "Korotoya Express",
+      "off_days": [
+        "wednesday"
+      ],
+      "origin": {
+        "station": "BRM",
+        "departure": "16:20"
+      },
+      "destination": {
+        "station": "STK",
+        "arrival": "22:40"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 4
+      }
+    },
+    {
+      "id": "w-int-715-KLN-RJH",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "715",
+      "name_bn": "কপোতাক্ষ এক্সপ্রেস",
+      "name_en": "Kapotaksha Express",
+      "off_days": [
+        "friday"
+      ],
+      "origin": {
+        "station": "KLN",
+        "departure": "06:45"
+      },
+      "destination": {
+        "station": "RJH",
+        "arrival": "12:20"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 5
+      }
+    },
+    {
+      "id": "w-int-716-RJH-KLN",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "716",
+      "name_bn": "কপোতাক্ষ এক্সপ্রেস",
+      "name_en": "Kapotaksha Express",
+      "off_days": [
+        "friday"
+      ],
+      "origin": {
+        "station": "RJH",
+        "departure": "14:30"
+      },
+      "destination": {
+        "station": "KLN",
+        "arrival": "20:25"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 6
+      }
+    },
+    {
+      "id": "w-int-725-KLN-DAC",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "725",
+      "name_bn": "সুন্দরবন এক্সপ্রেস",
+      "name_en": "Sundarban Express",
+      "off_days": [
+        "tuesday"
+      ],
+      "origin": {
+        "station": "KLN",
+        "departure": "21:45"
+      },
+      "destination": {
+        "station": "DAC",
+        "arrival": "05:10"
+      },
+      "overnight_inferred": true,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 7
+      }
+    },
+    {
+      "id": "w-int-726-DAC-KLN",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "726",
+      "name_bn": "সুন্দরবন এক্সপ্রেস",
+      "name_en": "Sundarban Express",
+      "off_days": [
+        "wednesday"
+      ],
+      "origin": {
+        "station": "DAC",
+        "departure": "08:00"
+      },
+      "destination": {
+        "station": "KLN",
+        "arrival": "15:40"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 8
+      }
+    },
+    {
+      "id": "w-int-727-KLN-CHT",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "727",
+      "name_bn": "রূপসা এক্সপ্রেস",
+      "name_en": "Rupsha Express",
+      "off_days": [
+        "thursday"
+      ],
+      "origin": {
+        "station": "KLN",
+        "departure": "07:15"
+      },
+      "destination": {
+        "station": "CHT",
+        "arrival": "17:00"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 9
+      }
+    },
+    {
+      "id": "w-int-728-CHT-KLN",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "728",
+      "name_bn": "রূপসা এক্সপ্রেস",
+      "name_en": "Rupsha Express",
+      "off_days": [
+        "thursday"
+      ],
+      "origin": {
+        "station": "CHT",
+        "departure": "08:30"
+      },
+      "destination": {
+        "station": "KLN",
+        "arrival": "18:25"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 10
+      }
+    },
+    {
+      "id": "w-int-731-RJH-CHT",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "731",
+      "name_bn": "বরেন্দ্র এক্সপ্রেস",
+      "name_en": "Barendra Express",
+      "off_days": [
+        "sunday"
+      ],
+      "origin": {
+        "station": "RJH",
+        "departure": "15:00"
+      },
+      "destination": {
+        "station": "CHT",
+        "arrival": "21:30"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 11
+      }
+    },
+    {
+      "id": "w-int-732-CHT-RJH",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "732",
+      "name_bn": "বরেন্দ্র এক্সপ্রেস",
+      "name_en": "Barendra Express",
+      "off_days": [
+        "sunday"
+      ],
+      "origin": {
+        "station": "CHT",
+        "departure": "05:00"
+      },
+      "destination": {
+        "station": "RJH",
+        "arrival": "11:10"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 12
+      }
+    },
+    {
+      "id": "w-int-733-RJH-CHT",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "733",
+      "name_bn": "তিতুমীর এক্সপ্রেস",
+      "name_en": "Titumir Express",
+      "off_days": [
+        "wednesday"
+      ],
+      "origin": {
+        "station": "RJH",
+        "departure": "06:20"
+      },
+      "destination": {
+        "station": "CHT",
+        "arrival": "13:00"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 13
+      }
+    },
+    {
+      "id": "w-int-734-CHT-RJH",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "734",
+      "name_bn": "তিতুমীর এক্সপ্রেস",
+      "name_en": "Titumir Express",
+      "off_days": [
+        "wednesday"
+      ],
+      "origin": {
+        "station": "CHT",
+        "departure": "15:00"
+      },
+      "destination": {
+        "station": "RJH",
+        "arrival": "21:30"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 14
+      }
+    },
+    {
+      "id": "w-int-747-KLN-CHT",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "747",
+      "name_bn": "সীমান্ত এক্সপ্রেস",
+      "name_en": "Seemanta Express",
+      "off_days": [
+        "monday"
+      ],
+      "origin": {
+        "station": "KLN",
+        "departure": "21:15"
+      },
+      "destination": {
+        "station": "CHT",
+        "arrival": "06:45"
+      },
+      "overnight_inferred": true,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 15
+      }
+    },
+    {
+      "id": "w-int-748-CHT-KLN",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "748",
+      "name_bn": "সীমান্ত এক্সপ্রেস",
+      "name_en": "Seemanta Express",
+      "off_days": [
+        "monday"
+      ],
+      "origin": {
+        "station": "CHT",
+        "departure": "18:30"
+      },
+      "destination": {
+        "station": "KLN",
+        "arrival": "04:10"
+      },
+      "overnight_inferred": true,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 16
+      }
+    },
+    {
+      "id": "w-int-751-DAC-LMR",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "751",
+      "name_bn": "লালমনি এক্সপ্রেস",
+      "name_en": "Lalmoni Express",
+      "off_days": [
+        "friday"
+      ],
+      "origin": {
+        "station": "DAC",
+        "departure": "21:45"
+      },
+      "destination": {
+        "station": "LMR",
+        "arrival": "06:20"
+      },
+      "overnight_inferred": true,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 17
+      }
+    },
+    {
+      "id": "w-int-752-LMR-DAC",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "752",
+      "name_bn": "লালমনি এক্সপ্রেস",
+      "name_en": "Lalmoni Express",
+      "off_days": [
+        "friday"
+      ],
+      "origin": {
+        "station": "LMR",
+        "departure": "09:30"
+      },
+      "destination": {
+        "station": "DAC",
+        "arrival": "19:45"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 18
+      }
+    },
+    {
+      "id": "w-int-753-DAC-RJH",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "753",
+      "name_bn": "সিদ্ধান্ত এক্সপ্রেস",
+      "name_en": "Siddhanta Express",
+      "off_days": [
+        "sunday"
+      ],
+      "origin": {
+        "station": "DAC",
+        "departure": "14:30"
+      },
+      "destination": {
+        "station": "RJH",
+        "arrival": "20:10"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 19
+      }
+    },
+    {
+      "id": "w-int-754-RJH-DAC",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "754",
+      "name_bn": "সিদ্ধান্ত এক্সপ্রেস",
+      "name_en": "Siddhanta Express",
+      "off_days": [
+        "sunday"
+      ],
+      "origin": {
+        "station": "RJH",
+        "departure": "07:40"
+      },
+      "destination": {
+        "station": "DAC",
+        "arrival": "13:10"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 20
+      }
+    },
+    {
+      "id": "w-int-755-DAC-RJH",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "755",
+      "name_bn": "মধুমতি এক্সপ্রেস",
+      "name_en": "Madhumati Express",
+      "off_days": [
+        "saturday"
+      ],
+      "origin": {
+        "station": "DAC",
+        "departure": "15:00"
+      },
+      "destination": {
+        "station": "RJH",
+        "arrival": "22:30"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 21
+      }
+    },
+    {
+      "id": "w-int-756-RJH-DAC",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "756",
+      "name_bn": "মধুমতি এক্সপ্রেস",
+      "name_en": "Madhumati Express",
+      "off_days": [
+        "saturday"
+      ],
+      "origin": {
+        "station": "RJH",
+        "departure": "06:40"
+      },
+      "destination": {
+        "station": "DAC",
+        "arrival": "14:00"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 22
+      }
+    },
+    {
+      "id": "w-int-757-DAC-PCG",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "757",
+      "name_bn": "দ্রুতয়ান এক্সপ্রেস",
+      "name_en": "Drutayan Express",
+      "off_days": [],
+      "origin": {
+        "station": "DAC",
+        "departure": "20:45"
+      },
+      "destination": {
+        "station": "PCG",
+        "arrival": "07:10"
+      },
+      "overnight_inferred": true,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 23
+      }
+    },
+    {
+      "id": "w-int-758-PCG-DAC",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "758",
+      "name_bn": "দ্রুতয়ান এক্সপ্রেস",
+      "name_en": "Drutayan Express",
+      "off_days": [],
+      "origin": {
+        "station": "PCG",
+        "departure": "07:20"
+      },
+      "destination": {
+        "station": "DAC",
+        "arrival": "18:55"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 24
+      }
+    },
+    {
+      "id": "w-int-759-DAC-RJH",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "759",
+      "name_bn": "পদ্মা এক্সপ্রেস",
+      "name_en": "Padma Express",
+      "off_days": [
+        "tuesday"
+      ],
+      "origin": {
+        "station": "DAC",
+        "departure": "22:45"
+      },
+      "destination": {
+        "station": "RJH",
+        "arrival": "04:00"
+      },
+      "overnight_inferred": true,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 25
+      }
+    },
+    {
+      "id": "w-int-760-RJH-DAC",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "760",
+      "name_bn": "পদ্মা এক্সপ্রেস",
+      "name_en": "Padma Express",
+      "off_days": [
+        "tuesday"
+      ],
+      "origin": {
+        "station": "RJH",
+        "departure": "16:00"
+      },
+      "destination": {
+        "station": "DAC",
+        "arrival": "21:15"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 26
+      }
+    },
+    {
+      "id": "w-int-761-KLN-RJH",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "761",
+      "name_bn": "সাগরদাঁড়ী এক্সপ্রেস",
+      "name_en": "Sagardari Express",
+      "off_days": [
+        "monday"
+      ],
+      "origin": {
+        "station": "KLN",
+        "departure": "16:00"
+      },
+      "destination": {
+        "station": "RJH",
+        "arrival": "22:00"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 27
+      }
+    },
+    {
+      "id": "w-int-762-RJH-KLN",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "762",
+      "name_bn": "সাগরদাঁড়ী এক্সপ্রেস",
+      "name_en": "Sagardari Express",
+      "off_days": [
+        "monday"
+      ],
+      "origin": {
+        "station": "RJH",
+        "departure": "06:00"
+      },
+      "destination": {
+        "station": "KLN",
+        "arrival": "12:10"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 28
+      }
+    },
+    {
+      "id": "w-int-763-KLN-DAC",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "763",
+      "name_bn": "চিত্রা এক্সপ্রেস",
+      "name_en": "Chitra Express",
+      "off_days": [
+        "sunday"
+      ],
+      "origin": {
+        "station": "KLN",
+        "departure": "09:00"
+      },
+      "destination": {
+        "station": "DAC",
+        "arrival": "18:05"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 29
+      }
+    },
+    {
+      "id": "w-int-764-DAC-KLN",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "764",
+      "name_bn": "চিত্রা এক্সপ্রেস",
+      "name_en": "Chitra Express",
+      "off_days": [
+        "sunday"
+      ],
+      "origin": {
+        "station": "DAC",
+        "departure": "19:30"
+      },
+      "destination": {
+        "station": "KLN",
+        "arrival": "04:40"
+      },
+      "overnight_inferred": true,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 30
+      }
+    },
+    {
+      "id": "w-int-765-DAC-CHT",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "765",
+      "name_bn": "নীলসাগর এক্সপ্রেস",
+      "name_en": "Nilsagar Express",
+      "off_days": [
+        "wednesday"
+      ],
+      "origin": {
+        "station": "DAC",
+        "departure": "06:45"
+      },
+      "destination": {
+        "station": "CHT",
+        "arrival": "16:00"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 31
+      }
+    },
+    {
+      "id": "w-int-766-CHT-DAC",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "766",
+      "name_bn": "নীলসাগর এক্সপ্রেস",
+      "name_en": "Nilsagar Express",
+      "off_days": [
+        "tuesday"
+      ],
+      "origin": {
+        "station": "CHT",
+        "departure": "20:00"
+      },
+      "destination": {
+        "station": "DAC",
+        "arrival": "05:25"
+      },
+      "overnight_inferred": true,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 32
+      }
+    },
+    {
+      "id": "w-int-767-STK-PCG",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "767",
+      "name_bn": "দেলনটপা এক্সপ্রেস",
+      "name_en": "Dolanchapa Express",
+      "off_days": [],
+      "origin": {
+        "station": "STK",
+        "departure": "11:00"
+      },
+      "destination": {
+        "station": "PCG",
+        "arrival": "20:40"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 33
+      }
+    },
+    {
+      "id": "w-int-768-PCG-STK",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "768",
+      "name_bn": "দেলনটপা এক্সপ্রেস",
+      "name_en": "Dolanchapa Express",
+      "off_days": [],
+      "origin": {
+        "station": "PCG",
+        "departure": "06:00"
+      },
+      "destination": {
+        "station": "STK",
+        "arrival": "16:15"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 34
+      }
+    },
+    {
+      "id": "w-int-769-DAC-RJH",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "769",
+      "name_bn": "ধুমকেতু এক্সপ্রেস",
+      "name_en": "Dhumketu Express",
+      "off_days": [
+        "thursday"
+      ],
+      "origin": {
+        "station": "DAC",
+        "departure": "06:00"
+      },
+      "destination": {
+        "station": "RJH",
+        "arrival": "11:40"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 35
+      }
+    },
+    {
+      "id": "w-int-770-RJH-DAC",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "770",
+      "name_bn": "ধুমকেতু এক্সপ্রেস",
+      "name_en": "Dhumketu Express",
+      "off_days": [
+        "wednesday"
+      ],
+      "origin": {
+        "station": "RJH",
+        "departure": "23:20"
+      },
+      "destination": {
+        "station": "DAC",
+        "arrival": "04:40"
+      },
+      "overnight_inferred": true,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 36
+      }
+    },
+    {
+      "id": "w-int-771-DAC-RNG",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "771",
+      "name_bn": "রংপুর এক্সপ্রেস",
+      "name_en": "Rangpur Express",
+      "off_days": [
+        "monday"
+      ],
+      "origin": {
+        "station": "DAC",
+        "departure": "09:10"
+      },
+      "destination": {
+        "station": "RNG",
+        "arrival": "19:00"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 37
+      }
+    },
+    {
+      "id": "w-int-772-RNG-DAC",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "772",
+      "name_bn": "রংপুর এক্সপ্রেস",
+      "name_en": "Rangpur Express",
+      "off_days": [
+        "sunday"
+      ],
+      "origin": {
+        "station": "RNG",
+        "departure": "20:00"
+      },
+      "destination": {
+        "station": "DAC",
+        "arrival": "06:00"
+      },
+      "overnight_inferred": true,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 38
+      }
+    },
+    {
+      "id": "w-int-775-SJB-DAC",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "775",
+      "name_bn": "সিরাজগঞ্জ এক্সপ্রেস",
+      "name_en": "Sirajganj Express",
+      "off_days": [
+        "saturday"
+      ],
+      "origin": {
+        "station": "SJB",
+        "departure": "06:00"
+      },
+      "destination": {
+        "station": "DAC",
+        "arrival": "10:15"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 39
+      }
+    },
+    {
+      "id": "w-int-776-DAC-SJB",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "776",
+      "name_bn": "সিরাজগঞ্জ এক্সপ্রেস",
+      "name_en": "Sirajganj Express",
+      "off_days": [
+        "saturday"
+      ],
+      "origin": {
+        "station": "DAC",
+        "departure": "16:15"
+      },
+      "destination": {
+        "station": "SJB",
+        "arrival": "20:10"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 40
+      }
+    },
+    {
+      "id": "w-int-779-DLC-RJH",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "779",
+      "name_bn": "ঢালারচর এক্সপ্রেস",
+      "name_en": "Dhalarchar Express",
+      "off_days": [
+        "thursday"
+      ],
+      "origin": {
+        "station": "DLC",
+        "departure": "06:30"
+      },
+      "destination": {
+        "station": "RJH",
+        "arrival": "10:25"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 41
+      }
+    },
+    {
+      "id": "w-int-780-RJH-DLC",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "780",
+      "name_bn": "ঢালারচর এক্সপ্রেস",
+      "name_en": "Dhalarchar Express",
+      "off_days": [
+        "wednesday"
+      ],
+      "origin": {
+        "station": "RJH",
+        "departure": "17:20"
+      },
+      "destination": {
+        "station": "DLC",
+        "arrival": "21:15"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 42
+      }
+    },
+    {
+      "id": "w-int-783-GLD-RJH",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "783",
+      "name_bn": "তুষ্টিপাড়া এক্সপ্রেস",
+      "name_en": "Tushtipara Express",
+      "off_days": [
+        "tuesday"
+      ],
+      "origin": {
+        "station": "GLD",
+        "departure": "06:30"
+      },
+      "destination": {
+        "station": "RJH",
+        "arrival": "13:15"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 43
+      }
+    },
+    {
+      "id": "w-int-784-RJH-GLD",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "784",
+      "name_bn": "তুষ্টিপাড়া এক্সপ্রেস",
+      "name_en": "Tushtipara Express",
+      "off_days": [
+        "monday"
+      ],
+      "origin": {
+        "station": "RJH",
+        "departure": "15:30"
+      },
+      "destination": {
+        "station": "GLD",
+        "arrival": "22:10"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 44
+      }
+    },
+    {
+      "id": "w-int-791-DAC-CNB",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "791",
+      "name_bn": "বনলতা এক্সপ্রেস",
+      "name_en": "Bonolota Express",
+      "off_days": [
+        "friday"
+      ],
+      "origin": {
+        "station": "DAC",
+        "departure": "13:00"
+      },
+      "destination": {
+        "station": "CNB",
+        "arrival": "19:15"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 45
+      }
+    },
+    {
+      "id": "w-int-792-CNB-DAC",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "792",
+      "name_bn": "বনলতা এক্সপ্রেস",
+      "name_en": "Bonolota Express",
+      "off_days": [
+        "friday"
+      ],
+      "origin": {
+        "station": "CNB",
+        "departure": "06:00"
+      },
+      "destination": {
+        "station": "DAC",
+        "arrival": "11:35"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 46
+      }
+    },
+    {
+      "id": "w-int-793-DAC-PCG",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "793",
+      "name_bn": "পঞ্চগড় এক্সপ্রেস",
+      "name_en": "Panchagarh Express",
+      "off_days": [],
+      "origin": {
+        "station": "DAC",
+        "departure": "23:30"
+      },
+      "destination": {
+        "station": "PCG",
+        "arrival": "09:10"
+      },
+      "overnight_inferred": true,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 47
+      }
+    },
+    {
+      "id": "w-int-794-PCG-DAC",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "794",
+      "name_bn": "পঞ্চগড় এক্সপ্রেস",
+      "name_en": "Panchagarh Express",
+      "off_days": [],
+      "origin": {
+        "station": "PCG",
+        "departure": "12:20"
+      },
+      "destination": {
+        "station": "DAC",
+        "arrival": "22:10"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 48
+      }
+    },
+    {
+      "id": "w-int-795-BNP-DAC",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "795",
+      "name_bn": "বেনাপোল এক্সপ্রেস",
+      "name_en": "Benapole Express",
+      "off_days": [
+        "wednesday"
+      ],
+      "origin": {
+        "station": "BNP",
+        "departure": "12:25"
+      },
+      "destination": {
+        "station": "DAC",
+        "arrival": "20:30"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 49
+      }
+    },
+    {
+      "id": "w-int-796-DAC-BNP",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "796",
+      "name_bn": "বেনাপোল এক্সপ্রেস",
+      "name_en": "Benapole Express",
+      "off_days": [
+        "wednesday"
+      ],
+      "origin": {
+        "station": "DAC",
+        "departure": "23:30"
+      },
+      "destination": {
+        "station": "BNP",
+        "arrival": "07:00"
+      },
+      "overnight_inferred": true,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 50
+      }
+    },
+    {
+      "id": "w-int-797-DAC-KRM",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "797",
+      "name_bn": "কুড়িগ্রাম এক্সপ্রেস",
+      "name_en": "Kurigram Express",
+      "off_days": [
+        "tuesday"
+      ],
+      "origin": {
+        "station": "DAC",
+        "departure": "20:00"
+      },
+      "destination": {
+        "station": "KRM",
+        "arrival": "05:10"
+      },
+      "overnight_inferred": true,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 51
+      }
+    },
+    {
+      "id": "w-int-798-KRM-DAC",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "798",
+      "name_bn": "কুড়িগ্রাম এক্সপ্রেস",
+      "name_en": "Kurigram Express",
+      "off_days": [
+        "tuesday"
+      ],
+      "origin": {
+        "station": "KRM",
+        "departure": "07:30"
+      },
+      "destination": {
+        "station": "DAC",
+        "arrival": "13:05"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 52
+      }
+    },
+    {
+      "id": "w-int-803-RJH-PCG",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "803",
+      "name_bn": "বাংলাবান্ধা এক্সপ্রেস",
+      "name_en": "Banglabandha Express",
+      "off_days": [
+        "friday"
+      ],
+      "origin": {
+        "station": "RJH",
+        "departure": "21:00"
+      },
+      "destination": {
+        "station": "PCG",
+        "arrival": "04:40"
+      },
+      "overnight_inferred": true,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 53
+      }
+    },
+    {
+      "id": "w-int-804-PCG-RJH",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "804",
+      "name_bn": "বাংলাবান্ধা এক্সপ্রেস",
+      "name_en": "Banglabandha Express",
+      "off_days": [
+        "saturday"
+      ],
+      "origin": {
+        "station": "PCG",
+        "departure": "09:00"
+      },
+      "destination": {
+        "station": "RJH",
+        "arrival": "17:15"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 54
+      }
+    },
+    {
+      "id": "w-int-805-DAC-CHT",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "805",
+      "name_bn": "চিলাহাটি এক্সপ্রেস",
+      "name_en": "Chilahati Express",
+      "off_days": [
+        "saturday"
+      ],
+      "origin": {
+        "station": "DAC",
+        "departure": "17:00"
+      },
+      "destination": {
+        "station": "CHT",
+        "arrival": "02:45"
+      },
+      "overnight_inferred": true,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 55
+      }
+    },
+    {
+      "id": "w-int-806-CHT-DAC",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "806",
+      "name_bn": "চিলাহাটি এক্সপ্রেস",
+      "name_en": "Chilahati Express",
+      "off_days": [
+        "saturday"
+      ],
+      "origin": {
+        "station": "CHT",
+        "departure": "06:00"
+      },
+      "destination": {
+        "station": "DAC",
+        "arrival": "14:45"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 1,
+        "serial": 56
+      }
+    },
+    {
+      "id": "w-int-809-DAC-BRM",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "809",
+      "name_bn": "বুড়িমারী এক্সপ্রেস",
+      "name_en": "Burimari Express",
+      "off_days": [
+        "wednesday"
+      ],
+      "origin": {
+        "station": "DAC",
+        "departure": "08:30"
+      },
+      "destination": {
+        "station": "BRM",
+        "arrival": "20:20"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 2,
+        "serial": 59
+      }
+    },
+    {
+      "id": "w-int-810-BRM-DAC",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "810",
+      "name_bn": "বুড়িমারী এক্সপ্রেস",
+      "name_en": "Burimari Express",
+      "off_days": [
+        "tuesday"
+      ],
+      "origin": {
+        "station": "BRM",
+        "departure": "21:20"
+      },
+      "destination": {
+        "station": "DAC",
+        "arrival": "08:50"
+      },
+      "overnight_inferred": true,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 2,
+        "serial": 60
+      }
+    },
+    {
+      "id": "w-int-825-KLN-DAC",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "825",
+      "name_bn": "জাহানাবাদ এক্সপ্রেস",
+      "name_en": "Jahanabad Express",
+      "off_days": [
+        "monday"
+      ],
+      "origin": {
+        "station": "KLN",
+        "departure": "06:00"
+      },
+      "destination": {
+        "station": "DAC",
+        "arrival": "09:45"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 2,
+        "serial": 61
+      }
+    },
+    {
+      "id": "w-int-826-DAC-KLN",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "826",
+      "name_bn": "জাহানাবাদ এক্সপ্রেস",
+      "name_en": "Jahanabad Express",
+      "off_days": [
+        "monday"
+      ],
+      "origin": {
+        "station": "DAC",
+        "departure": "20:00"
+      },
+      "destination": {
+        "station": "KLN",
+        "arrival": "23:45"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 2,
+        "serial": 62
+      }
+    },
+    {
+      "id": "w-int-827-BNP-DAC",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "827",
+      "name_bn": "রূপসীবাংলা এক্সপ্রেস",
+      "name_en": "Rupshi Bangla Express",
+      "off_days": [
+        "monday"
+      ],
+      "origin": {
+        "station": "BNP",
+        "departure": "15:25"
+      },
+      "destination": {
+        "station": "DAC",
+        "arrival": "19:00"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 2,
+        "serial": 63
+      }
+    },
+    {
+      "id": "w-int-828-DAC-BNP",
+      "zone": "western",
+      "service_class": "intercity",
+      "operational_status": "published",
+      "train_number": "828",
+      "name_bn": "রূপসীবাংলা এক্সপ্রেস",
+      "name_en": "Rupshi Bangla Express",
+      "off_days": [
+        "monday"
+      ],
+      "origin": {
+        "station": "DAC",
+        "departure": "10:45"
+      },
+      "destination": {
+        "station": "BNP",
+        "arrival": "14:25"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 2,
+        "serial": 64
+      }
+    },
+    {
+      "id": "w-int-3107-3110-DCT-KOAA",
+      "zone": "western",
+      "service_class": "international",
+      "operational_status": "published",
+      "train_number": "3107/3110",
+      "name_bn": "মৈত্রী এক্সপ্রেস",
+      "name_en": "Maitree Express",
+      "off_days": [],
+      "origin": {
+        "station": "DCT",
+        "departure": "08:15"
+      },
+      "destination": {
+        "station": "KOAA",
+        "arrival": "16:00"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 2,
+        "serial": 65
+      }
+    },
+    {
+      "id": "w-int-3108-3109-KOAA-DCT",
+      "zone": "western",
+      "service_class": "international",
+      "operational_status": "published",
+      "train_number": "3108/3109",
+      "name_bn": "মৈত্রী এক্সপ্রেস",
+      "name_en": "Maitree Express",
+      "off_days": [],
+      "origin": {
+        "station": "KOAA",
+        "departure": "07:10"
+      },
+      "destination": {
+        "station": "DCT",
+        "arrival": "15:35"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 2,
+        "serial": 66
+      }
+    },
+    {
+      "id": "w-int-3129-KOAA-KLN",
+      "zone": "western",
+      "service_class": "international",
+      "operational_status": "published",
+      "train_number": "3129",
+      "name_bn": "বন্ধন এক্সপ্রেস",
+      "name_en": "Bandhan Express",
+      "off_days": [],
+      "origin": {
+        "station": "KOAA",
+        "departure": "07:10"
+      },
+      "destination": {
+        "station": "KLN",
+        "arrival": "12:35"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 2,
+        "serial": 67
+      }
+    },
+    {
+      "id": "w-int-3130-KLN-KOAA",
+      "zone": "western",
+      "service_class": "international",
+      "operational_status": "published",
+      "train_number": "3130",
+      "name_bn": "বন্ধন এক্সপ্রেস",
+      "name_en": "Bandhan Express",
+      "off_days": [],
+      "origin": {
+        "station": "KLN",
+        "departure": "13:30"
+      },
+      "destination": {
+        "station": "KOAA",
+        "arrival": "18:10"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 2,
+        "serial": 68
+      }
+    },
+    {
+      "id": "w-int-3131-DCT-NJP",
+      "zone": "western",
+      "service_class": "international",
+      "operational_status": "published",
+      "train_number": "3131",
+      "name_bn": "মিতালী এক্সপ্রেস",
+      "name_en": "Mitali Express",
+      "off_days": [],
+      "origin": {
+        "station": "DCT",
+        "departure": "21:50"
+      },
+      "destination": {
+        "station": "NJP",
+        "arrival": "07:45"
+      },
+      "overnight_inferred": true,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 2,
+        "serial": 69
+      }
+    },
+    {
+      "id": "w-int-3132-NJP-DCT",
+      "zone": "western",
+      "service_class": "international",
+      "operational_status": "published",
+      "train_number": "3132",
+      "name_bn": "মিতালী এক্সপ্রেস",
+      "name_en": "Mitali Express",
+      "off_days": [],
+      "origin": {
+        "station": "NJP",
+        "departure": "11:45"
+      },
+      "destination": {
+        "station": "DCT",
+        "arrival": "22:10"
+      },
+      "overnight_inferred": false,
+      "stops": [],
+      "stops_note": "the published summary table lists only the origin and destination; intermediate stops are not published here",
+      "source": {
+        "document": "western",
+        "page": 2,
+        "serial": 70
+      }
+    }
+  ],
+  "excluded_rows": [
+    {
+      "zone": "eastern",
+      "page": 2,
+      "serial": 1,
+      "train_number": "811",
+      "published_name": null,
+      "reason": "printed in the phased-implementation list without a published train name"
+    },
+    {
+      "zone": "eastern",
+      "page": 2,
+      "serial": 2,
+      "train_number": "812",
+      "published_name": null,
+      "reason": "printed in the phased-implementation list without a published train name"
+    },
+    {
+      "zone": "western",
+      "page": 1,
+      "serial": 57,
+      "train_number": "807",
+      "published_name": "প্রস্তাবিত ..... এক্সপ্রেস",
+      "reason": "published name is literally 'proposed ..... express' with no settled name"
+    },
+    {
+      "zone": "western",
+      "page": 1,
+      "serial": 58,
+      "train_number": "808",
+      "published_name": "প্রস্তাবিত ..... এক্সপ্রেস",
+      "reason": "published name is literally 'proposed ..... express' with no settled name"
+    }
+  ]
+}

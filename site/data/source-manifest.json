@@ -1,0 +1,63 @@
+{
+  "dataset_id": "bd-railway-timetable-54-intercity-2025-03-10",
+  "dataset_sha256": "7a08c9f564d8af4b4b1bc6f60fdea5b109511eb435a3e118e337145bee12dab6",
+  "dataset_bytes": 115599,
+  "app_path": "assets/data/official-timetable.json",
+  "site_path": "site/data/official-timetable.json",
+  "generated_at": "2026-11-25",
+  "generator": "tools/build_official_timetable.py",
+  "transcription": "tools/official_timetable/transcribed_rows.json",
+  "timetable_number": "54",
+  "effective_from": "2025-03-10",
+  "source_index": "https://railway.gov.bd/pages/static-pages/691997d5933eb65569ddf8e2",
+  "documents": {
+    "eastern": {
+      "zone_label": "Eastern Zone (পূর্বাঞ্চল)",
+      "page_url": "https://railway.gov.bd/pages/static-pages/691997bf933eb65569ddec51",
+      "pdf_url": "https://objectstorage.ap-dcc-gazipur-1.oraclecloud15.com/n/axvjbnqprylg/b/V2Ministry/o/office-railway/2024/12/667d364484f84ac7b06d7e8e8804b2c9.pdf",
+      "pages": 8,
+      "rendering": "scanned pages, no text layer; rows transcribed from the scan",
+      "sha256": "d6e1af80252d98b45e8a07e7c30be1ec51f94ddf4b3c942daf4cc3a697137cc9",
+      "bytes": 4753066
+    },
+    "western": {
+      "zone_label": "Western Zone (পশ্চিমাঞ্চল)",
+      "page_url": "https://railway.gov.bd/pages/static-pages/691997b8933eb65569dde71d",
+      "pdf_url": "https://objectstorage.ap-dcc-gazipur-1.oraclecloud15.com/n/axvjbnqprylg/b/V2Ministry/o/office-railway/2024/12/59b5aa56840546f1a05b0741b8cca044.pdf",
+      "pages": 15,
+      "rendering": "text layer uses a legacy Bangla font encoding that extracts as mojibake; rows transcribed from the rendered page image",
+      "sha256": "bc40965826c3f597469d1ddff402b5d78bd340ac3512c22aab944ec28d2de533",
+      "bytes": 1817407
+    }
+  },
+  "counts": {
+    "trains": 130,
+    "stations": 29,
+    "excluded_rows": 4,
+    "by_zone": {
+      "eastern": 62,
+      "western": 68
+    },
+    "by_class": {
+      "intercity": 120,
+      "intercity_phased": 4,
+      "international": 6
+    }
+  },
+  "coverage_gaps": [
+    {
+      "zone": "eastern",
+      "section": "কমিউটার ও মেইল ট্রেনের তালিকা (পূর্বাঞ্চল)",
+      "pages": "3-8",
+      "reason": "the mail/express and commuter summary tables continue for six more scanned pages and have not been transcribed yet; they are not guessed",
+      "approx_rows_visible_on_page_3": 45
+    },
+    {
+      "zone": "western",
+      "section": "কমিউটার ও মেইল ট্রেনের তালিকা (পশ্চিমাঞ্চল)",
+      "pages": "2-15",
+      "reason": "the mail/express and commuter summary tables continue for fourteen more pages and have not been transcribed yet; they are not guessed",
+      "approx_rows_visible_on_page_2": 39
+    }
+  ]
+}
