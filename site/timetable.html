@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>RailMate BD - Official timetable</title>
+    <meta
+      name="description"
+      content="Bangladesh Railway published timetable (Timetable No. 54, effective 10 March 2025): intercity origin/destination times and weekly off days, with source provenance. Published schedule, not live running status."
+    />
+    <link rel="canonical" href="https://sa-mahi12.github.io/RailMate-BD/timetable.html" />
+    <link rel="stylesheet" href="assets/styles.css" />
+  </head>
+  <body data-page="timetable">
+    <header class="site-header">
+      <div class="wrap">
+        <div class="brand"><span class="dot" aria-hidden="true"></span><a href="./">RailMate BD</a></div>
+        <h1>Official timetable</h1>
+        <p>
+          Published Eastern and Western Zone schedules republished from Bangladesh Railway
+          Timetable No.&nbsp;54 (effective 10 March 2025). This is a published timetable, not live
+          running status: no location, delay, ETA, platform, seat availability or fare is shown.
+        </p>
+        <div class="header-actions">
+          <a href="./">Journey Board</a>
+          <a href="https://eticket.railway.gov.bd/">Official e-ticket portal</a>
+          <a href="https://railway.gov.bd/pages/static-pages/691997d5933eb65569ddf8e2">Source index</a>
+        </div>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <div id="status" class="status" hidden></div>
+
+      <section id="provenance" class="timetable-banner" aria-live="polite"></section>
+
+      <form id="filters" class="timetable-filters" autocomplete="off">
+        <label>
+          From
+          <select id="from"><option value="">Any</option></select>
+        </label>
+        <label>
+          To
+          <select id="to"><option value="">Any</option></select>
+        </label>
+        <label>
+          Travels on
+          <select id="weekday"><option value="">Any day</option></select>
+        </label>
+        <label>
+          Train or station
+          <input id="text" type="search" placeholder="e.g. Suborno, 701, Sylhet" />
+        </label>
+        <label class="timetable-check">
+          <input id="phased" type="checkbox" />
+          Show phased services
+        </label>
+      </form>
+
+      <p id="count" class="timetable-count"></p>
+      <section id="trains" aria-label="Published services" aria-live="polite"></section>
+
+      <p class="timetable-note">
+        Filters match the published origin and destination only. The source summary tables do not
+        list intermediate stops, so a search for an intermediate pair returns nothing instead of a
+        guessed route. Weekly off days and times are printed exactly as published; an arrival at or
+        before the departure time is shown as next day.
+      </p>
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap">
+        <strong>RailMate BD - demonstration prototype.</strong>
+        <span>Published schedule data only. For current fare, availability and purchase use the official Bangladesh Railway e-ticket portal.</span>
+        <span>Dataset and PDF SHA-256 digests: <a href="data/source-manifest.json">source manifest</a>.</span>
+      </div>
+    </footer>
+
+    <script type="module" src="assets/timetable.js"></script>
+  </body>
+</html>

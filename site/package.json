@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "build:css": "sass --no-source-map --style=compressed assets/styles.scss assets/styles.css",
-    "test": "node --test assets/util.test.mjs"
+    "test": "node --test assets/util.test.mjs assets/timetable_logic.test.mjs"
   },
   "devDependencies": {
     "sass": "^1.83.0"
